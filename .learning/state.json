@@ -1,6 +1,20 @@
 {
   "created_at": "2026-07-25T10:42:29.915424+00:00",
-  "current_week": 0,
-  "applied_weeks": [],
-  "references_revealed": []
+  "current_week": 1,
+  "applied_weeks": [
+    1
+  ],
+  "references_revealed": [],
+  "applied_files": {
+    "1": [
+      "AGENTS.md",
+      "microtasks/week01-ticket-title/README.md",
+      "microtasks/week01-ticket-title/src/TicketTitleNormalizer.java",
+      "microtasks/week01-ticket-title/test/TicketTitleNormalizerTest.java",
+      "microtasks/week01-ticket-title/test.ps1",
+      "microtasks/week01-ticket-title/test.sh",
+      "schemas/repo-review.schema.json"
+    ]
+  },
+  "updated_at": "2026-07-25T10:42:31.095330+00:00"
 }

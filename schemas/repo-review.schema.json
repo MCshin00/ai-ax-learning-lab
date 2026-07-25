@@ -1,0 +1,32 @@
+{
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "NOT_VERIFIED"
+      ]
+    },
+    "missing_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "first_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 3
+    }
+  },
+  "required": [
+    "status",
+    "missing_items",
+    "first_actions"
+  ],
+  "additionalProperties": false
+}
