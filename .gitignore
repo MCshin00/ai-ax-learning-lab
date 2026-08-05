@@ -1,5 +1,6 @@
 .env
 .venv/
+.venv-dify/
 **/.venv/
 __pycache__/
 *.py[cod]
@@ -8,12 +9,15 @@ __pycache__/
 .ruff_cache/
 .idea/
 .vscode/
+.gradle/
+**/.gradle/
 .DS_Store
 Thumbs.db
 .lab-state/
+.week05-runs/
 .cache/
 build/
 **/build/
 *.class
-app_server/schemas/
-app_server/schemas-ts/
+week05-development-harness/app_server/schemas/
+week05-development-harness/app_server/schemas-ts/

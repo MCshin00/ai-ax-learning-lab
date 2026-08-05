@@ -1,0 +1,101 @@
+{
+  "ok": true,
+  "machineGrade": "A",
+  "sourceChars": 1483,
+  "finalChars": 1388,
+  "changeRate": 0.1908,
+  "changeRateMethod": "exact-levenshtein",
+  "koreanProse": {
+    "source": {
+      "ratio": 0.985,
+      "hangulChars": 986
+    },
+    "final": {
+      "ratio": 0.9836,
+      "hangulChars": 902
+    }
+  },
+  "protectedSpans": {
+    "totalOccurrences": 19,
+    "unique": 8,
+    "orderPreserved": true,
+    "missingOrReordered": []
+  },
+  "patterns": {
+    "before": {
+      "A-1": 0,
+      "A-2": 0,
+      "A-3": 0,
+      "A-4": 0,
+      "A-5": 0,
+      "A-6": 1,
+      "A-7": 0,
+      "A-8": 0,
+      "A-9": 0,
+      "A-10": 0,
+      "A-11": 0,
+      "B-1": 0,
+      "C-5": 0,
+      "C-9": 0,
+      "C-10": 0,
+      "C-11": 4,
+      "D-1": 0,
+      "D-2": 0,
+      "D-3": 0,
+      "D-4": 0,
+      "D-6": 0,
+      "G-1": 1,
+      "G-2": 0,
+      "H-1": 0,
+      "H-3": 1,
+      "I-1": 0,
+      "I-2": 0,
+      "I-3": 0,
+      "J-1": 0,
+      "J-2": 0,
+      "J-3": 0
+    },
+    "after": {
+      "A-1": 0,
+      "A-2": 0,
+      "A-3": 0,
+      "A-4": 0,
+      "A-5": 0,
+      "A-6": 1,
+      "A-7": 0,
+      "A-8": 0,
+      "A-9": 0,
+      "A-10": 0,
+      "A-11": 0,
+      "B-1": 0,
+      "C-5": 0,
+      "C-9": 0,
+      "C-10": 0,
+      "C-11": 0,
+      "D-1": 0,
+      "D-2": 0,
+      "D-3": 0,
+      "D-4": 0,
+      "D-6": 0,
+      "G-1": 0,
+      "G-2": 0,
+      "H-1": 0,
+      "H-3": 0,
+      "I-1": 0,
+      "I-2": 0,
+      "I-3": 0,
+      "J-1": 0,
+      "J-2": 0,
+      "J-3": 0
+    }
+  },
+  "semanticReviewRequired": [
+    "meaning",
+    "facts and claims",
+    "certainty and attribution",
+    "register and genre",
+    "no added content"
+  ],
+  "warnings": [],
+  "problems": []
+}

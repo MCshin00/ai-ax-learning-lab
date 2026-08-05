@@ -1,4 +1,5 @@
 {
+  "layout_version": 2,
   "created_at": "2026-07-25T10:42:29.915424+00:00",
   "current_week": 1,
   "applied_weeks": [
@@ -7,14 +8,18 @@
   "references_revealed": [],
   "applied_files": {
     "1": [
-      "AGENTS.md",
-      "microtasks/week01-ticket-title/README.md",
-      "microtasks/week01-ticket-title/src/TicketTitleNormalizer.java",
-      "microtasks/week01-ticket-title/test/TicketTitleNormalizerTest.java",
-      "microtasks/week01-ticket-title/test.ps1",
-      "microtasks/week01-ticket-title/test.sh",
-      "schemas/repo-review.schema.json"
+      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/README.md",
+      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/build.gradle",
+      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/settings.gradle",
+      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/gradlew",
+      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/gradlew.bat",
+      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/gradle/wrapper/gradle-wrapper.jar",
+      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/gradle/wrapper/gradle-wrapper.properties",
+      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/src/main/java/lab/week01/TicketTitleNormalizer.java",
+      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/src/test/java/lab/week01/TicketTitleNormalizerTest.java",
+      "week01-codex-prompt-comparison/schemas/repo-review.schema.json"
     ]
   },
-  "updated_at": "2026-07-25T10:42:31.095330+00:00"
+  "updated_at": "2026-08-05T11:23:16.828862+00:00",
+  "source_guide_sha256": "7c3d0019926dc5804c2b3586f741075955544e33a22a39378b2466f0b7d50363"
 }
