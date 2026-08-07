@@ -263,27 +263,26 @@ if (Test-Path week01-codex-prompt-comparison\experiments\run-a) { throw "run-a�
 if (Test-Path week01-codex-prompt-comparison\experiments\run-b) { throw "run-b가 이미 있습니다." }
 Copy-Item -Recurse -LiteralPath week01-codex-prompt-comparison\starter\ticket-title-normalizer -Destination week01-codex-prompt-comparison\experiments\run-a
 Copy-Item -Recurse -LiteralPath week01-codex-prompt-comparison\starter\ticket-title-normalizer -Destination week01-codex-prompt-comparison\experiments\run-b
+```
 
+두 Run의 코드와 테스트는 다른 학습자가 비교 결과를 재현할 수 있는 산출물이므로 Git에 포함합니다. 반면 `request-a.md`, `request-b.md`, 첫 응답과 비교 회고 같은 Markdown 기록은 `.gitignore` 대상입니다. Windows에서 복사한 두 `gradlew`의 Git 실행 권한은 시작 상태를 커밋하기 전에 다음처럼 기록합니다.
+
+```powershell
 git add --chmod=+x week01-codex-prompt-comparison/experiments/run-a/gradlew `
   week01-codex-prompt-comparison/experiments/run-b/gradlew
 ```
-
-마지막 명령은 Windows에서 복사한 `gradlew`에도 Git의 실행 권한 비트를 다시 기록합니다. Windows에서 직접 실행할 때는 `gradlew.bat`를 쓰더라도, Linux나 GitHub Actions에서 두 복사본의 `gradlew`를 실행하려면 이 비트가 필요합니다. 두 Run의 시작 상태를 커밋하기 전에 한 번만 실행합니다.
 
 #### A와 B를 동시에 실행하려면
 
 동시 실행은 필수가 아니지만 시간을 줄이고 싶다면 Codex 앱의 서로 다른 새 작업 두 개를 사용합니다. 같은 대화에서 A와 B를 이어서 보내면 앞선 응답이 다음 실행의 맥락이 되므로 비교 실험이 아닙니다.
 
-Git Worktree까지 사용하려면 두 Run 폴더를 만든 현재 상태를 먼저 커밋합니다. 이때 위의 `git add --chmod=+x` 결과도 포함합니다. 커밋 메시지는 루트 `AGENTS.md` 규칙에 따라 AngularJS 형식과 한국어 제목을 함께 사용합니다. 예를 들면 `chore(week01): A/B 실험 시작 상태 준비`처럼 두 폴더가 아직 같은 상태라는 사실이 드러나게 적습니다.
-
 1. Codex 앱에서 `week01-codex-prompt-comparison/experiments/run-a`와 `run-b`를 각각 별도 Local 프로젝트로 추가합니다. 한 프로젝트 안에서 폴더 이름만 언급하는 것으로 대신하지 말고, 각 프로젝트의 primary folder가 정확히 해당 Run 폴더인지 확인합니다.
-2. Run A 프로젝트에서 새 작업을 열어 `Worktree`를 선택하고 방금 커밋한 `main`을 시작점으로 고릅니다. Run B도 별도 프로젝트에서 같은 시작 commit으로 새 Worktree 작업을 만듭니다. 각 Worktree에서도 primary folder가 `run-a` 또는 `run-b`를 가리켜야 합니다.
-3. 두 작업의 모델, reasoning, 권한과 검증 조건을 같게 유지하고 각각 고정된 프롬프트만 보냅니다.
-4. 첫 응답과 테스트 결과를 기록한 뒤 각 Worktree에서 `Create branch here`를 사용해 `week01/run-a`, `week01/run-b`처럼 서로 다른 브랜치를 만듭니다.
-5. A 브랜치는 `run-a/`와 `request-a.md`, B 브랜치는 `run-b/`와 `request-b.md`만 포함하는지 확인한 뒤 GitHub에 올립니다. 변경 경로가 겹치지 않으므로 두 브랜치를 차례로 `main`에 병합하면 최종 저장소에서 두 결과를 함께 볼 수 있습니다.
-6. 두 결과가 합쳐진 뒤에만 `prompt-comparison.md`를 작성합니다. 두 실험 브랜치가 이 공용 비교 문서를 동시에 수정하지 않게 합니다.
+2. 각 프로젝트에서 새 작업을 열고 두 작업의 모델, reasoning, 권한과 검증 조건을 같게 맞춥니다.
+3. Run A에는 A 프롬프트만, Run B에는 B 프롬프트만 보냅니다. 두 작업이 상대 Run이나 저장소 공용 파일을 수정하지 않도록 작업 경계를 함께 적습니다.
+4. 첫 응답과 테스트 결과는 각 Run과 `request-a.md`, `request-b.md`에 로컬 기록으로 남깁니다.
+5. 두 실행이 끝난 뒤 `prompt-comparison.md`를 작성합니다. 이 파일은 개인 기록으로 로컬에 남기고, 두 Run의 코드·테스트와 재사용 가능한 `AGENTS.md`는 Day 마감 커밋에 포함합니다.
 
-Worktree를 사용하지 않아도 `run-a`와 `run-b`를 각각 별도 Local 프로젝트의 primary folder로 열고 새 작업을 만들면 동시에 실행할 수 있습니다. 다만 같은 Local checkout에서 두 작업이 Git 명령이나 공용 파일을 함께 건드리지 않도록 주의해야 합니다. 독립성이 중요한 첫 비교에는 Worktree 두 개가 더 명확합니다.
+서로 다른 폴더를 primary folder로 연 두 작업이면 A/B의 수정 경로가 분리됩니다. 두 결과는 같은 Day 마감 커밋에 함께 넣거나 별도 브랜치에서 커밋한 뒤 합칠 수 있습니다. Git Worktree의 브랜치 분리·병합 자체는 4주차에서 더 자세히 다룹니다.
 
 이제 아래 두 파일을 직접 엽니다.
 
@@ -510,6 +509,7 @@ AGENTS.md에는 어떤 내용을 넣는 편이 좋은가?
 - [ ] 실패 카드가 2개 이상 있습니다.
 - [ ] 자료 없이 핵심 질문에 답할 수 있습니다.
 - [ ] 발행 가능한 글 초안 한 편이 있습니다.
+- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
 
 ---
 

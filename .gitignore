@@ -21,3 +21,21 @@ build/
 *.class
 week05-development-harness/app_server/schemas/
 week05-development-harness/app_server/schemas-ts/
+
+# 주차별 개인 메모와 원시 실행 기록은 로컬에만 보관합니다.
+/week??-*/notes/**
+/week??-*/experiments/private/**
+/week??-*/experiments/**/*.md
+/week??-*/experiments/**/*.jsonl
+/week??-*/experiments/**/*.log
+/week??-*/experiments/**/*.audit.json
+
+# 재사용 가능한 Run 코드와 과정이 제공하는 자료는 계속 추적합니다.
+!/week??-*/experiments/.gitkeep
+!/week??-*/experiments/run-*/README.md
+!/week05-development-harness/notes/
+!/week05-development-harness/notes/workflow-research.csv
+!/week10-ai-development-methods/experiments/benchmark/data-dictionary.md
+!/week10-ai-development-methods/experiments/benchmark/architecture-template.md
+!/week10-ai-development-methods/experiments/benchmark/harness-v2.md
+!/week10-ai-development-methods/experiments/benchmark/scoring-rubric.md

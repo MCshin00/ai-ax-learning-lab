@@ -60,7 +60,7 @@ Codex 요청과 실행 관찰
 4. Codex 앱이나 대화형 CLI의 입력창에 안내된 내용을 직접 입력하거나 붙여넣어 전송합니다.
 5. Codex가 읽은 파일, 세운 계획, 만든 diff와 실행한 테스트를 확인합니다.
 6. 필요한 후속 질문과 교정을 대화로 직접 이어 갑니다.
-7. 결과를 검토하고 실제로 보낸 요청, 수정 횟수와 판정을 해당 주차 폴더의 `experiments/`에 남깁니다.
+7. 결과를 검토하고 실제로 보낸 요청, 수정 횟수와 판정을 해당 주차 폴더의 `experiments/`에 남깁니다. 이 기록은 기본적으로 Git에 올리지 않고 로컬에 보관합니다.
 8. 반복 실행과 정량 측정이 학습 목표가 되면 동결한 프롬프트 파일과 Runner·JSONL 자동화를 사용합니다.
 
 프롬프트를 직접 전송한다는 말은 매번 문구를 처음부터 새로 만들라는 뜻이 아닙니다. A/B 비교처럼 문구 차이 자체가 실험 조건이면 제공된 내용을 그대로 복사해 보내야 합니다. 실제 프로젝트에 맞게 경로와 조건을 채우는 것이 목표라면 템플릿을 수정하고, 프롬프트 설계가 학습 목표인 단계에서만 본인이 새 문구를 작성합니다.
@@ -113,7 +113,30 @@ AI가 만든 계획이나 구현을 다음 단계의 승인으로 간주하지 �
 - `.env`, 가상환경, 빌드 산출물과 원시 로그는 Git에 넣기 전에 `.gitignore`를 확인합니다.
 - Cloud, API, Dify Knowledge, MCP 등록처럼 저장소 밖을 바꾸는 명령은 생성되는 자원, 비용, 제거 방법을 먼저 적습니다.
 - 일부러 깨뜨리는 실험은 복사본이나 폐기 가능한 Worktree에서만 합니다.
-- `CURRENT_WEEK.md`, `LEARNING_GUIDE.md`, 루트 `README.md`, 시작한 주차의 `README.md`, 각 주차 폴더의 `prompts/`와 공개한 `references/`는 과정 도구가 다시 만드는 설명·프롬프트·참고 자료입니다. GitHub에 남길 주차 요약, 실제로 보낸 본문, 후속 대화와 개인 기록은 해당 주차의 `notes/`와 `experiments/`에 남깁니다.
+- `CURRENT_WEEK.md`, `LEARNING_GUIDE.md`, 루트 `README.md`, 시작한 주차의 `README.md`, 각 주차 폴더의 `prompts/`와 공개한 `references/`는 과정 도구가 다시 만드는 설명·프롬프트·참고 자료입니다.
+- 실제로 보낸 본문, 후속 대화, 회고와 원시 실행 결과는 해당 주차의 `notes/`와 `experiments/`에 남깁니다. `notes/` 전체와 `experiments/`의 Markdown·JSONL·로그·`private/` 자료는 `.gitignore`에 포함되므로 개인 기록은 로컬에만 보관됩니다.
+- A/B Run의 코드·테스트, Skills, MCP, 하네스와 평가 자산처럼 다른 학습자가 재현할 산출물은 계속 추적합니다. 5주차의 `notes/workflow-research.csv`와 10주차의 시작 벤치마크 문서처럼 과정이 먼저 제공한 파일도 예외로 추적됩니다. 새 개인 기록을 올리기 위해 `git add -f`를 사용하지 않습니다.
+
+### 개인 기록과 Day 마감 커밋
+
+개인 기록을 Git에서 제외해도 학습 진행 시점은 커밋으로 남깁니다. 각 주차의 **모든 Day를 마칠 때 최소 한 번**, 그날 직접 검증한 마지막 상태를 커밋합니다. 한 Day 안에서 실험 설계상 중간 커밋이 더 필요할 수 있으며, 이미 그날의 최종 상태를 커밋했다면 빈 커밋을 다시 만들 필요는 없습니다.
+
+1. 테스트·평가·수동 확인 중 해당 Day가 요구한 검증을 마칩니다.
+2. `git status --short`로 개인 기록이 stage되지 않았는지 확인합니다.
+3. 재사용할 코드·테스트·설정만 stage하고 `git diff --cached`를 읽습니다.
+4. `type(scope): 한국어 제목` 형식으로 Day 마감 커밋을 만듭니다. `scope`는 `week01`처럼 해당 주차를 사용합니다.
+
+```powershell
+git commit -m "feat(week05): Day 3 Hooks 구현"
+```
+
+읽기·회고만 진행해 공유할 변경이 없는 Day에는 ignored 개인 기록을 강제로 추가하지 않습니다. 대신 다음처럼 내용 없는 마감 커밋으로 검증 시점만 남깁니다.
+
+```powershell
+git commit --allow-empty -m "chore(week01): Day 1 학습 완료"
+```
+
+커밋 제목과 필요한 본문은 루트 `AGENTS.md`의 AngularJS 커밋 컨벤션을 따르고 한국어로 작성합니다. 개인 기록은 GitHub에 포함되지 않으므로, 커밋에는 재사용 가능한 산출물과 Day 완료 시점만 남습니다.
 
 Windows에서는 `python`이 연결되지 않았다면 `py -3`를 사용할 수 있습니다. 다만 가상환경을 만든 뒤에는 활성화 성공 여부에 기대지 말고 `.\<주차 폴더>\.venv\Scripts\python.exe`처럼 그 주차 환경의 Python을 직접 부르는 편이 안전합니다.
 <!-- COMMON END -->
@@ -379,27 +402,26 @@ if (Test-Path week01-codex-prompt-comparison\experiments\run-a) { throw "run-a�
 if (Test-Path week01-codex-prompt-comparison\experiments\run-b) { throw "run-b가 이미 있습니다." }
 Copy-Item -Recurse -LiteralPath week01-codex-prompt-comparison\starter\ticket-title-normalizer -Destination week01-codex-prompt-comparison\experiments\run-a
 Copy-Item -Recurse -LiteralPath week01-codex-prompt-comparison\starter\ticket-title-normalizer -Destination week01-codex-prompt-comparison\experiments\run-b
+```
 
+두 Run의 코드와 테스트는 다른 학습자가 비교 결과를 재현할 수 있는 산출물이므로 Git에 포함합니다. 반면 `request-a.md`, `request-b.md`, 첫 응답과 비교 회고 같은 Markdown 기록은 `.gitignore` 대상입니다. Windows에서 복사한 두 `gradlew`의 Git 실행 권한은 시작 상태를 커밋하기 전에 다음처럼 기록합니다.
+
+```powershell
 git add --chmod=+x week01-codex-prompt-comparison/experiments/run-a/gradlew `
   week01-codex-prompt-comparison/experiments/run-b/gradlew
 ```
-
-마지막 명령은 Windows에서 복사한 `gradlew`에도 Git의 실행 권한 비트를 다시 기록합니다. Windows에서 직접 실행할 때는 `gradlew.bat`를 쓰더라도, Linux나 GitHub Actions에서 두 복사본의 `gradlew`를 실행하려면 이 비트가 필요합니다. 두 Run의 시작 상태를 커밋하기 전에 한 번만 실행합니다.
 
 #### A와 B를 동시에 실행하려면
 
 동시 실행은 필수가 아니지만 시간을 줄이고 싶다면 Codex 앱의 서로 다른 새 작업 두 개를 사용합니다. 같은 대화에서 A와 B를 이어서 보내면 앞선 응답이 다음 실행의 맥락이 되므로 비교 실험이 아닙니다.
 
-Git Worktree까지 사용하려면 두 Run 폴더를 만든 현재 상태를 먼저 커밋합니다. 이때 위의 `git add --chmod=+x` 결과도 포함합니다. 커밋 메시지는 루트 `AGENTS.md` 규칙에 따라 AngularJS 형식과 한국어 제목을 함께 사용합니다. 예를 들면 `chore(week01): A/B 실험 시작 상태 준비`처럼 두 폴더가 아직 같은 상태라는 사실이 드러나게 적습니다.
-
 1. Codex 앱에서 `week01-codex-prompt-comparison/experiments/run-a`와 `run-b`를 각각 별도 Local 프로젝트로 추가합니다. 한 프로젝트 안에서 폴더 이름만 언급하는 것으로 대신하지 말고, 각 프로젝트의 primary folder가 정확히 해당 Run 폴더인지 확인합니다.
-2. Run A 프로젝트에서 새 작업을 열어 `Worktree`를 선택하고 방금 커밋한 `main`을 시작점으로 고릅니다. Run B도 별도 프로젝트에서 같은 시작 commit으로 새 Worktree 작업을 만듭니다. 각 Worktree에서도 primary folder가 `run-a` 또는 `run-b`를 가리켜야 합니다.
-3. 두 작업의 모델, reasoning, 권한과 검증 조건을 같게 유지하고 각각 고정된 프롬프트만 보냅니다.
-4. 첫 응답과 테스트 결과를 기록한 뒤 각 Worktree에서 `Create branch here`를 사용해 `week01/run-a`, `week01/run-b`처럼 서로 다른 브랜치를 만듭니다.
-5. A 브랜치는 `run-a/`와 `request-a.md`, B 브랜치는 `run-b/`와 `request-b.md`만 포함하는지 확인한 뒤 GitHub에 올립니다. 변경 경로가 겹치지 않으므로 두 브랜치를 차례로 `main`에 병합하면 최종 저장소에서 두 결과를 함께 볼 수 있습니다.
-6. 두 결과가 합쳐진 뒤에만 `prompt-comparison.md`를 작성합니다. 두 실험 브랜치가 이 공용 비교 문서를 동시에 수정하지 않게 합니다.
+2. 각 프로젝트에서 새 작업을 열고 두 작업의 모델, reasoning, 권한과 검증 조건을 같게 맞춥니다.
+3. Run A에는 A 프롬프트만, Run B에는 B 프롬프트만 보냅니다. 두 작업이 상대 Run이나 저장소 공용 파일을 수정하지 않도록 작업 경계를 함께 적습니다.
+4. 첫 응답과 테스트 결과는 각 Run과 `request-a.md`, `request-b.md`에 로컬 기록으로 남깁니다.
+5. 두 실행이 끝난 뒤 `prompt-comparison.md`를 작성합니다. 이 파일은 개인 기록으로 로컬에 남기고, 두 Run의 코드·테스트와 재사용 가능한 `AGENTS.md`는 Day 마감 커밋에 포함합니다.
 
-Worktree를 사용하지 않아도 `run-a`와 `run-b`를 각각 별도 Local 프로젝트의 primary folder로 열고 새 작업을 만들면 동시에 실행할 수 있습니다. 다만 같은 Local checkout에서 두 작업이 Git 명령이나 공용 파일을 함께 건드리지 않도록 주의해야 합니다. 독립성이 중요한 첫 비교에는 Worktree 두 개가 더 명확합니다.
+서로 다른 폴더를 primary folder로 연 두 작업이면 A/B의 수정 경로가 분리됩니다. 두 결과는 같은 Day 마감 커밋에 함께 넣거나 별도 브랜치에서 커밋한 뒤 합칠 수 있습니다. Git Worktree의 브랜치 분리·병합 자체는 4주차에서 더 자세히 다룹니다.
 
 이제 아래 두 파일을 직접 엽니다.
 
@@ -626,6 +648,7 @@ AGENTS.md에는 어떤 내용을 넣는 편이 좋은가?
 - [ ] 실패 카드가 2개 이상 있습니다.
 - [ ] 자료 없이 핵심 질문에 답할 수 있습니다.
 - [ ] 발행 가능한 글 초안 한 편이 있습니다.
+- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
 <!-- MODULE:01 END -->
 
 <!-- MODULE:02 START -->
@@ -1026,6 +1049,7 @@ B의 결과는 Skill이 만들었다는 이유만으로 승인하지 않습니�
 - [ ] Skill 설명 수정 전후의 결과를 보존했습니다.
 - [ ] 적용 전후의 시간·누락·테스트 결과를 비교했습니다.
 - [ ] 발행 가능한 글 초안 한 편이 있습니다.
+- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
 <!-- MODULE:02 END -->
 
 <!-- MODULE:03 START -->
@@ -1454,6 +1478,7 @@ codex mcp list
 - [ ] 실패 사례를 자동 판정 가능한 형식으로 기록했습니다.
 - [ ] 직접 호출과 MCP 사용 방식의 차이를 수치로 남겼습니다.
 - [ ] 발행 가능한 글 초안 한 편이 있습니다.
+- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
 <!-- MODULE:03 END -->
 
 <!-- MODULE:04 START -->
@@ -1917,6 +1942,7 @@ Worktree와 병합 순서
 - [ ] 수정 경로를 분리한 Worktree 실험을 완료했습니다.
 - [ ] 시간·품질·중복·오탐·병합 비용을 기록했습니다.
 - [ ] `workflow-v0.md`와 발행 가능한 글 초안 한 편이 있습니다.
+- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
 <!-- MODULE:04 END -->
 
 <!-- MODULE:05 START -->
@@ -2408,7 +2434,7 @@ B: 하네스 v1의 PLAN→IMPLEMENT→TEST→REVIEW→GATE 실행
 
 CLI는 각 Worktree 루트에서 `codex -C .\.week05-runs\run-a` 또는 `codex -C .\.week05-runs\run-b`로 시작합니다. 앱에서도 표의 Run 루트 자체를 primary folder로 엽니다. 두 파일의 `전송할 본문`을 새 대화창에 학습자가 직접 붙여넣어 한 번씩 실행하고, 첫 응답 전에 실제 CWD와 발견된 설정·Skill 경로를 기록합니다. 결과를 받은 뒤에는 변경 파일, 후속 질문, 테스트와 최종 판정을 직접 기록합니다.
 
-임시 `.week05-runs/` 자체는 결과 브랜치에 커밋하지 않습니다. 실행이 끝나면 요청 원문, `shared/benchmark-app/` 결과, 계약 hash, 테스트 결과, `environment.json`, `method-manifest.json`과 필요한 Hook·품질 게이트 증거를 각각 `week05-development-harness/experiments/run-a/`, `run-b/`로 복사합니다. 원시 로그는 비밀값과 개인 경로를 검토한 뒤 필요한 범위만 포함하고, `.codex/`와 `.agents/` 원본 대신 동결한 묶음의 hash와 활성 목록을 남깁니다. 결과 경로로 복사한 뒤 `git add --chmod=+x week05-development-harness/experiments/run-a/shared/benchmark-app/gradlew week05-development-harness/experiments/run-b/shared/benchmark-app/gradlew`를 실행하고 커밋합니다.
+임시 `.week05-runs/` 자체는 커밋하지 않습니다. 실행이 끝나면 요청 원문, `shared/benchmark-app/` 결과, 계약 hash, 테스트 결과, `environment.json`, `method-manifest.json`과 필요한 Hook·품질 게이트 증거를 각각 `week05-development-harness/experiments/run-a/`, `run-b/`로 복사합니다. 원시 로그는 비밀값과 개인 경로를 검토한 뒤 로컬에만 보관하고, `.codex/`와 `.agents/` 원본 대신 동결한 묶음의 hash와 활성 목록을 남깁니다. 요청·회고 Markdown과 JSONL·로그는 자동으로 제외되며, 재사용 가능한 Run 코드·구조화된 환경 증거·테스트는 Day 마감 커밋에 포함합니다. Windows에서 복사한 wrapper는 `git add --chmod=+x week05-development-harness/experiments/run-a/shared/benchmark-app/gradlew week05-development-harness/experiments/run-b/shared/benchmark-app/gradlew`로 실행 비트를 기록합니다.
 
 수동 A/B로 두 실행의 차이와 측정 항목을 이해한 뒤에는 두 파일, 시작 commit과 방법별 활성 설정을 동결합니다. 반복 측정은 동결한 파일 내용을 그대로 `codex exec`에 전달해 자동화할 수 있습니다. Runner가 별도 wrapper 프롬프트를 덧붙이면 입력 조건이 달라지므로 사용한 파일의 해시와 실제 전송 본문을 함께 남깁니다. 문구를 바꾸는 실험은 `v2` 파일로 분리합니다.
 
@@ -2462,6 +2488,7 @@ Hooks와 품질 게이트
 - [ ] 한 Run의 raw event와 상태 파일만 보고 각 전이·재시도·중단 이유를 설명할 수 있습니다.
 - [ ] Codex의 완료 주장과 별개로 최종 PASS·FAIL·`NOT_VERIFIED`를 직접 판정했습니다.
 - [ ] `harness-v1.md`와 발행 가능한 글 초안 한 편이 있습니다.
+- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
 <!-- MODULE:05 END -->
 
 <!-- MODULE:06 START -->
@@ -2948,6 +2975,7 @@ ChatGPT 인증을 쓰는 로컬 Codex 자동화는 `codex login status`로 현�
 - [ ] raw 응답이나 Tool trace만 보고 실패 한 건의 상태·종료 이유와 재시도 여부를 설명할 수 있습니다.
 - [ ] 평가 사례의 기대 Tool·상태와 최종 수용 여부를 학습자가 직접 승인했습니다.
 - [ ] 발행 가능한 글 초안 한 편이 있습니다.
+- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
 <!-- MODULE:06 END -->
 
 <!-- MODULE:07 START -->
@@ -3323,6 +3351,7 @@ LangGraph가 적합한 경우
 - [ ] 사례 하나의 raw Tool trace와 승인 상태 전이를 AI 없이 설명할 수 있습니다.
 - [ ] 프레임워크를 사용할 이유와 사용하지 않을 이유를 같은 실험 근거로 설명하고 최종 선택을 직접 내렸습니다.
 - [ ] 프레임워크 선택 가이드와 글 초안 한 편이 있습니다.
+- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
 <!-- MODULE:07 END -->
 
 <!-- MODULE:08 START -->
@@ -3814,6 +3843,7 @@ Chunking·Embedding 설정
 - [ ] raw 검색·답변 결과에서 검색 실패와 생성 실패를 각각 한 건 이상 AI 없이 설명할 수 있습니다.
 - [ ] Agentic 경로와 Red Team 판정의 최종 수용 여부를 학습자가 결정했습니다.
 - [ ] 개선 전후 회귀 보고서와 글 초안 한 편이 있습니다.
+- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
 <!-- MODULE:08 END -->
 
 <!-- MODULE:09 START -->
@@ -4222,6 +4252,7 @@ Plugin을 직접 만들며 확인한 경계
 - [ ] 첫 Workflow와 대표 평가 사례를 화면에서 직접 실행하고 각 상태를 설명할 수 있습니다.
 - [ ] 최종 승인과 코드·Dify 방식의 선택 근거를 본인이 결정했습니다.
 - [ ] 비교 보고서와 발행 가능한 글 초안 한 편이 있습니다.
+- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
 <!-- MODULE:09 END -->
 
 <!-- MODULE:10 START -->
@@ -4517,7 +4548,7 @@ Copy-Item -LiteralPath .\experiments\benchmark\method-manifest.template.json -De
 git add --chmod=+x "$RunRoot/shared/benchmark-app/gradlew"
 ```
 
-마지막 명령은 Windows에서 복사한 `shared/benchmark-app/gradlew`에도 Git 실행 권한 비트를 기록합니다. `environment.json`과 `method-manifest.json`은 실제 값으로 채우고 SHA-256을 기록합니다. 템플릿의 빈 값을 그대로 실행 증거로 쓰지 않습니다.
+마지막 명령은 Windows에서 복사한 `shared/benchmark-app/gradlew`의 Git 실행 권한을 기록합니다. 요청·회고 Markdown과 원시 JSONL·로그는 제외되지만, Run 코드·테스트와 구조화된 측정 자료는 비교 재현을 위해 추적합니다. `environment.json`과 `method-manifest.json`은 실제 값으로 채우고 SHA-256을 기록합니다. 템플릿의 빈 값을 그대로 실행 증거로 쓰지 않습니다.
 
 방법별 활성 요소는 다음처럼 Run 루트에만 둡니다.
 
@@ -4769,6 +4800,7 @@ Worktree와 병합 기준
 - [ ] Pareto 전선과 실험 한계를 보고서에 포함했습니다.
 - [ ] AI의 점수·분석과 최종 하네스 규칙을 근거를 보고 직접 수용하거나 거절했습니다.
 - [ ] 개발 하네스 v2와 발행 가능한 종합 글 한 편이 있습니다.
+- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
 <!-- MODULE:10 END -->
 
 <!-- MODULE:11 START -->
@@ -4796,7 +4828,7 @@ AI가 코드를 작성하고 테스트를 보조한 것은 **AI를 활용한 개
 
 프로젝트를 이 학습 저장소의 `week11-webapp-vertical-slice/portfolio/app/`에 만들거나 별도 비공개 저장소에서 진행할 수 있습니다. 별도 저장소를 택하면 학습 저장소에는 URL, 기준 commit, 실행 환경과 평가 결과만 남깁니다. 어느 방식을 택하든 11~12주차 중간에 저장 위치를 바꾸지 않습니다.
 
-Git commit은 매일의 출석 표시가 아니라 비교 가능한 시점을 보존하는 도구로 씁니다.
+Day 마감 커밋은 단순한 출석 표시가 아니라 그날 검증한 시점을 보존하는 기록입니다. 아래 비교 지점처럼 의미 있는 상태에서는 Day 마감 외의 추가 커밋도 만듭니다.
 
 ```text
 BASELINE       현재 방식과 첫 실패 테스트
@@ -4995,6 +5027,7 @@ Day 2의 사례를 바꾸지 않고 실행해 `week11-webapp-vertical-slice/port
 - [ ] 같은 사례로 기준선과 수직 기능을 비교했습니다.
 - [ ] 실제 화면이나 API에서 대표 흐름을 직접 확인한 뒤 자동 평가와 대조했습니다.
 - [ ] 미검증 항목과 다음 가설을 남겼습니다.
+- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
 <!-- MODULE:11 END -->
 
 <!-- MODULE:12 START -->
@@ -5175,6 +5208,7 @@ AI가 PASS라고 쓴 항목도 근거를 직접 열어 확인합니다. 최종 �
 - [ ] 3~5분 데모와 근거 파일이 연결됩니다.
 - [ ] 비용·외부 변경·rollback과 최종 공개 여부를 본인이 승인했습니다.
 - [ ] 문제, 선택, 수치, 실패와 남은 한계를 직접 설명할 수 있습니다.
+- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
 <!-- MODULE:12 END -->
 
 ## 부록 — 공식 학습 자료
