@@ -1,6 +1,6 @@
 # [실험 입력 A] 짧은 요청
 
-`week01-codex-prompt-comparison/experiments/run-a`에 과제 파일이 준비된 상태에서 사용합니다. 아래 본문만 복사해 Codex 앱이나 대화형 CLI의 입력창에 직접 붙여넣어 보냅니다.
+`week01-codex-prompt-comparison/runs/run-a`에 과제 파일이 준비된 상태에서 사용합니다. 아래 본문만 복사해 Codex 앱이나 대화형 CLI의 입력창에 직접 붙여넣어 보냅니다.
 
 ## 직접 보낼 내용
 
