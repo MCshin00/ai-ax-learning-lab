@@ -1,5 +1,5 @@
 {
-  "layout_version": 2,
+  "layout_version": 3,
   "created_at": "2026-07-25T10:42:29.915424+00:00",
   "current_week": 1,
   "applied_weeks": [
@@ -8,18 +8,28 @@
   "references_revealed": [],
   "applied_files": {
     "1": [
-      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/README.md",
-      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/build.gradle",
-      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/settings.gradle",
-      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/gradlew",
-      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/gradlew.bat",
-      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/gradle/wrapper/gradle-wrapper.jar",
-      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/gradle/wrapper/gradle-wrapper.properties",
-      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/src/main/java/lab/week01/TicketTitleNormalizer.java",
-      "week01-codex-prompt-comparison/starter/ticket-title-normalizer/src/test/java/lab/week01/TicketTitleNormalizerTest.java",
-      "week01-codex-prompt-comparison/schemas/repo-review.schema.json"
+      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/build.gradle",
+      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/gradle/wrapper/gradle-wrapper.jar",
+      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/gradle/wrapper/gradle-wrapper.properties",
+      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/gradlew",
+      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/gradlew.bat",
+      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/README.md",
+      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/settings.gradle",
+      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/src/main/java/lab/week01/TicketTitleNormalizer.java",
+      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/src/test/java/lab/week01/TicketTitleNormalizerTest.java",
+      "week01-codex-prompt-comparison/lab/schemas/repo-review.schema.json"
     ]
   },
-  "updated_at": "2026-08-07T13:07:32.848390+00:00",
-  "source_guide_sha256": "1f0e055aab7e718140fcbb2ec4e871e3a7c040d5404bdd8732640588fef1554b"
+  "updated_at": "2026-08-08T09:30:39.690826+00:00",
+  "source_guide_sha256": "1bbc8eaa5a9921015c7668a7a64545a420561a4e46b0c21ff72dbb74cb93e4c1",
+  "migrated_from_layout_version": 2,
+  "layout_migrated_at": "2026-08-08T07:04:48.142669+00:00",
+  "layout_migrations": [
+    {
+      "from": 2,
+      "to": 3,
+      "completed_at": "2026-08-08T07:04:48.142692+00:00"
+    }
+  ],
+  "layout_migrated_file_count": 323
 }
