@@ -168,7 +168,7 @@ week01-codex-prompt-comparison/.local/notes/week01-retrospective.md
 | 2 | 준비된 두 프롬프트 직접 전송 | 대화형 A/B 실행과 요청 원문 |
 | 3 | `AGENTS.md` 계층 | 직접 쓴 지침과 적용 확인 |
 | 4 | 선택 측정과 실행 로그 | 같은 요청의 JSONL 요약과 시간 기록 |
-| 5 | 비교·회고·구술 점검 | 비교표, 실패 카드, 글 초안 |
+| 5 | 비교·회고·구술 점검 | 비교표, 실패 카드, 회고 요약 |
 
 ### 이번 주의 실행 지도
 
@@ -178,7 +178,7 @@ week01-codex-prompt-comparison/.local/notes/week01-retrospective.md
 | 2 | `prompts/minimal.md`, `prompts/structured.md` | 각각 `.local/scratch/run-a/`, `.local/scratch/run-b/` | Codex 앱·IDE 확장·대화형 CLI 중 하나와 IDE | 각 Run의 `request.md`, `response.md`, `run.json`, diff·tests | `.local/notes/day02.md` |
 | 3 | 루트와 과제의 `AGENTS.md`, `prompts/agents-audit.md` | `lab/ticket-title-normalizer/` | Codex 직접 협업 + IDE 대조 | 하위 `AGENTS.md`, 적용 근거와 실패 카드 | `.local/notes/day03.md` |
 | 4 | 두 Run 증거, `shared/tools/runner/run_codex_exec.py` | 새 `.local/scratch/measured-a/`, `measured-b/` | 수동 파일럿 뒤 `codex exec`·Runner | 정제된 request·response·events/log, `run.json`, tests | `.local/raw/<run-id>/` |
-| 5 | A/B Run 전체, `shared/templates/weekly-retrospective.md` | 주차 루트 | IDE diff·테스트, 필요하면 ChatGPT 반례 검토 | `runs/comparison.md`, 근거 링크와 글 초안 | `.local/notes/week01-retrospective.md` |
+| 5 | A/B Run 전체, `shared/templates/weekly-retrospective.md` | 주차 루트 | IDE diff·테스트, 필요하면 ChatGPT 반례 검토 | `runs/comparison.md`, 근거 링크와 회고 요약 | `.local/notes/week01-retrospective.md` |
 
 ---
 
@@ -488,14 +488,6 @@ AGENTS.md에는 어떤 내용을 넣는 편이 좋은가?
 이번 결과로 말할 수 있는 것과 아직 말하기 어려운 것은 무엇인가?
 ```
 
-#### 블로그 자료
-
-- 진행한 날마다 남긴 짧은 실험 노트
-- 발행 후보 1편: `준비된 Java 과제를 Codex에 직접 요청하며 알게 된 것`
-- 실패 카드 2개 이상
-
-글의 첫 초안과 결론은 본인이 씁니다. AI는 빠진 질문을 찾거나 문장을 다듬는 데 활용할 수 있지만, 어떤 차이가 중요했는지와 결과를 수용할지는 대신 결정하게 두지 않습니다.
-
 ## 완료 기준
 
 - [ ] 준비된 Java 과제의 파일 역할, 요구사항과 의도된 첫 실패를 설명할 수 있습니다.
@@ -506,8 +498,7 @@ AGENTS.md에는 어떤 내용을 넣는 편이 좋은가?
 - [ ] 선택 측정을 했다면 대화형 결과와 자동 실행 표본을 구분하고 JSONL 요약을 남겼습니다.
 - [ ] 실패 카드가 2개 이상 있습니다.
 - [ ] 자료 없이 핵심 질문에 답할 수 있습니다.
-- [ ] 발행 가능한 글 초안 한 편이 있습니다.
-- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
+- [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 
 ---
 

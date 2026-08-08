@@ -349,7 +349,7 @@ week01-codex-prompt-comparison/.local/notes/week01-retrospective.md
 | 2 | 준비된 두 프롬프트 직접 전송 | 대화형 A/B 실행과 요청 원문 |
 | 3 | `AGENTS.md` 계층 | 직접 쓴 지침과 적용 확인 |
 | 4 | 선택 측정과 실행 로그 | 같은 요청의 JSONL 요약과 시간 기록 |
-| 5 | 비교·회고·구술 점검 | 비교표, 실패 카드, 글 초안 |
+| 5 | 비교·회고·구술 점검 | 비교표, 실패 카드, 회고 요약 |
 
 ### 이번 주의 실행 지도
 
@@ -359,7 +359,7 @@ week01-codex-prompt-comparison/.local/notes/week01-retrospective.md
 | 2 | `prompts/minimal.md`, `prompts/structured.md` | 각각 `.local/scratch/run-a/`, `.local/scratch/run-b/` | Codex 앱·IDE 확장·대화형 CLI 중 하나와 IDE | 각 Run의 `request.md`, `response.md`, `run.json`, diff·tests | `.local/notes/day02.md` |
 | 3 | 루트와 과제의 `AGENTS.md`, `prompts/agents-audit.md` | `lab/ticket-title-normalizer/` | Codex 직접 협업 + IDE 대조 | 하위 `AGENTS.md`, 적용 근거와 실패 카드 | `.local/notes/day03.md` |
 | 4 | 두 Run 증거, `shared/tools/runner/run_codex_exec.py` | 새 `.local/scratch/measured-a/`, `measured-b/` | 수동 파일럿 뒤 `codex exec`·Runner | 정제된 request·response·events/log, `run.json`, tests | `.local/raw/<run-id>/` |
-| 5 | A/B Run 전체, `shared/templates/weekly-retrospective.md` | 주차 루트 | IDE diff·테스트, 필요하면 ChatGPT 반례 검토 | `runs/comparison.md`, 근거 링크와 글 초안 | `.local/notes/week01-retrospective.md` |
+| 5 | A/B Run 전체, `shared/templates/weekly-retrospective.md` | 주차 루트 | IDE diff·테스트, 필요하면 ChatGPT 반례 검토 | `runs/comparison.md`, 근거 링크와 회고 요약 | `.local/notes/week01-retrospective.md` |
 
 ---
 
@@ -669,14 +669,6 @@ AGENTS.md에는 어떤 내용을 넣는 편이 좋은가?
 이번 결과로 말할 수 있는 것과 아직 말하기 어려운 것은 무엇인가?
 ```
 
-#### 블로그 자료
-
-- 진행한 날마다 남긴 짧은 실험 노트
-- 발행 후보 1편: `준비된 Java 과제를 Codex에 직접 요청하며 알게 된 것`
-- 실패 카드 2개 이상
-
-글의 첫 초안과 결론은 본인이 씁니다. AI는 빠진 질문을 찾거나 문장을 다듬는 데 활용할 수 있지만, 어떤 차이가 중요했는지와 결과를 수용할지는 대신 결정하게 두지 않습니다.
-
 ## 완료 기준
 
 - [ ] 준비된 Java 과제의 파일 역할, 요구사항과 의도된 첫 실패를 설명할 수 있습니다.
@@ -687,8 +679,7 @@ AGENTS.md에는 어떤 내용을 넣는 편이 좋은가?
 - [ ] 선택 측정을 했다면 대화형 결과와 자동 실행 표본을 구분하고 JSONL 요약을 남겼습니다.
 - [ ] 실패 카드가 2개 이상 있습니다.
 - [ ] 자료 없이 핵심 질문에 답할 수 있습니다.
-- [ ] 발행 가능한 글 초안 한 편이 있습니다.
-- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
+- [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:01 END -->
 
 <!-- MODULE:02 START -->
@@ -833,7 +824,7 @@ runs/trigger-evaluation/
 | 3 | 결정적 검증 분리 | 계약 검사 스크립트와 테스트 |
 | 4 | 명시 호출·자동 선택 | 두 호출 방식의 실행 기록 |
 | 5 | 발동 평가 | 긍정·부정·경계 사례 30개 |
-| 6 | 실제 과제 적용과 회고 | 적용 전후 비교와 글 초안 |
+| 6 | 실제 과제 적용과 회고 | 적용 전후 비교와 회고 요약 |
 
 ### 이번 주의 실행 지도
 
@@ -844,7 +835,7 @@ runs/trigger-evaluation/
 | 3 | validator·tests, `shared/benchmark/contracts/TASK-A.md` | `lab/` | IDE·터미널 테스트·디버거 | validator, tests, 실패 카드 | `.local/notes/day03.md` |
 | 4 | 명시·자동 요청과 완성한 Skill | `lab/` | 같은 Codex 표면의 새 작업 두 개 | `runs/explicit/`, `runs/automatic/`의 요청·응답·근거 | `.local/notes/day04.md` |
 | 5 | `lab/evals/skill-trigger-cases.jsonl` | `lab/` | 대표 3건 수동 후 선택적으로 Runner | `runs/trigger-evaluation/`과 혼동 행렬 | `.local/notes/day05.md` |
-| 6 | Week 1 과제 또는 `TASK-A`, 모든 평가 결과 | `lab/` | Codex 직접 협업 + IDE 검증 | 적용 전후 결과, 공개 회고·글 초안 | `.local/notes/week02-skill-retrospective.md` |
+| 6 | Week 1 과제 또는 `TASK-A`, 모든 평가 결과 | `lab/` | Codex 직접 협업 + IDE 검증 | 적용 전후 결과와 공개 회고 | `.local/notes/week02-skill-retrospective.md` |
 
 ### 이번 주 작업 폴더
 
@@ -1074,12 +1065,6 @@ B의 결과는 Skill이 만들었다는 이유만으로 승인하지 않습니�
 - 첫 결과 테스트 통과율
 - 전체 토큰
 
-#### 블로그 자료
-
-- 매일의 짧은 실험 노트
-- 발행 후보 1편: `첫 Codex Skill을 만들고 자동 선택을 30개 요청으로 시험해 봤다`
-- 발동 실패 사례 2개 이상
-
 ## 완료 기준
 
 - [ ] 기존 Skill 두 개의 구조와 발동 조건을 비교했습니다.
@@ -1089,8 +1074,7 @@ B의 결과는 Skill이 만들었다는 이유만으로 승인하지 않습니�
 - [ ] 긍정·부정·경계 사례 30개를 평가했습니다.
 - [ ] Skill 설명 수정 전후의 결과를 보존했습니다.
 - [ ] 적용 전후의 시간·누락·테스트 결과를 비교했습니다.
-- [ ] 발행 가능한 글 초안 한 편이 있습니다.
-- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
+- [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:02 END -->
 
 <!-- MODULE:03 START -->
@@ -1541,12 +1525,6 @@ codex mcp list
 
 핵심 실습을 마친 뒤에만 두 확장을 선택적으로 살펴봅니다. 장시간 작업은 `io.modelcontextprotocol/tasks` extension의 Tasks로 모델링하되 일반 Tool 호출과 상태·취소·결과 보존 차이를 기록합니다. 원격 서버는 Streamable HTTP와 OAuth를 함께 설계하며, 로컬 stdio 실습의 신뢰 경계를 그대로 인터넷에 노출하지 않습니다.
 
-#### 블로그 자료
-
-- 매일의 짧은 실험 노트
-- 발행 후보 1편: `MCP 서버와 클라이언트를 직접 만들며 확인한 Tool·Resource·Prompt의 경계`
-- 경로 검증 또는 오류 처리 실패 카드 2개 이상
-
 ## 완료 기준
 
 - [ ] Host·Client·Server의 관계를 그림으로 설명할 수 있습니다.
@@ -1556,8 +1534,7 @@ codex mcp list
 - [ ] 경로 이탈과 잘못된 입력이 서버에서 차단됩니다.
 - [ ] 실패 사례를 자동 판정 가능한 형식으로 기록했습니다.
 - [ ] 직접 호출과 MCP 사용 방식의 차이를 수치로 남겼습니다.
-- [ ] 발행 가능한 글 초안 한 편이 있습니다.
-- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
+- [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:03 END -->
 
 <!-- MODULE:04 START -->
@@ -1734,7 +1711,7 @@ week04-multi-agent-worktrees/runs/workflow-v0.md
 | 3 | 읽기 작업 병렬화 | 1·3개 핵심 비교와 선택 5·10개 stress test |
 | 4 | Worktree와 쓰기 범위 | 분리 구현과 통합 |
 | 5 | 중복·충돌·검토 비용 | 실행 행렬과 실패 카드 |
-| 6 | 운영 방식 정리 | `workflow-v0.md`와 글 초안 |
+| 6 | 운영 방식 정리 | `workflow-v0.md`와 회고 요약 |
 
 ### 이번 주의 실행 지도
 
@@ -1745,7 +1722,7 @@ week04-multi-agent-worktrees/runs/workflow-v0.md
 | 3 | `lab/evals/session-run-matrix*`, 고정 읽기 범위 | 읽기 대상 저장소 | 먼저 네이티브 단일 작업↔Subagent, 별도로 독립 세션 비교 | 1·3 결과, 선택 5·10 stress 결과 | `.local/notes/day03.md` |
 | 4 | Git 공식 Worktree 개념, Task·경로 계약 | 각 Worktree 루트 | 첫 생성은 raw `git worktree add`, 이후 helper 선택 | 브랜치·commit·통합·충돌 증거 | `.local/notes/day04.md` |
 | 5 | 모든 Run·인계·행렬 | 주차 `lab/` | IDE diff·test + 수동 판정 | 조정 비용표와 실패 카드 | `.local/notes/day05.md` |
-| 6 | 공개 결과와 `shared/templates/weekly-retrospective.md` | 주차 루트 | IDE/문서 편집, 필요하면 ChatGPT 반례 검토 | `runs/workflow-v0.md`와 글 초안 | `.local/notes/week04-retrospective.md` |
+| 6 | 공개 결과와 `shared/templates/weekly-retrospective.md` | 주차 루트 | IDE/문서 편집, 필요하면 ChatGPT 반례 검토 | `runs/workflow-v0.md`와 회고 요약 | `.local/notes/week04-retrospective.md` |
 
 ### 먼저 살펴볼 제공 파일
 
@@ -1997,12 +1974,6 @@ Worktree와 병합 순서
 다음 모듈에서 자동화할 반복 절차
 ```
 
-#### 블로그 자료
-
-- 매일의 짧은 실험 노트
-- 발행 후보 1편: `동일한 분석을 Codex 작업 1·3·5·10개로 수행한 결과`
-- 선택 후보: `페르소나 프롬프트와 역할 명세는 결과에 어떤 차이를 만들었나`
-
 ## 완료 기준
 
 - [ ] 이 모듈에서 말하는 세션의 단위를 일관되게 기록했습니다.
@@ -2011,8 +1982,8 @@ Worktree와 병합 순서
 - [ ] 읽기 과제를 단일 작업·Subagent·독립 세션 방식으로 비교했고, 선택했다면 5·10개 stress 결과를 별도 표시했습니다.
 - [ ] 수정 경로를 분리한 Worktree 실험을 완료했습니다.
 - [ ] 시간·품질·중복·오탐·병합 비용을 기록했습니다.
-- [ ] `workflow-v0.md`와 발행 가능한 글 초안 한 편이 있습니다.
-- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
+- [ ] `workflow-v0.md`를 완성했습니다.
+- [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:04 END -->
 
 <!-- MODULE:05 START -->
@@ -2254,7 +2225,7 @@ runs/
 | 4 | Subagents·Skills·MCP | 역할별 실행 계약 |
 | 5 | Runner와 상태 저장 | Fake Runner·재시도·재개 |
 | 6 | 효과 비교 | 기본 방식·하네스 방식 A/B |
-| 7 | 운영 문서 | 하네스 v1과 글 초안 |
+| 7 | 운영 문서 | 하네스 v1과 운영 회고 |
 
 ### 이번 주의 실행 지도
 
@@ -2266,7 +2237,7 @@ runs/
 | 4 | Subagent 설정, quality-gate Skill, handoff 계약 | `lab/` | 네이티브 Subagent + IDE 검증 | 역할 계약·handoff·gate 결과 | `.local/notes/day04.md` |
 | 5 | 수동 단계 기록, `lab/harness/run_harness.py` | `lab/` | Codex 앱/대화형 수동 실행 후 얇은 runner | `runs/manual-pilot/`, 상태·재개 증거 | `.local/notes/day05.md` |
 | 6 | `prompts/basic-run.md`, `prompts/harness-v1-run.md` | 각각 격리된 Worktree의 `week05-development-harness/lab/` | 같은 Codex 표면, 반복만 Runner | `runs/run-a/`, `runs/run-b/`의 요청·응답·방법 설정·tests·정제 events | `.local/raw/<run-id>/` |
-| 7 | 모든 Run과 운영 문서 뼈대 | 주차 루트 | IDE/문서 편집, 필요하면 ChatGPT 반례 검토 | 공개 `runs/harness-v1.md`와 글 초안 | `.local/notes/week05-retrospective.md` |
+| 7 | 모든 Run과 운영 문서 뼈대 | 주차 루트 | IDE/문서 편집, 필요하면 ChatGPT 반례 검토 | 공개 `runs/harness-v1.md`와 운영 회고 | `.local/notes/week05-retrospective.md` |
 
 ### 이번 주 작업 폴더
 
@@ -2549,12 +2520,6 @@ Hooks와 품질 게이트
 다음 버전에서 검증할 가설
 ```
 
-#### 블로그 자료
-
-- 매일의 짧은 실험 노트
-- 발행 후보 1편: `AGENTS.md·Skills·MCP·Hooks를 개발 하네스로 연결한 과정`
-- 선택 후보: `Hook이 막은 실패와 잘못 막은 정상 작업`
-
 ## 완료 기준
 
 - [ ] 개발 실행 루프의 상태·입력·산출물·실패 처리를 정의했습니다.
@@ -2565,8 +2530,8 @@ Hooks와 품질 게이트
 - [ ] 고정 A/B 입력을 대화창에 직접 전송해 한 번씩 실행한 뒤, 같은 파일로 반복 측정했습니다.
 - [ ] 한 Run의 정제 event와 상태 파일만 보고 각 전이·재시도·중단 이유를 설명할 수 있습니다.
 - [ ] Codex의 완료 주장과 별개로 최종 PASS·FAIL·`NOT_VERIFIED`를 직접 판정했습니다.
-- [ ] `harness-v1.md`와 발행 가능한 글 초안 한 편이 있습니다.
-- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
+- [ ] `harness-v1.md`를 완성했습니다.
+- [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:05 END -->
 
 <!-- MODULE:06 START -->
@@ -2772,7 +2737,7 @@ Live 호출은 `week06-llm-api-tool-calling/lab/.env`에서 명시적으로 켜�
 | 4 | 단일 Tool Calling | 도구 정의·검증·결과 반환 |
 | 5 | Tool Loop | 반복·종료·오류·예산 |
 | 6 | 모델 연결 어댑터 | Fake·Recorded·Live 테스트 |
-| 7 | 실행 경로 비교와 회고 | 비용표·선택 기준·글 초안 |
+| 7 | 실행 경로 비교와 회고 | 비용표·선택 기준·회고 요약 |
 
 ### 이번 주의 실행 지도
 
@@ -2784,7 +2749,7 @@ Live 호출은 `week06-llm-api-tool-calling/lab/.env`에서 명시적으로 켜�
 | 4 | Tool schema·registry·권한 계약 | `lab/llm_lab/` | IDE·Codex 구현 보조 | 단일 Tool success/error 증거 | `.local/notes/day04.md` |
 | 5 | `lab/evals/tool-golden.jsonl`, loop·budget 코드 | `lab/llm_lab/` | IDE·Fake/Scripted 실행 | Tool trace·종료 이유·평가 결과 | `.local/notes/day05.md` |
 | 6 | adapter·conversation-state·compaction tests | `lab/llm_lab/` | IDE, 소수 Live API | 상태 방식별 Run, 비용·보존·cache 지표 | `.local/raw/<run-id>/` |
-| 7 | 모든 Run과 인증·과금 경계 | 주차 루트 | IDE/문서 편집 + ChatGPT 개념 반례 | `runs/api-retrospective.md`와 글 초안 | `.local/notes/week06-retrospective.md` |
+| 7 | 모든 Run과 인증·과금 경계 | 주차 루트 | IDE/문서 편집 + ChatGPT 개념 반례 | `runs/api-retrospective.md`와 회고 요약 | `.local/notes/week06-retrospective.md` |
 
 ---
 
@@ -3078,12 +3043,6 @@ ChatGPT 인증을 쓰는 로컬 Codex 자동화는 `codex login status`로 현�
 
 공개 가능한 실행 경로 비교, 인증·과금 경계와 근거 링크는 `week06-llm-api-tool-calling/runs/api-retrospective.md`에 정리합니다. 개인적인 시행착오와 다음 학습 메모는 `.local/notes/week06-retrospective.md`에 분리합니다.
 
-#### 블로그 자료
-
-- 매일의 짧은 실험 노트
-- 발행 후보 1편: `첫 LLM API와 Tool Calling Loop를 구현하며 기록한 오류와 비용`
-- 선택 후보: `ChatGPT 로그인 기반 Codex와 애플리케이션 API를 분리한 이유`
-
 ## 완료 기준
 
 - [ ] Live API를 1회 확인했거나, API 키가 없다면 Recorded 경로를 검증하고 Live 항목을 `NOT_VERIFIED`로 기록했습니다.
@@ -3097,8 +3056,7 @@ ChatGPT 인증을 쓰는 로컬 Codex 자동화는 `codex login status`로 현�
 - [ ] 정제한 응답 event나 Tool trace만 보고 실패 한 건의 상태·종료 이유와 재시도 여부를 설명할 수 있습니다.
 - [ ] 직접 history·`previous_response_id`·Conversations를 같은 과제로 비교하고 compaction·retention·cache 지표를 기록했습니다.
 - [ ] 평가 사례의 기대 Tool·상태와 최종 수용 여부를 학습자가 직접 승인했습니다.
-- [ ] 발행 가능한 글 초안 한 편이 있습니다.
-- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
+- [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:06 END -->
 
 <!-- MODULE:07 START -->
@@ -3274,7 +3232,7 @@ week07-langchain-langgraph/runs/framework-selection-guide.md
 | 4 | 일반 승인 상태 머신 | 코드 기준선 |
 | 5 | LangGraph | Interrupt·Checkpoint·Resume |
 | 6 | 실험 B | 상태 머신·LangGraph 비교 |
-| 7 | 선택 기준 | 적용 기준과 글 초안 |
+| 7 | 선택 기준 | 적용 기준과 회고 요약 |
 
 ### 이번 주의 실행 지도
 
@@ -3286,7 +3244,7 @@ week07-langchain-langgraph/runs/framework-selection-guide.md
 | 4 | 일반 상태 머신과 불변식 | `lab/framework_lab/` | IDE·테스트 | 전이·승인·멱등성 증거 | `.local/notes/day04.md` |
 | 5 | LangGraph persistence·interrupt·memory 문서 | `lab/framework_lab/` | IDE·테스트·trace viewer 선택 | 중단·재개와 memory CRUD 증거 | `.local/notes/day05.md` |
 | 6 | 두 상태 구현, dependency snapshot, 실패 trace | `lab/framework_lab/` | IDE 디버깅·평가 runner | 상태·복구·추적·의존성 비교 | `.local/raw/<run-id>/` |
-| 7 | 모든 비교 결과 | 주차 루트 | IDE/문서 편집 + ChatGPT 반례 | `runs/framework-selection-guide.md`와 글 초안 | `.local/notes/week07-retrospective.md` |
+| 7 | 모든 비교 결과 | 주차 루트 | IDE/문서 편집 + ChatGPT 반례 | `runs/framework-selection-guide.md`와 회고 요약 | `.local/notes/week07-retrospective.md` |
 
 ---
 
@@ -3509,12 +3467,6 @@ LangGraph가 적합한 경우
 현재 실험의 한계
 ```
 
-#### 블로그 자료
-
-- 매일의 짧은 실험 노트
-- 발행 후보 1편: `직접 Tool Loop·Agents SDK·LangChain을 같은 계약으로 비교했다`
-- 선택 후보: `승인·중단·재개를 일반 상태 머신과 LangGraph로 구현한 결과`
-
 ## 완료 기준
 
 - [ ] 비교 계약과 평가 사례 15개 이상을 고정했습니다.
@@ -3527,8 +3479,8 @@ LangGraph가 적합한 경우
 - [ ] memory write·read·update·delete·TTL·provenance와 poisoning 거부를 테스트했습니다.
 - [ ] 사례 하나의 정제 Tool trace와 승인 상태 전이를 AI 없이 설명할 수 있습니다.
 - [ ] 프레임워크를 사용할 이유와 사용하지 않을 이유를 같은 실험 근거로 설명하고 최종 선택을 직접 내렸습니다.
-- [ ] 프레임워크 선택 가이드와 글 초안 한 편이 있습니다.
-- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
+- [ ] 프레임워크 선택 가이드를 완성했습니다.
+- [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:07 END -->
 
 <!-- MODULE:08 START -->
@@ -3729,7 +3681,7 @@ week08-rag-evaluation/runs/rag-evaluation-report.md
 | 4 | 선택적 Agentic RAG | 검색 경로 비교 |
 | 5 | 평가셋과 지표 | 50개 사례와 자동 평가 |
 | 6 | Red Team | 공격 사례와 회귀 테스트 |
-| 7 | 개선·회고 | 전후 보고서와 글 초안 |
+| 7 | 개선·회고 | 전후 보고서와 회고 요약 |
 
 ### 이번 주의 실행 지도
 
@@ -3741,7 +3693,7 @@ week08-rag-evaluation/runs/rag-evaluation-report.md
 | 4 | 기본 결과와 선택 옵션 설명 | `lab/rag_lab/` | IDE; Agentic·managed/hybrid/rerank는 선택 | 선택 비교를 했다면 별도 Run | `.local/notes/day04.md` |
 | 5 | `lab/evals/rag-golden.jsonl`, 지표 정의 | `lab/rag_lab/` | 수동 5건 후 평가 runner | 50건 dataset·검색/답변/인용 지표 | `.local/notes/day05.md` |
 | 6 | Red Team·memory/retrieval failure cases | `lab/rag_lab/` | IDE·평가 runner·Codex 반례 보조 | assertion 결과·실패 카드·회귀 tests | `.local/raw/<run-id>/` |
-| 7 | 모든 전후 결과 | 주차 루트 | IDE/문서 편집 + ChatGPT 반례 | `runs/rag-evaluation-report.md`와 글 초안 | `.local/notes/week08-retrospective.md` |
+| 7 | 모든 전후 결과 | 주차 루트 | IDE/문서 편집 + ChatGPT 반례 | `runs/rag-evaluation-report.md`와 회고 요약 | `.local/notes/week08-retrospective.md` |
 
 ### AI를 쓰기 전에 문서와 정답 읽기
 
@@ -4025,12 +3977,6 @@ Chunking·Embedding 설정
 남은 한계
 ```
 
-#### 블로그 자료
-
-- 매일의 짧은 실험 노트
-- 발행 후보 1편: `RAG를 느낌이 아니라 50개 평가 사례로 개선한 과정`
-- 선택 후보: `2-Step RAG와 Agentic RAG의 검색 횟수·품질·비용 비교`
-
 ## 완료 기준
 
 - [ ] 12개 이상의 문서와 버전·예외·충돌 사례를 만들었습니다.
@@ -4043,8 +3989,8 @@ Chunking·Embedding 설정
 - [ ] 정제 검색·답변 결과에서 검색 실패와 생성 실패를 각각 한 건 이상 AI 없이 설명할 수 있습니다.
 - [ ] memory 실패와 retrieval 실패를 별도 계층으로 평가했습니다.
 - [ ] Agentic 경로와 Red Team 판정의 최종 수용 여부를 학습자가 결정했습니다.
-- [ ] 개선 전후 회귀 보고서와 글 초안 한 편이 있습니다.
-- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
+- [ ] 개선 전후 회귀 보고서를 완성했습니다.
+- [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:08 END -->
 
 <!-- MODULE:09 START -->
@@ -4207,7 +4153,7 @@ week09-dify-workflow/runs/code-vs-dify-report.md
 | 4 | Tool Plugin | 직접 만든 읽기 Tool |
 | 5 | 평가와 오류 실험 | 공통 사례·회귀 결과 |
 | 6 | 코드 방식과 비교 | 측정표·재현성 점검 |
-| 7 | 보고서와 회고 | 비교 글 초안 |
+| 7 | 보고서와 회고 | 비교 보고서와 회고 요약 |
 
 ### 이번 주의 실행 지도
 
@@ -4219,7 +4165,7 @@ week09-dify-workflow/runs/code-vs-dify-report.md
 | 4 | `plugin-spec.md`, Fake API README, Tool Plugin 공식 문서 | `lab/dify_lab/plugin/` | IDE·Dify Plugin CLI·로컬 Fake API | Tool Plugin 코드·tests·오류 Run | `.local/raw/plugin/` |
 | 5 | 고정 15건 manifest와 Workflow export | `lab/dify_lab/` | 대표 수동 실행 후 API/runner | 공통 평가·회귀·failure cards | `.local/notes/day05.md` |
 | 6 | 코드 방식 결과와 measurement dictionary | `lab/dify_lab/` | IDE 분석 + Dify UI 대조 | 측정표·재현 환경·export diff | `.local/notes/day06.md` |
-| 7 | 모든 공개 증거 | 주차 루트 | IDE/문서 편집 + ChatGPT 반례 | `runs/code-vs-dify-report.md`와 글 초안 | `.local/notes/week09-retrospective.md` |
+| 7 | 모든 공개 증거 | 주차 루트 | IDE/문서 편집 + ChatGPT 반례 | `runs/code-vs-dify-report.md`와 회고 요약 | `.local/notes/week09-retrospective.md` |
 
 ---
 
@@ -4456,12 +4402,6 @@ Plugin을 직접 만들며 확인한 경계
 
 먼저 Dify 화면에서 관찰한 Node 상태와 본인의 비교 결론을 근거 파일에 연결합니다. 읽기 전용 2차 검토가 필요하면 문서 끝의 **[검토 요청]** `workflow-review.md`를 열어 사용할 자료와 `NOT_VERIFIED` 규칙을 확인한 뒤 대화창에서 사용합니다. 이 요청은 Dify Workflow를 직접 실행하고 상태를 이해하는 과정을 대신하지 않습니다. 실제 전송 내용은 `week09-dify-workflow/runs/`에 남기며, Codex의 비교 결론은 원시 측정표와 직접 사용한 경험을 확인한 뒤 수용하거나 거절합니다.
 
-#### 블로그 자료
-
-- 매일의 짧은 실험 노트
-- 발행 후보 1편: `같은 RAG·승인 흐름을 직접 코드와 Dify로 구현해 비교했다`
-- 선택 후보: `첫 Dify Tool Plugin을 만들며 확인한 입력·오류·보안 계약`
-
 ## 완료 기준
 
 - [ ] Workflow export와 실행 환경을 보존했습니다.
@@ -4472,8 +4412,8 @@ Plugin을 직접 만들며 확인한 경계
 - [ ] 구현 시간·평가·디버깅·버전 관리·재현성을 비교했습니다.
 - [ ] 첫 Workflow와 대표 평가 사례를 화면에서 직접 실행하고 각 상태를 설명할 수 있습니다.
 - [ ] 최종 승인과 코드·Dify 방식의 선택 근거를 본인이 결정했습니다.
-- [ ] 비교 보고서와 발행 가능한 글 초안 한 편이 있습니다.
-- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
+- [ ] 비교 보고서를 완성했습니다.
+- [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:09 END -->
 
 <!-- MODULE:10 START -->
@@ -4694,7 +4634,6 @@ Worktree와 병합 규칙
 | `architecture-template.md`, `harness-v2.md` | M4 설계와 최종 운영법의 뼈대 | 본인의 판단과 실험 근거로 채우기 |
 | `scoring-rubric.md`, `data-dictionary.md` | 사전에 정한 채점·열 정의 | 실행 전에 읽고 애매한 기준 확정 |
 | `analyze_runs.py`, `tests/` | 완성된 집계 도구와 단위 테스트 | 수동 기록을 이해한 뒤 검증·실행 |
-| `blog-series.csv` | 글 후보를 정리할 빈 양식 | 근거가 충분한 주제만 선택 |
 
 `private_evaluator/`는 과정 패키지에만 있고 구현 작업에는 복사되지 않습니다. 준비된 코드, 테스트, rubric과 분석기는 결과를 보장하는 답안이 아닙니다. 과제의 ground truth, 방법별 차이, 사람 수정 예산과 최종 하네스에 넣을 규칙은 학습자가 결과를 보기 전에 정하고 마지막에 다시 수용 여부를 판단합니다.
 
@@ -4723,7 +4662,7 @@ runs/method-report.md
 | 5 | 선택 M4 | 사람 설계·병렬 구현 확장 결과 |
 | 6 | 핵심 M5 | 세 과제의 하네스 적용 결과 |
 | 7 | 평가·반복·분석 | 세 품질 시점과 Pareto |
-| 8 | 개발 하네스 v2·글 | 최종 운영법과 연재 초안 |
+| 8 | 개발 하네스 v2·종합 회고 | 최종 운영법과 종합 보고서 |
 
 ### 이번 주의 실행 지도
 
@@ -4981,7 +4920,7 @@ python week10-ai-development-methods/lab/benchmark/analyze_runs.py week10-ai-dev
 
 ---
 
-### Day 8 — 개발 하네스 v2와 연재 초안
+### Day 8 — 개발 하네스 v2와 종합 회고
 
 `week10-ai-development-methods/runs/harness-v2.md`에는 결과에서 근거가 확인된 요소만 넣습니다.
 
@@ -5000,21 +4939,6 @@ Worktree와 병합 기준
 
 실험 설계, 핵심 9개 Run의 raw 점·중앙값·범위·paired difference, 선택 확장 여부, 불확실성 경고와 Pareto 해석은 `week10-ai-development-methods/runs/method-report.md`에 씁니다. 개인적인 선호와 다음 실험 메모는 `.local/notes/week10-retrospective.md`에 분리합니다.
 
-#### 블로그 연재 후보
-
-1. 대표 방식 비교 전에 배정·seed·조건을 고정한 방법
-2. M1: 절차를 지정하지 않은 단일 실행
-3. M2: 계획·테스트·자기검토가 있는 단일 실행
-4. M3: 역할을 나눈 여러 작업
-5. M4: 사람이 아키텍처를 정한 병렬 구현
-6. M5: 개발 하네스와 선택적 직접 수정
-7. 세 품질 시점이 달라 생긴 평가 문제
-8. 시간·사람 개입·토큰과 품질의 Pareto 전선
-9. 반복해서 나타난 실패 유형
-10. 내가 선택한 개발 하네스 v2
-
-최소 발행 결과는 각 실행의 짧은 노트와 종합 글 한 편입니다. 방식별 심층 글은 데이터가 충분한 항목부터 순서대로 완성합니다.
-
 ## 완료 기준
 
 - [ ] 핵심 9개 Run의 method-task 교차 배정·seed·순서·반복을 시작 전에 고정했습니다.
@@ -5027,8 +4951,8 @@ Worktree와 병합 기준
 - [ ] 시간·토큰·조정 비용·하드 게이트와 compaction invariant·Tool permission·cache 지표를 분석했습니다.
 - [ ] raw 점·반복 범위·paired difference·불확실성, Pareto 전선과 실험 한계를 보고서에 포함했습니다.
 - [ ] AI의 점수·분석과 최종 하네스 규칙을 근거를 보고 직접 수용하거나 거절했습니다.
-- [ ] 개발 하네스 v2와 발행 가능한 종합 글 한 편이 있습니다.
-- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
+- [ ] 개발 하네스 v2와 종합 보고서를 완성했습니다.
+- [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:10 END -->
 
 <!-- MODULE:11 START -->
@@ -5154,7 +5078,7 @@ AI 없이도 동작해야 하는 부분
 
 `week11-webapp-vertical-slice/lab/portfolio/user-flow.md`에는 대표 사용자가 기능을 시작하는 조건부터 정상 흐름, 보류·승인·권한 오류·timeout 갈림길과 마지막 부작용까지 순서대로 적습니다. 이 문서의 한 흐름이 Day 2 평가 사례와 Day 4 구현 범위의 기준입니다.
 
-`week11-webapp-vertical-slice/lab/portfolio/project-link.md`에는 저장소 위치, 기준 branch·commit과 공개 여부를 적습니다. 별도 저장소라면 비밀 URL을 블로그 초안에 그대로 복사하지 않습니다.
+`week11-webapp-vertical-slice/lab/portfolio/project-link.md`에는 저장소 위치, 기준 branch·commit과 공개 여부를 적습니다. 별도 저장소라면 비밀 URL을 공개 문서에 그대로 복사하지 않습니다.
 
 AI가 정리한 문장보다 본인이 직접 관찰한 현재 흐름과 선택한 범위가 우선입니다. 최종 brief와 user flow에서 왜 이 흐름을 골랐는지 직접 설명할 수 있어야 합니다.
 
@@ -5255,7 +5179,7 @@ Day 2의 사례를 바꾸지 않고 실행해 `week11-webapp-vertical-slice/lab/
 - [ ] 같은 사례로 기준선과 수직 기능을 비교했습니다.
 - [ ] 실제 화면이나 API에서 대표 흐름을 직접 확인한 뒤 자동 평가와 대조했습니다.
 - [ ] 미검증 항목과 다음 가설을 남겼습니다.
-- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
+- [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:11 END -->
 
 <!-- MODULE:12 START -->
@@ -5450,7 +5374,7 @@ Codex에는 먼저 읽기 전용 배포 계획과 예상 변경 목록만 요청
 
 먼저 체크리스트를 본인이 직접 확인하고 각 항목 옆에 근거 파일이나 `NOT_VERIFIED` 이유를 적습니다. 최종 읽기 전용 검토가 필요하면 문서 끝의 **[검토 요청]** `release-readiness-review.md`에서 배포·외부 공개 금지, 읽을 자료와 PASS·FAIL 기준을 확인한 뒤 현재 프로젝트 대화에서 사용합니다. 이 요청은 새 환경 재현, 실제 상태 확인과 학습자의 공개 결정을 대신하지 않습니다. 실제 전송 내용과 후속 질문은 `week12-release-portfolio/runs/`에 저장합니다.
 
-AI가 PASS라고 쓴 항목도 근거를 직접 열어 확인합니다. 최종 배포 유지, 저장소 공개와 글 발행 여부는 학습자가 결정하며, 막아야 할 결함이 있으면 문서가 잘 정리됐더라도 공개하지 않습니다.
+AI가 PASS라고 쓴 항목도 근거를 직접 열어 확인합니다. 최종 배포 유지와 저장소 공개 여부는 학습자가 결정하며, 막아야 할 결함이 있으면 문서가 잘 정리됐더라도 공개하지 않습니다.
 
 실습용 사용자 한 명의 삭제 요청을 staging/Fake 데이터로 재현해 primary store, conversation/memory, 검색 index, cache, trace와 평가 파생본의 처리 상태를 표로 남깁니다. 삭제할 수 없는 backup이나 법적 보존 대상은 접근 제한·만료와 예외 근거를 쓰며 “DB에서 지웠다”만으로 privacy 완료를 선언하지 않습니다.
 
@@ -5468,7 +5392,7 @@ AI가 PASS라고 쓴 항목도 근거를 직접 열어 확인합니다. 최종 �
 - [ ] 3~5분 데모와 근거 파일이 연결됩니다.
 - [ ] 비용·외부 변경·rollback과 최종 공개 여부를 본인이 승인했습니다.
 - [ ] 문제, 선택, 수치, 실패와 남은 한계를 직접 설명할 수 있습니다.
-- [ ] 각 Day의 마지막 검증 시점을 AngularJS 형식의 한국어 커밋으로 한 번씩 남겼습니다.
+- [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:12 END -->
 
 ## 부록 — 공식 학습 자료
@@ -5551,13 +5475,3 @@ Fake·Recorded 어댑터
 ```
 
 OpenCode의 ChatGPT 인증 연동은 선택 비교 사례로만 기록합니다. 공개 웹 서비스의 모델 연결은 정식 API 또는 해당 서비스에 맞는 공식 공급자 계약을 사용합니다.
-
-## 블로그 구성 참고
-
-- [바이브 코딩 — AI 시대의 새로운 개발 패러다임](https://ehdnsdlek.tistory.com/59)
-- [Figma MCP로 디자인을 코드로](https://ehdnsdlek.tistory.com/60)
-- [바이브 코딩으로 풀스택 개발하기](https://ehdnsdlek.tistory.com/63)
-- [AI 시대, TDD가 필수인 이유](https://ehdnsdlek.tistory.com/65)
-- [2026 Agentic Coding Trends Report 리뷰](https://ehdnsdlek.tistory.com/66)
-
-참고 글의 흐름은 배경→실험 환경→과정→수치→실패→결론 순서로 살펴봅니다. 본인의 글에는 공개 가능한 정제 로그, 사람 작업 시간, 평가 기준, 결과의 한계와 다음 실험을 함께 남깁니다.
