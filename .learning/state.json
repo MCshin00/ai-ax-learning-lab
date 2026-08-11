@@ -1,9 +1,10 @@
 {
   "layout_version": 3,
   "created_at": "2026-07-25T10:42:29.915424+00:00",
-  "current_week": 1,
+  "current_week": 2,
   "applied_weeks": [
-    1
+    1,
+    2
   ],
   "references_revealed": [
     1
@@ -20,10 +21,18 @@
       "week01-codex-prompt-comparison/lab/ticket-title-normalizer/src/main/java/lab/week01/TicketTitleNormalizer.java",
       "week01-codex-prompt-comparison/lab/ticket-title-normalizer/src/test/java/lab/week01/TicketTitleNormalizerTest.java",
       "week01-codex-prompt-comparison/lab/schemas/repo-review.schema.json"
+    ],
+    "2": [
+      "week02-codex-skills/lab/.agents/skills/experiment-recorder/SKILL.md",
+      "week02-codex-skills/lab/.agents/skills/task-contract-writer/assets/task-contract-template.md",
+      "week02-codex-skills/lab/.agents/skills/task-contract-writer/scripts/validate_contract.py",
+      "week02-codex-skills/lab/.agents/skills/task-contract-writer/SKILL.md",
+      "week02-codex-skills/lab/.agents/skills/task-contract-writer/tests/test_validate_contract.py",
+      "week02-codex-skills/lab/evals/skill-trigger-cases.jsonl"
     ]
   },
-  "updated_at": "2026-08-08T09:30:39.690826+00:00",
-  "source_guide_sha256": "1bbc8eaa5a9921015c7668a7a64545a420561a4e46b0c21ff72dbb74cb93e4c1",
+  "updated_at": "2026-08-11T04:51:21.164921+00:00",
+  "source_guide_sha256": "36aadaa2655721204fc474a63a5734354fdd08f2a45cd794816458282463c889",
   "migrated_from_layout_version": 2,
   "layout_migrated_at": "2026-08-08T07:04:48.142669+00:00",
   "layout_migrations": [
