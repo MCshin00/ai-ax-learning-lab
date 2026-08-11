@@ -5,7 +5,9 @@
   "applied_weeks": [
     1
   ],
-  "references_revealed": [],
+  "references_revealed": [
+    1
+  ],
   "applied_files": {
     "1": [
       "week01-codex-prompt-comparison/lab/ticket-title-normalizer/build.gradle",

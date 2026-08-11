@@ -15,5 +15,6 @@
 아래 명령은 별도 과정 패키지와 `course.py`를 가진 과정 작성자·관리자용이며, `course.py`가 있는 폴더에서 실행합니다. 이 저장소만 Fork하거나 clone한 학습자는 실행할 필요가 없습니다. 현재 공개된 주차 자료로 학습하고, 다음 주차 자료가 저장소에 반영되면 업데이트를 받아 이어갑니다.
 
 - 진행 상태 확인: `python course.py status "../ai-ax-learning-lab"`
+- 공개된 참고 구현: [`week01-codex-prompt-comparison/references/`](week01-codex-prompt-comparison/references/)
 - 실습 완료 후 참고 구현 확인: `python course.py reference "../ai-ax-learning-lab"`
 - 완료 기준을 통과한 뒤 다음 주차 시작: `python course.py next "../ai-ax-learning-lab"`
