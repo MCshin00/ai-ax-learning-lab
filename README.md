@@ -18,8 +18,8 @@
 | 8 | [RAG 평가](week08-rag-evaluation/) |
 | 9 | [Dify 워크플로](week09-dify-workflow/) |
 | 10 | [AI 개발 방법 비교](week10-ai-development-methods/) |
-| 11 | [웹앱 수직 기능](week11-webapp-vertical-slice/) |
-| 12 | [릴리스와 포트폴리오](week12-release-portfolio/) |
+| 11 | [포트폴리오 설계와 핵심 결과](week11-portfolio-build/) |
+| 12 | [포트폴리오 검증과 공개 준비](week12-portfolio-evidence/) |
 
 ## 폴더 사용법
 
