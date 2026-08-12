@@ -13,8 +13,8 @@ shared/
    └─ tasks/
 ```
 
-- `tools/runner/`: 실행 환경, 시간과 Codex JSONL을 수집·정리하는 Python 도구입니다. 1주차부터 사용할 수 있습니다.
-- `templates/`: 실행 metadata, scorecard, 실패 카드와 회고 양식입니다. 1주차부터 사용합니다.
+- `tools/runner/`: 실행 환경, 시간과 Codex JSONL을 수집·정리하는 선택 연구 도구입니다. 대표 수동 실행 뒤 반복성이 필요할 때 사용합니다.
+- `templates/`: 실행 metadata, 근거 기록, 실패 카드와 회고 양식입니다. 필요한 항목만 사용합니다.
 - `benchmark/contracts/`: 허용 범위와 완료 조건을 고정한 TASK A~C 계약입니다. 2주차부터 Skill과 MCP 실습에서 사용합니다.
 - `benchmark/app/`: 같은 계약으로 여러 개발 방식을 비교하는 Java 17 시작 코드와 공개 테스트입니다. 4주차부터 사용합니다.
 - `benchmark/tasks/`: 계약별 평가 초점을 짧게 정리한 task pack입니다. 4주차부터 사용합니다.
@@ -22,6 +22,8 @@ shared/
 ## Runner는 언제 쓰나
 
 먼저 IDE에서 과제와 프롬프트를 읽고 Codex 앱, IDE 확장 또는 대화형 CLI에서 대표 사례를 직접 실행합니다. 응답이 달라지는 이유와 확인할 지표를 이해한 뒤, 같은 조건을 반복 측정할 때만 runner를 사용합니다. 첫 실행부터 자동화하면 프롬프트, 작업 폴더와 권한이 결과에 미친 영향을 놓치기 쉽습니다.
+
+Runner, 토큰·시간 비교와 여러 번의 실행은 핵심 완료 조건이 아닙니다. 기능 테스트, 계약 위반, 원시 실패와 `PASS / FAIL / NOT_VERIFIED`만으로 해당 주차의 핵심 질문에 답할 수 있다면 수동 대표 사례에서 멈춰도 됩니다.
 
 Runner는 PowerShell이나 Bash 스크립트를 요구하지 않습니다. Windows, macOS와 Linux에서 같은 Python 명령을 사용합니다. [`codex exec` 공식 문서](https://learn.chatgpt.com/docs/developer-commands?surface=cli)에 따라 비대화형 실행, JSONL 출력과 명시적 `--cd` 작업 루트를 사용합니다.
 

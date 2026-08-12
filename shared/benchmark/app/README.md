@@ -31,3 +31,19 @@ src/test/java/lab/benchmark/
 `build.gradle`의 `mavenCentral()`은 JUnit 의존성을 받을 저장소일 뿐입니다. 빌드 도구는 Maven이 아니라 Gradle입니다.
 
 공개 테스트는 구현 중 빠른 피드백을 제공합니다. 10주차 본 실험에서는 구현 작업과 분리한 비공개 평가기가 추가 엣지 케이스를 검사합니다.
+
+## 과제별 결정적 검증
+
+한 과제만 구현할 때 전체 `test`를 실행하면 아직 TODO인 다른 과제 때문에 실패합니다. 계약의 과제별 명령으로 해당 공개 테스트 클래스만 실행합니다.
+
+| 과제 | 테스트 클래스 |
+|---|---|
+| TASK-A | `lab.benchmark.refund.RefundServicePublicTest` |
+| TASK-B | `lab.benchmark.account.AccountUnlockServicePublicTest` |
+| TASK-C | `lab.benchmark.cancellation.CancellationJobServicePublicTest` |
+
+Windows 예: `gradlew.bat clean test --tests "lab.benchmark.refund.RefundServicePublicTest"`
+
+macOS·Linux·WSL 예: `./gradlew clean test --tests "lab.benchmark.refund.RefundServicePublicTest"`
+
+세 과제를 모두 구현한 경우에만 필터 없는 `clean test`를 전체 회귀 검증으로 사용합니다. 완료 기록에는 테스트 메서드 통과·실패 수와 실행 명령을 남기고, 실행하지 못한 기준은 `NOT_VERIFIED`로 둡니다.

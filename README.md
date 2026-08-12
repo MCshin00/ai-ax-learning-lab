@@ -4,6 +4,8 @@
 
 처음 시작할 때는 [`CURRENT_WEEK.md`](CURRENT_WEEK.md)를 열고 1주차 링크를 따라가세요. 자세한 학습 본문은 각 주차의 `README.md`, 과정 전체의 공통 원칙과 통합 보기는 [`LEARNING_GUIDE.md`](LEARNING_GUIDE.md), 12주 지도는 아래 표에서 확인합니다.
 
+코드를 고치기 전 통합 가이드의 **Week 0 준비 관문**에서 현재 CWD, Git·비밀값, 이번 주에 실제로 필요한 런타임과 외부 비용을 확인하세요. 대표 사례를 대화형 표면에서 먼저 실행하고, 반복 Runner는 성공 계약과 측정 질문이 생겼을 때만 사용합니다.
+
 ## 12주 과정
 
 | 주차 | 주제 |
@@ -59,7 +61,7 @@ ai-ax-learning-lab/
 
 개인 회고는 `.local/notes/`, 정제 전 JSONL·로그는 `.local/raw/`, 버려도 되는 작업 파일은 `.local/scratch/`에 둡니다. `.local/`은 Git에서 제외되므로 clone에는 빈 하위 폴더가 없을 수 있습니다. 각 주차 안내가 처음 사용할 때 필요한 폴더를 만들며, 직접 기록한다면 먼저 해당 폴더를 생성하세요. 원본 로그를 공개하기 전에는 토큰, 인증 정보, 사용자명과 절대 경로가 없는지 검사하고 정제된 사본만 `runs/`로 옮깁니다.
 
-`CURRENT_WEEK.md`, 루트 `README.md`, 시작한 주차의 `README.md`, `prompts/`와 공개한 `references/`는 과정 도구가 갱신할 수 있습니다. `AGENTS.md`, `lab/`, `runs/`와 `.local/`은 학습자가 관리합니다.
+`CURRENT_WEEK.md`, 루트 `README.md`, 시작한 주차의 `README.md`, 과정 제공 `prompts/`와 공개한 `references/`는 과정 관리 자료입니다. `sync`는 루트 문서와 적용된 주차의 과정 제공 prompt·README, 이미 공개한 reference를 갱신합니다. `AGENTS.md`, `lab/`, `runs/`와 `.local/`은 학습자가 관리하며 동기화로 덮어쓰지 않습니다.
 
 ## Git 기록
 

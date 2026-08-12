@@ -35,7 +35,7 @@ Codex 요청과 실행 관찰
 | 7 | 프레임워크는 어떤 복잡성을 줄일까? | Direct·Agents SDK·LangChain·LangGraph 비교 |
 | 8 | RAG의 검색과 답변 품질을 어떻게 측정할까? | 골든 데이터셋과 회귀 평가 |
 | 9 | 같은 흐름을 로우코드로 만들면 무엇이 달라질까? | Dify Workflow와 Tool Plugin |
-| 10 | 어떤 작업 방식이 나에게 잘 맞을까? | 대표 3개 방식 반복 비교와 선택 확장 M1~M5 |
+| 10 | 어떤 작업 방식이 나에게 잘 맞을까? | 대표 3개 방식의 격리 사례 비교와 선택 확장 M1~M5 |
 | 11 | 지금까지 배운 것 가운데 무엇을 누구에게 어떤 근거로 보여 줄까? | 포트폴리오 방향·핵심 결과·증거 계획 |
 | 12 | 만든 결과를 어떻게 검증하고 설명하며 안전하게 공개 준비할까? | 검증 근거·설명 자료·공개 여부 결정 |
 
@@ -44,7 +44,7 @@ Codex 요청과 실행 관찰
 1. **학습 목표**에서 이번 주에 할 수 있어야 하는 일을 확인합니다.
 2. **개념 이해**를 읽고 용어와 구성 요소의 관계를 직접 설명해 봅니다.
 3. **실습 순서**에 따라 구현하고, 정상 동작만 확인하지 말고 실패 조건도 재현합니다.
-4. 시간·토큰·테스트·사람 작업 시간을 기록합니다.
+4. 필수 테스트와 실패 상태를 기록하고, 비교 질문에 필요할 때만 시간·토큰 같은 비용을 더합니다.
 5. **완료 기준**을 통과한 뒤 참고 구현과 비교하고 다음 주차로 넘어갑니다.
 
 주차는 달력보다 순서를 뜻합니다. 완료 기준을 통과했다면 일주일을 채우지 않고 다음 단계로 넘어가도 됩니다.
@@ -53,6 +53,19 @@ Codex 요청과 실행 관찰
 ## 명령을 실행하기 전에 읽는 공통 안내
 
 이 과정에서는 학습자가 목표·정답·승인 경계를 정하고 결과를 판단합니다. Codex와 ChatGPT는 설명·구현·반례 탐색을 돕지만, diff·테스트·로그와 실제 외부 상태를 대신 확인한 것으로 간주하지 않습니다. 명령은 별도 안내가 없으면 `CURRENT_WEEK.md`, 주차 폴더와 `shared/`가 보이는 **학습 저장소 루트**에서 실행합니다. 설명용 `text`, `json`, `dotenv` 블록은 실행 명령이 아닙니다.
+
+### Week 0 — 시작 전 준비 관문
+
+1주차 파일을 고치기 전에 아래 항목을 한 번 확인합니다. 이 관문은 별도 주차나 평가 과제가 아니라, 환경 문제를 구현 실패로 오해하지 않기 위한 준비 절차입니다.
+
+- 학습 저장소만 IDE·Codex의 프로젝트로 열고, `CURRENT_WEEK.md`가 안내한 CWD를 확인합니다.
+- Git 상태와 공개 범위를 확인하고 `.env`, 비밀값, `.local/` 자료를 stage하지 않습니다.
+- 해당 주차가 요구하는 JDK 17+, Python 3.11+, Node 또는 `uv`가 있을 때만 버전과 실행 경로를 확인합니다. 모든 도구를 미리 설치하지 않습니다.
+- OpenAI API, Codex 로그인, Dify 또는 외부 서비스는 그 주차의 Live 선택 실습을 할 때만 준비합니다. 유료 호출·외부 쓰기·배포는 대상과 비용을 확인하고 따로 승인합니다.
+- 대표 사례는 IDE나 대화형 표면에서 직접 한 번 실행합니다. 반복 Runner와 대량 평가는 그 동작과 성공 기준을 이해한 뒤에만 사용합니다.
+- 결과는 `PASS`, `FAIL`, `NOT_VERIFIED`, 조건이 실제로 적용되지 않을 때의 `NOT_APPLICABLE`로 구분합니다. 실행하지 못한 항목을 성공으로 추정하지 않습니다.
+
+준비 관문을 통과했다는 것은 모든 명령이 성공한다는 뜻이 아닙니다. 의도된 기준선 실패는 예상 오류와 범위가 맞는지 확인한 뒤 실습을 시작합니다.
 
 ### 주차 폴더와 공용 폴더 계약
 
@@ -160,7 +173,9 @@ AI가 만든 계획이나 구현을 다음 단계의 승인으로 간주하지 �
 
 ### 공통 최소 측정
 
-초기 주차부터 지표를 과도하게 늘리지 않습니다. 모든 Run은 `status`, 필수 테스트, `T_wall`, `T_human`, 모델·reasoning·surface·CWD·날짜를 남기고, API·Codex가 제공할 때 입력·캐시·출력 토큰과 비용을 더합니다. 품질 점수와 복잡한 통계는 해당 주차의 평가 질문이 필요할 때만 추가합니다.
+초기 주차부터 지표를 과도하게 늘리지 않습니다. 핵심 기록은 `status`, 필수 테스트의 `통과 수/전체 수`, 원시 실패, surface·CWD·날짜와 `NOT_VERIFIED`입니다. `T_wall`, `T_human`, 토큰과 비용은 방법·효율 비교를 실제로 수행할 때만 원시값으로 더합니다. 작은 표본은 분자·분모를 먼저 표시하고 근거 없는 소수점 정밀도를 붙이지 않습니다.
+
+품질을 하나의 0~100 점수로 합치거나 AI의 평가만으로 완료를 판정하지 않습니다. 사람이 직접 확인한 대표 trace와 결정론적 테스트로 성공 계약을 먼저 정한 뒤, 변화의 반복 비교가 필요해진 선택 연구에서만 Runner, 반복 dataset, AI reviewer와 통계 분석을 사용합니다.
 
 ### 개인 기록과 Day 마감 커밋
 
@@ -824,7 +839,7 @@ runs/trigger-evaluation/
 | 2 | 첫 Skill 설계 | `SKILL.md`와 출력 템플릿 |
 | 3 | 결정적 검증 분리 | 계약 검사 스크립트와 테스트 |
 | 4 | 명시 호출·자동 선택 | 두 호출 방식의 실행 기록 |
-| 5 | 발동 평가 | 긍정·부정·경계 사례 30개 |
+| 5 | 발동 평가 | 긍정·부정·경계 대표 3건, 선택 연구 시 전체 30개 |
 | 6 | 실제 과제 적용과 회고 | 적용 전후 비교와 회고 요약 |
 
 ### 이번 주의 실행 지도
@@ -863,7 +878,7 @@ codex -C ./week02-codex-skills/lab
 | `.agents/skills/task-contract-writer/assets/task-contract-template.md` | 출력 heading이 준비됨 | validator가 찾는 정확한 heading과 비어 있는 본문 |
 | `.agents/skills/task-contract-writer/scripts/validate_contract.py` | 의도적으로 미구현 | 모델 판단 없이 코드로 검사할 수 있는 항목 |
 | `.agents/skills/task-contract-writer/tests/` | 시작용 테스트가 준비됨 | 처음 실패할 테스트와 아직 빠진 오류 사례 |
-| `evals/skill-trigger-cases.jsonl` | positive·negative·boundary 30개가 준비됨 | 기대값이 타당한지, 수정할 때 보지 않을 별도 사례가 필요한지 |
+| `evals/skill-trigger-cases.jsonl` | positive·negative·boundary 30개가 준비됨 | 핵심 대표 3건의 기대값이 타당한지, 선택 연구 시 나머지 사례와 별도 holdout이 필요한지 |
 | `.agents/skills/experiment-recorder/` | 선택 실습용 시작 자료 | 이번 주 필수 범위와 섞지 않아야 할 이유 |
 
 파일을 읽은 뒤 `../.local/notes/week02-skill-design.md`에 다음을 먼저 적습니다.
@@ -1030,9 +1045,10 @@ $task-contract-writer를 사용해 이 요구사항을 작업 계약으로 정�
 }
 ```
 
-대량 실행 전에 positive·negative·boundary에서 한 사례씩 골라 앱이나 대화형 CLI에서 직접 요청합니다. 학습자가 예상한 발동 여부와 실제 근거가 어떻게 다른지 확인한 뒤에야 30개 평가로 넘어갑니다.
+핵심 평가로 positive·negative·boundary에서 한 사례씩 골라 앱이나 대화형 CLI에서 직접 요청합니다. 학습자가 예상한 발동 여부와 실제 근거가 어떻게 다른지 이 대표 3건에서 확인합니다. 발동 성능을 정량적으로 비교하려는 경우에만 선택 연구로 30개 전체를 동결하고 실행합니다.
 
-자동 선택을 시험할 때는 프롬프트에 Skill 이름이나 `$task-contract-writer`를 넣지 않습니다. `expected_trigger`와 그 근거는 실행 전에 학습자가 확정합니다. 각 사례는 `lab/`을 작업 위치로 둔 새 실행에서 평가하고 `../runs/trigger-evaluation/observations.jsonl`에 실제 발동 여부와 근거를 남깁니다. 대표 사례를 수동으로 확인한 뒤 `../prompts/skill-trigger-evaluation.md`를 엽니다. 이 파일은 **[자동 측정용]**입니다. 입력·출력과 판정 규칙을 이해하고 동결한 다음 대화창에 직접 보내거나, 수동 pilot 뒤에만 Runner로 집계할 수 있습니다. 다만 이 요청은 30개 실행이나 기대값 판정을 대신하지 않습니다.
+자동 선택을 시험할 때는 프롬프트에 Skill 이름이나 `$task-contract-writer`를 넣지 않습니다. `expected_trigger`와 그 근거는 실행 전에 학습자가 확정합니다. 핵심 대표 3건은 `lab/`을 작업 위치로 둔 서로 격리된 새 실행에서 평가하고 `../runs/trigger-evaluation/observations.jsonl`에 실제 발동 여부와 근거를 남깁니다. 대표 사례를 수동으로 확인한 뒤 `../prompts/skill-trigger-evaluation.md`를 엽니다. 이 파일은 **[자동 측정용]**입니다. 입력·출력과 판정 규칙을 이해하고 동결한 다음 대화창에 직접 보내거나, 수동 pilot 뒤에만 Runner로 집계할 수 있습니다. 선택 연구에서 전체 30개를 실행할 때도 이 요청은 학습자의 기대값 판정과 대표 사례 수동 확인을 대신하지 않습니다.
+전체 30개 선택 연구를 수행했을 때에만 다음 정량 지표를 집계합니다.
 
 - 전체 precision과 recall
 - positive의 TPR·FNR
@@ -1040,7 +1056,7 @@ $task-contract-writer를 사용해 이 요구사항을 작업 계약으로 정�
 - boundary의 accuracy
 - 경계 사례에서 틀린 문장 유형
 
-설명을 수정하기 전 결과와 수정한 뒤 결과를 서로 다른 커밋으로 보존합니다. 같은 30개를 보고 description을 고친 뒤 다시 측정한 결과는 독립 평가가 아니라 회귀 확인입니다. 일반화 성능을 주장하려면 수정할 때 보지 않은 별도 사례를 마지막에 추가합니다.
+설명을 수정하기 전 결과와 수정한 뒤 결과를 서로 다른 커밋으로 보존합니다. 선택 연구에서 같은 30개를 보고 description을 고친 뒤 다시 측정한 결과는 독립 평가가 아니라 회귀 확인입니다. 일반화 성능을 주장하려면 수정할 때 보지 않은 별도 사례를 마지막에 추가합니다.
 
 AI는 오분류 유형과 description 수정 후보를 제안할 수 있습니다. 경계 사례의 기대값을 바꾸거나 수정안을 채택하고 최종 평가표를 승인하는 일은 학습자가 맡습니다.
 
@@ -1072,9 +1088,10 @@ B의 결과는 Skill이 만들었다는 이유만으로 승인하지 않습니�
 - [ ] `task-contract-writer`를 직접 만들었습니다.
 - [ ] 계약 검증 스크립트와 테스트가 통과합니다.
 - [ ] 명시 호출과 자동 선택을 따로 시험했습니다.
-- [ ] 긍정·부정·경계 사례 30개를 평가했습니다.
+- [ ] 긍정·부정·경계 대표 사례를 한 건씩, 총 3건 평가했습니다.
+- [ ] 선택 정량 연구를 수행했다면 동결한 30개 전체와 별도 holdout을 다른 목적으로 구분해 기록했습니다.
 - [ ] Skill 설명 수정 전후의 결과를 보존했습니다.
-- [ ] 적용 전후의 시간·누락·테스트 결과를 비교했습니다.
+- [ ] 적용 전후의 누락·테스트 결과를 비교했고, 효율 비교를 선택했다면 같은 기준의 시간 원시값도 별도로 기록했습니다.
 - [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:02 END -->
 
@@ -1228,7 +1245,7 @@ week03-mcp-integration/.local/notes/week03-mcp-retrospective.md
 | 3 | `lab/protocols/experiment-protocol.md`, 서버 decorators | `lab/mcp/learning_lab_server/` | IDE·직접 만든 Client | Tool·Resource·Prompt와 구조화 결과 증거 | `.local/notes/day03.md` |
 | 4 | client `pyproject.toml`, `client.py`, v2 `Client` 문서 | `lab/mcp/learning_lab_client/` | IDE·터미널 | `runs/client/`의 정제 호출 결과·로그 | `.local/raw/client/` |
 | 5 | 등록 명령, 서버 실행점·환경변수 | `lab/` | Inspector + Codex CLI 등록/호출 | `runs/hosts/`와 등록·제거 확인 | `.local/raw/inspector/` |
-| 6 | `lab/evals/mcp-failure-cases.jsonl` | `lab/` | 직접 호출 후 평가 runner | 자동 판정 결과와 실패 카드 | `.local/notes/week03-mcp-retrospective.md` |
+| 6 | `lab/evals/mcp-failure-cases.jsonl`, server/client tests | `lab/` | 대표 직접 호출 + 작은 결정론적 테스트 | 통과 수/전체 수, 원시 실패와 실패 카드 | `.local/notes/week03-mcp-retrospective.md` |
 
 ### 먼저 살펴볼 제공 파일
 
@@ -1518,7 +1535,7 @@ codex mcp list
 }
 ```
 
-오류 상태는 `INVALID_ARGUMENT`, `NOT_FOUND`, `TIMEOUT`, `SERVER_ERROR`처럼 고정된 코드와 사용자에게 보여 줄 메시지로 나눕니다. 제공된 JSONL은 사례 목록이며, 아직 자동 실행기가 아닙니다. 각 행을 호출하고 기대 상태·금지 문자열·실제 부작용을 판정하는 runner까지 작성해야 완료 기준의 “자동 판정 가능”을 충족합니다.
+오류 상태는 `INVALID_ARGUMENT`, `NOT_FOUND`, `TIMEOUT`, `SERVER_ERROR`처럼 고정된 코드와 사용자에게 보여 줄 메시지로 나눕니다. 제공된 JSONL은 사례 목록이며, 먼저 server/client의 작은 결정론적 테스트와 대표 정상·거부 호출로 핵심 계약을 확인합니다. 전체 사례를 반복 실행하는 별도 runner는 회귀 자동화가 실제로 필요할 때만 선택해 작성합니다.
 
 기대 상태와 `must_not_contain`은 runner를 만들기 전에 학습자가 확정합니다. AI가 만든 runner의 성공 표시만 믿지 말고, 정상 사례 하나와 거부 사례 하나를 직접 호출해 실제 응답과 파일 부작용을 대조합니다. 그다음 `mcp-security-review.md`를 열어 요청 범위와 금지 동작을 확인하고, 준비된 검토 본문을 대화창에 직접 보냅니다. AI가 제안한 위험은 학습자가 재현하기 전까지 최종 결함으로 세지 않습니다.
 
@@ -1533,8 +1550,8 @@ codex mcp list
 - [ ] 직접 만든 Client가 목록 조회와 호출을 완료합니다.
 - [ ] Inspector와 Codex에서 서버를 확인했습니다.
 - [ ] 경로 이탈과 잘못된 입력이 서버에서 차단됩니다.
-- [ ] 실패 사례를 자동 판정 가능한 형식으로 기록했습니다.
-- [ ] 직접 호출과 MCP 사용 방식의 차이를 수치로 남겼습니다.
+- [ ] server/client 테스트와 대표 직접 호출로 정상·거부 계약을 확인하고 통과 수/전체 수와 원시 실패를 기록했습니다.
+- [ ] 직접 호출과 MCP Host 사용 방식의 차이를 trace와 상태로 설명했습니다.
 - [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:03 END -->
 
@@ -1982,7 +1999,7 @@ Worktree와 병합 순서
 - [ ] 계획·구현·검토 작업의 인계를 실제로 사용했습니다.
 - [ ] 읽기 과제를 단일 작업·Subagent·독립 세션 방식으로 비교했고, 선택했다면 5·10개 stress 결과를 별도 표시했습니다.
 - [ ] 수정 경로를 분리한 Worktree 실험을 완료했습니다.
-- [ ] 시간·품질·중복·오탐·병합 비용을 기록했습니다.
+- [ ] 공개 테스트·인수·금지 조건의 원시 결과와 중복·오탐·병합 비용을 기록했고, 효율 비교를 선택했다면 시간도 별도로 기록했습니다.
 - [ ] `workflow-v0.md`를 완성했습니다.
 - [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:04 END -->
@@ -2528,7 +2545,8 @@ Hooks와 품질 게이트
 - [ ] Subagent의 sandbox·도구·결과 형식을 설정했습니다.
 - [ ] 품질 게이트가 실패를 구조화해 반환합니다.
 - [ ] Fake Runner의 성공·재시도·승인 대기·재개 테스트가 통과합니다.
-- [ ] 고정 A/B 입력을 대화창에 직접 전송해 한 번씩 실행한 뒤, 같은 파일로 반복 측정했습니다.
+- [ ] 고정 A/B 입력을 같은 시작 조건의 별도 Worktree에서 대화창에 직접 한 번씩 실행하고 기능 테스트·상태·원시 실패를 비교했습니다.
+- [ ] 반복 측정을 선택했다면 수동 pilot 뒤 같은 입력과 설정을 동결하고 공용 Runner 결과를 별도 표본으로 기록했습니다.
 - [ ] 한 Run의 정제 event와 상태 파일만 보고 각 전이·재시도·중단 이유를 설명할 수 있습니다.
 - [ ] Codex의 완료 주장과 별개로 최종 PASS·FAIL·`NOT_VERIFIED`를 직접 판정했습니다.
 - [ ] `harness-v1.md`를 완성했습니다.
@@ -2546,8 +2564,8 @@ Responses API를 사용해 요청, 스트리밍, 구조화된 응답, 도구 호
 - 스트리밍 이벤트와 구조화된 출력의 실패 상태를 처리합니다.
 - 프레임워크 없이 Tool Calling 반복 실행을 구현합니다.
 - 모델 연결 어댑터를 분리해 오프라인 테스트를 만듭니다.
-- Responses 연결 상태·Conversations·compaction·prompt caching의 비용·보존 차이를 비교합니다.
-- 호출 수·토큰·지연 시간·추정 비용을 기록합니다.
+- 선택 심화에서는 Responses 연결 상태·Conversations·compaction·prompt caching의 비용·보존 차이를 비교합니다.
+- Live 연결이나 효율 비교를 선택했다면 호출 수·토큰·지연 시간·추정 비용의 원시값을 기록합니다.
 
 ## 개념 이해
 
@@ -2955,7 +2973,7 @@ create_ticket_draft
 
 각 단계에는 모델 요청, Tool 이름, 인자 해시, 실행 상태, 토큰, 지연 시간과 종료 이유를 기록합니다.
 
-`week06-llm-api-tool-calling/lab/evals/tool-golden.jsonl`은 다음 범주를 포함하도록 20~30개로 보강합니다.
+`week06-llm-api-tool-calling/lab/evals/tool-golden.jsonl`에 제공된 기존 8개를 핵심 평가셋으로 사용합니다. 다음 범주는 개수를 채우기 위한 목표가 아니라 coverage 공백을 검토하는 기준입니다.
 
 - Tool이 필요 없는 요청
 - 고객 ID 누락 또는 타입 오류
@@ -2967,7 +2985,9 @@ create_ticket_draft
 - 최대 단계 초과 유도
 - Tool timeout·429·5xx
 
-기존 8개 사례를 먼저 모두 읽고, 그중 세 개는 예상 Tool 순서, 금지 Tool과 종료 이유를 직접 추적합니다. 새 사례는 작은 묶음으로 추가하며 기대 Tool과 상태를 기존 Tool 계약으로 설명할 수 있을 때만 Golden으로 승인합니다. AI가 제안한 입력은 학습자가 기대 결과와 근거를 확인하기 전까지 평가 정답으로 사용하지 않습니다.
+여기서 timeout은 두 종류를 구분합니다. 결정적 Fake timeout은 핵심 종료 계약을 검증합니다. 반면 `ThreadPoolExecutor`에서 호출자가 기다리기를 멈추는 timeout은 이미 실행 중인 함수를 중단하지 않으므로, 쓰기 Tool의 안전한 취소로 간주하지 않습니다. 실제 부작용 Tool에는 협력적 취소, 별도 process 경계 또는 외부 API의 멱등성 키가 필요하며 이는 선택 심화입니다.
+
+기존 8개 사례를 먼저 모두 읽고, 그중 세 개는 예상 Tool 순서, 금지 Tool과 종료 이유를 직접 추적합니다. 실제 coverage 공백을 발견했을 때만 선택 확장으로 새 사례를 한 번에 세 개 이하의 작은 묶음으로 추가합니다. 기대 Tool과 상태를 기존 Tool 계약으로 설명할 수 있을 때만 Golden으로 승인합니다. AI가 제안한 입력은 학습자가 기대 결과와 근거를 확인하기 전까지 평가 정답으로 사용하지 않습니다.
 
 ---
 
@@ -3008,7 +3028,7 @@ error
 
 Recorded 응답에는 모델, 요청 해시, 생성 시각과 스키마 버전을 함께 저장합니다.
 
-이어서 같은 3-turn 과제와 동일 모델 설정으로 상태 방식을 비교합니다.
+여기까지가 핵심 실습입니다. 아래 상태·보존·cache 비교는 API 비용과 제품 정책 확인이 필요한 **선택 심화**입니다. 수행한다면 같은 3-turn 과제와 동일 모델 설정을 사용합니다.
 
 ```text
 A: store=false, 입력·출력 item을 애플리케이션이 직접 연결
@@ -3055,8 +3075,9 @@ ChatGPT 인증을 쓰는 로컬 Codex 자동화는 `codex login status`로 현�
 - [ ] Live 호출에 호출 수·토큰·비용 상한이 적용됩니다.
 - [ ] 반복 평가는 오프라인 어댑터로 실행했습니다.
 - [ ] 정제한 응답 event나 Tool trace만 보고 실패 한 건의 상태·종료 이유와 재시도 여부를 설명할 수 있습니다.
-- [ ] 직접 history·`previous_response_id`·Conversations를 같은 과제로 비교하고 compaction·retention·cache 지표를 기록했습니다.
-- [ ] 평가 사례의 기대 Tool·상태와 최종 수용 여부를 학습자가 직접 승인했습니다.
+- [ ] Fake timeout으로 종료 상태를 검증했고, 호출자 timeout이 이미 실행 중인 side effect를 취소하지 않는다는 경계를 설명할 수 있습니다.
+- [ ] 상태·보존 선택 심화를 수행했다면 직접 history·`previous_response_id`·Conversations를 같은 과제로 비교하고 compaction·retention·cache 원시값을 기록했습니다.
+- [ ] 기존 8개 핵심 사례의 기대 Tool·상태와 최종 수용 여부를 학습자가 직접 승인했고, 선택 확장을 했다면 추가 사례도 같은 절차로 승인했습니다.
 - [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:06 END -->
 
@@ -3269,7 +3290,8 @@ Tool 없음, 여러 Tool, 오류 사례를 하나씩 골라 기대 Tool 순서, 
 
 ```text
 입력·출력 예시
-사용할 세 Tool과 인자 스키마
+세 비교군이 공통으로 사용할 읽기 전용 Tool 두 개와 인자 스키마
+승인 흐름에서만 사용할 별도 `create_ticket_draft` Tool과 승인 경계
 Tool 오류 형식
 동일 Tool 반복 제한
 최대 모델 호출 수
@@ -3310,7 +3332,7 @@ uv --directory week07-langchain-langgraph/lab/framework_lab run --locked python 
 
 제공된 `agents_sdk_comparator.py`는 `Agent`, Tool 등록과 `Runner` 호출만 담은 작은 비교 기준선입니다. 먼저 아래 항목이 코드와 실제 SDK event에서 어디에 나타나는지 찾아 설명합니다.
 
-- 세 Tool 등록
+- 두 읽기 전용 Tool 등록
 - 입력 검증과 Tool 오류 변환
 - 최대 실행 제한
 - 구조화된 최종 응답
@@ -3326,7 +3348,7 @@ handoff·여러 agent·복잡한 guardrail은 아직 넣지 않습니다. 잠금
 
 ### Day 3 — LangChain 기준선을 검증하고 세 방식을 비교하기
 
-제공된 `langchain_agent.py`가 같은 세 Tool·오류·최종 출력 계약을 `create_agent`로 어떻게 표현하는지 읽습니다. LangChain의 `recursion_limit`과 “모델 호출+Tool 실행 합계”는 같은 단위가 아니므로, 제공된 공통 카운터가 실제 세 구현의 같은 사건을 세는지 테스트와 trace로 확인합니다. 빠진 경계가 있으면 세 비교군의 계약을 바꾸지 않는 실패 사례부터 추가합니다. 프레임워크별 debug·trace viewer를 쓸 수 있지만 정제 trace schema도 함께 남겨 한 도구 없이는 평가할 수 없는 결과를 만들지 않습니다.
+제공된 `langchain_agent.py`가 같은 두 읽기 전용 Tool·오류·최종 출력 계약을 `create_agent`로 어떻게 표현하는지 읽습니다. 세 비교군에서 쓰는 Tool은 `get_customer_context`, `get_payment_history`로 고정하고, 쓰기 성격의 `create_ticket_draft`는 Day 4~6 승인 상태 실험에서만 다룹니다. LangChain의 `recursion_limit`과 “모델 호출+Tool 실행 합계”는 같은 단위가 아니므로, 제공된 공통 카운터가 실제 세 구현의 같은 사건을 세는지 테스트와 trace로 확인합니다. 빠진 경계가 있으면 세 비교군의 계약을 바꾸지 않는 실패 사례부터 추가합니다. 프레임워크별 debug·trace viewer를 쓸 수 있지만 정제 trace schema도 함께 남겨 한 도구 없이는 평가할 수 없는 결과를 만들지 않습니다.
 
 비교 항목:
 
@@ -3400,7 +3422,7 @@ thread_id
 
 필수 실습은 같은 프로세스 안에서 `InMemorySaver`로 중단과 재개를 확인합니다. 프로세스 재시작 뒤에도 상태를 보존하는 실습은 SQLite 같은 영속 Checkpointer를 연결하는 선택 과제로 진행합니다.
 
-Checkpoint에는 workflow state만 저장합니다. 별도 `MemoryStore` 계약으로 두 가상 사용자 namespace를 만들고 다음을 테스트합니다.
+여기까지가 핵심 승인·재개 실습입니다. 다음 사용자 memory 수명주기와 영속 Checkpointer는 **선택 심화**입니다. 수행한다면 Checkpoint에는 workflow state만 저장하고, 별도 `MemoryStore` 계약으로 두 가상 사용자 namespace를 만들어 다음을 테스트합니다.
 
 ```text
 write → source·동의·TTL과 함께 저장
@@ -3472,12 +3494,12 @@ LangGraph가 적합한 경우
 
 - [ ] 비교 계약과 평가 사례 15개 이상을 고정했습니다.
 - [ ] 직접 Tool Loop·작은 Agents SDK comparator·LangChain이 같은 기능 계약을 통과합니다.
-- [ ] 실험 A의 시간·품질·오류 처리 결과를 비교했습니다.
+- [ ] 실험 A의 계약 통과 수/전체 수·원시 실패·오류 처리를 비교했고, 효율 비교가 필요했다면 시간 원시값을 별도로 기록했습니다.
 - [ ] 일반 상태 머신과 LangGraph에서 승인 흐름을 구현했습니다.
 - [ ] 승인 전 실행과 중복 부작용을 차단했습니다.
 - [ ] 같은 프로세스 안의 중단·재개를 검증했습니다.
 - [ ] 선택 과제를 수행했다면 영속 Checkpointer와 재시작 결과를 별도로 기록했습니다.
-- [ ] memory write·read·update·delete·TTL·provenance와 poisoning 거부를 테스트했습니다.
+- [ ] 선택 심화를 수행했다면 memory write·read·update·delete·TTL·provenance와 poisoning 거부를 테스트했습니다.
 - [ ] 사례 하나의 정제 Tool trace와 승인 상태 전이를 AI 없이 설명할 수 있습니다.
 - [ ] 프레임워크를 사용할 이유와 사용하지 않을 이유를 같은 실험 근거로 설명하고 최종 선택을 직접 내렸습니다.
 - [ ] 프레임워크 선택 가이드를 완성했습니다.
@@ -3660,7 +3682,8 @@ Red Team 사례
 | 구분 | 이미 준비된 내용 | 학습자가 확인하고 완성할 내용 |
 |---|---|---|
 | 문서셋 | 현재·보관·충돌·공격 fixture를 포함한 Markdown 11개 | 문서 ID·버전·충돌 근거와 coverage 공백 |
-| 검색 평가 | `rag-golden.jsonl` 20개 | 기대·금지 문서 근거, 인용·Tool 사례와 추가 coverage |
+| 검색 평가 | 검토된 `rag-golden.jsonl` 개발 사례 | 기대·금지 문서 근거, 인용·Tool 사례와 필요한 coverage |
+| 최종 확인 | 학습 중 보지 않는 holdout 사례 | 마지막 한 번의 회귀 확인과 일반화 한계 |
 | 안전 평가 | `red-team-cases.jsonl` 22개 | 기대 상태·assertion 근거와 실행기 |
 | 검색·평가 기준선 | 구현된 chunk·retrieval·rerank·pipeline·평가기와 오프라인 테스트, 미구현 2-Step·Agentic adapter | 기준선 경계 설명, 2-Step 구현, 선택 Agentic 비교와 Red Team 실행기 |
 
@@ -3680,7 +3703,7 @@ week08-rag-evaluation/runs/rag-evaluation-report.md
 | 2 | Chunking·Embedding | 설정별 검색 결과 |
 | 3 | 2-Step RAG | 근거와 출처가 있는 답변 |
 | 4 | 선택적 Agentic RAG | 검색 경로 비교 |
-| 5 | 평가셋과 지표 | 50개 사례와 자동 평가 |
+| 5 | 평가셋과 지표 | 검토된 dev 사례·격리된 holdout과 자동 평가 |
 | 6 | Red Team | 공격 사례와 회귀 테스트 |
 | 7 | 개선·회고 | 전후 보고서와 회고 요약 |
 
@@ -3692,7 +3715,7 @@ week08-rag-evaluation/runs/rag-evaluation-report.md
 | 2 | chunker·embedding adapter·metadata 계약 | `lab/rag_lab/` | IDE·소수 API/오프라인 cache | 설정별 검색 결과·dependency/version | `.local/raw/embeddings/` |
 | 3 | 2-Step 계약·검색 결과·답변 cases | `lab/rag_lab/` | IDE·Fake/Recorded, 소수 Live | 검색/생성 실패를 나눈 Run | `.local/notes/day03.md` |
 | 4 | 기본 결과와 선택 옵션 설명 | `lab/rag_lab/` | IDE; Agentic·managed/hybrid/rerank는 선택 | 선택 비교를 했다면 별도 Run | `.local/notes/day04.md` |
-| 5 | `lab/evals/rag-golden.jsonl`, 지표 정의 | `lab/rag_lab/` | 수동 5건 후 평가 runner | 50건 dataset·검색/답변/인용 지표 | `.local/notes/day05.md` |
+| 5 | `lab/evals/`의 dev·holdout, 지표 정의 | `lab/rag_lab/` | 수동 대표 사례 후 평가 runner | dev 결과·마지막 holdout 결과·검색/답변/인용 지표 | `.local/notes/day05.md` |
 | 6 | Red Team·memory/retrieval failure cases | `lab/rag_lab/` | IDE·평가 runner·Codex 반례 보조 | assertion 결과·실패 카드·회귀 tests | `.local/raw/<run-id>/` |
 | 7 | 모든 전후 결과 | 주차 루트 | IDE/문서 편집 + ChatGPT 반례 | `runs/rag-evaluation-report.md`와 회고 요약 | `.local/notes/week08-retrospective.md` |
 
@@ -3870,9 +3893,9 @@ rerank: 고정 1차 후보에만 적용하고 Recall@k·MRR·latency·비용 변
 
 ---
 
-### Day 5 — 평가 케이스 50개 만들기
+### Day 5 — 검토된 dev 사례와 holdout 만들기
 
-`week08-rag-evaluation/lab/evals/rag-golden.jsonl`에는 검색 기준선용 20개 사례가 들어 있습니다. 먼저 범주·문서·난이도 coverage 표를 만들고, 기존 사례의 기대 문서와 금지 문서가 실제 원문으로 설명되는지 검토합니다. 빠진 영역을 아래 다섯 범주, 총 50개로 확장합니다.
+`week08-rag-evaluation/lab/evals/`에는 검색 기준선용 개발 사례가 들어 있습니다. 먼저 범주·문서·난이도 coverage 표를 만들고, 기존 사례의 기대 문서와 금지 문서가 실제 원문으로 설명되는지 검토합니다. 핵심 실습은 개수 채우기가 아니라 설명 가능한 작은 dev 묶음과 마지막에만 여는 holdout을 분리하는 것입니다. 범위 일반화 연구가 필요할 때만 아래 다섯 범주를 더 넓게 확장합니다.
 
 ```text
 직접 조회 10개
@@ -3912,6 +3935,8 @@ rerank: 고정 1차 후보에만 적용하고 Recall@k·MRR·latency·비용 변
 초기 20개 행에는 인용과 Tool 필드가 없습니다. 누락된 값을 자동으로 맞았다고 처리하지 말고, 답변·인용 사례와 Agentic RAG 사례에 `expected_citations`, `expected_tools`, `forbidden_tools`를 직접 추가합니다. 검색 지표 runner, 답변·인용 runner, Agent Tool trace runner, Red Team assertion runner를 나눠 두면 한 단계의 성공이 다른 단계의 실패를 가리지 않습니다.
 
 새 사례는 다섯 개 이하의 작은 묶음으로 추가하고, 각 기대 문서·인용·Tool을 근거 문단이나 실행 계약으로 설명할 수 있을 때만 Golden으로 승인합니다. AI가 질문 후보를 제안할 수는 있지만, 기대 결과를 대신 확정하거나 검토하지 않은 사례를 대량으로 평가셋에 넣게 하지 않습니다. 반복 평가 자동화는 이 사람 검토가 끝난 뒤에 실행합니다.
+
+설정·prompt·threshold를 고치며 반복해서 보는 사례는 `dev`로 표시합니다. `holdout`은 답과 결과를 보지 않은 채 격리하고, 변경을 멈춘 뒤 마지막에 한 번만 실행합니다. holdout 실패를 보고 다시 조정했다면 그 사례는 다음 버전의 dev가 된 것이므로 새 holdout 없이는 최종 확인을 반복했다고 주장하지 않습니다.
 
 표현 품질처럼 규칙으로 판정하기 어려운 소수 사례만 블라인드 사람 평가나 LLM 평가를 사용합니다.
 
@@ -3983,13 +4008,13 @@ Chunking·Embedding 설정
 - [ ] 12개 이상의 문서와 버전·예외·충돌 사례를 만들었습니다.
 - [ ] 검색 기준선이 최소 점수와 빈 결과를 처리합니다.
 - [ ] 2-Step RAG가 답변·출처·검색 결과·사용량을 반환합니다.
-- [ ] 평가 사례 50개를 다섯 범주로 구성했습니다.
+- [ ] 원문으로 설명 가능한 dev 사례와 학습 중 격리한 holdout 사례를 분리했습니다.
 - [ ] 검색·답변·보류·인용 지표를 자동 계산합니다.
 - [ ] Red Team 사례 20개 이상을 자동 판정합니다.
 - [ ] Golden 사례의 기대 문서와 인용을 원문 근거로 설명하고 직접 승인했습니다.
 - [ ] 정제 검색·답변 결과에서 검색 실패와 생성 실패를 각각 한 건 이상 AI 없이 설명할 수 있습니다.
 - [ ] memory 실패와 retrieval 실패를 별도 계층으로 평가했습니다.
-- [ ] Agentic 경로와 Red Team 판정의 최종 수용 여부를 학습자가 결정했습니다.
+- [ ] Red Team 판정의 최종 수용 여부를 학습자가 결정했고, 선택 Agentic RAG를 수행했다면 해당 경로의 Tool trace와 수용 여부도 별도로 검토했습니다.
 - [ ] 개선 전후 회귀 보고서를 완성했습니다.
 - [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:08 END -->
@@ -4164,7 +4189,7 @@ week09-dify-workflow/runs/code-vs-dify-report.md
 | 2 | 정책 문서·baseline cases | `lab/dify_lab/` | Dify UI의 Retrieval·Debug | 검색·분기·보류 결과와 export | `.local/notes/day02.md` |
 | 3 | Human Input 흐름·승인 불변식 | `lab/dify_lab/` | Dify UI·선택적 API | 승인·수정·거절·만료 증거 | `.local/raw/human-input/` |
 | 4 | `plugin-spec.md`, Fake API README, Tool Plugin 공식 문서 | `lab/dify_lab/plugin/` | IDE·Dify Plugin CLI·로컬 Fake API | Tool Plugin 코드·tests·오류 Run | `.local/raw/plugin/` |
-| 5 | 고정 15건 manifest와 Workflow export | `lab/dify_lab/` | 대표 수동 실행 후 API/runner | 공통 평가·회귀·failure cards | `.local/notes/day05.md` |
+| 5 | 대표 core 사례와 전체 manifest·Workflow export | `lab/dify_lab/` | 대표 수동 실행, 필요하면 API/runner | core 결과·선택 전체 회귀·failure cards | `.local/notes/day05.md` |
 | 6 | 코드 방식 결과와 measurement dictionary | `lab/dify_lab/` | IDE 분석 + Dify UI 대조 | 측정표·재현 환경·export diff | `.local/notes/day06.md` |
 | 7 | 모든 공개 증거 | 주차 루트 | IDE/문서 편집 + ChatGPT 반례 | `runs/code-vs-dify-report.md`와 회고 요약 | `.local/notes/week09-retrospective.md` |
 
@@ -4337,7 +4362,7 @@ Endpoint는 `http://127.0.0.1:8765`, 실습용 token은 `lab-test-token`입니�
 
 로컬 Dify를 선택했다면 이 endpoint를 Workflow에서 직접 연결할 수 있습니다. Dify Cloud를 선택했다면 Plugin 코드와 Fake API의 로컬 계약 테스트까지만 수행하고, 안전한 HTTPS 시험 endpoint를 본인이 명시적으로 준비하지 않은 상태에서는 Cloud end-to-end 연결을 `NOT_VERIFIED`로 남깁니다. 임시 터널이나 외부 자원을 AI가 임의로 만들게 하지 않습니다.
 
-서버를 다시 띄울 때 `--scenario`를 `unauthorized`, `forbidden`, `not-found`, `rate-limited`, `server-error`, `timeout`, `invalid-schema`로 바꿉니다. 디버깅과 패키징에 사용한 명령을 README에 남기고 누락 인자, 잘못된 타입과 500자를 넘는 질의도 시험합니다.
+핵심에서는 정상, 잘못된 입력, 인증 실패와 timeout/5xx를 대표로 시험합니다. 전체 오류 행렬이 실제 회귀 질문에 필요하면 서버를 다시 띄울 때 `--scenario`를 `unauthorized`, `forbidden`, `not-found`, `rate-limited`, `server-error`, `timeout`, `invalid-schema`로 바꾸는 선택 심화를 수행합니다. 디버깅과 패키징에 사용한 명령을 README에 남기고 누락 인자, 잘못된 타입과 500자를 넘는 질의도 필요한 범위에서 시험합니다.
 
 쓰기 Tool은 선택 실습입니다. 추가한다면 승인 ID, 사용자, 멱등성 키와 허용 상태를 Plugin 바깥의 실행 계층에서도 검증합니다.
 
@@ -4345,7 +4370,7 @@ Endpoint는 `http://127.0.0.1:8765`, 실습용 token은 `lab-test-token`입니�
 
 ### Day 5 — 공통 평가와 오류 실험
 
-`week09-dify-workflow/lab/dify_lab/evaluation-cases.jsonl`의 15개를 코드 방식과 Dify 방식에 모두 적용합니다. 앞의 기준선 10개에 승인·Tool Red Team 5개를 더한 고정 집합입니다.
+핵심에서는 `week09-dify-workflow/lab/dify_lab/evaluation-cases.jsonl`에서 정상 검색, 보류, 인증, 승인과 timeout/5xx를 대표하는 소수 사례를 코드 방식과 Dify 방식에 모두 적용합니다. 일반화·회귀 범위를 넓히려면 전체 15개를 쓰는 선택 연구를 수행합니다.
 
 ```text
 검색 문서 적중
@@ -4409,7 +4434,7 @@ Plugin을 직접 만들며 확인한 경계
 - [ ] 검색·조건 분기·답변 보류를 구현했습니다.
 - [ ] Human Input의 승인·수정·거절·재개를 시험했습니다.
 - [ ] 전체 트랙에서는 읽기 전용 Tool Plugin을 직접 만들었고, 단축 트랙에서는 `NOT_RUN` 이유와 확장 계획을 남겼습니다.
-- [ ] 전체 트랙은 공통 15건, 단축 트랙은 범주를 대표하는 5건 이상을 두 방식에 적용했습니다.
+- [ ] 핵심 범주를 대표하는 사례를 두 방식에 적용하고 통과 수/전체 수와 원시 실패를 기록했습니다. 전체 15건 반복은 선택 연구로 구분했습니다.
 - [ ] 구현 시간·평가·디버깅·버전 관리·재현성을 비교했습니다.
 - [ ] 첫 Workflow와 대표 평가 사례를 화면에서 직접 실행하고 각 상태를 설명할 수 있습니다.
 - [ ] 최종 승인과 코드·Dify 방식의 선택 근거를 본인이 결정했습니다.
@@ -4420,16 +4445,16 @@ Plugin을 직접 만들며 확인한 경계
 <!-- MODULE:10 START -->
 # 10주차 — 대표 AI 개발 방식 비교하기
 
-핵심 트랙은 성격이 다른 대표 세 방식(M1·M3·M5)을 동형 백엔드 과제 세 개에 교차 배정해 9회 실행합니다. 각 방식이 세 과제에서 반복되도록 하고 순서를 seed로 무작위화·counterbalance해, 첫 결과·방법 완료 결과·같은 사람 수정 예산 결과를 나눠 채점합니다. M2·M4를 더한 M1~M5 15회 비교는 선택 확장입니다.
+핵심 트랙은 성격이 다른 대표 세 방식(M1·M3·M5)을 같은 대표 과제의 서로 격리된 복사본에 한 번씩 적용하는 사례 연구입니다. 기능 테스트, hard gate, 요구사항 상태와 원시 실패를 근거로 각 방식의 장단점을 설명하되, 세 실행으로 보편 순위를 만들지 않습니다. M2·M4, 여러 동형 과제의 교차 배정, 반복·AI blind review·Pareto는 평가방법론을 더 공부하려는 선택 연구입니다.
 
 실행을 시작하기 전에 이 문서의 실험 규칙과 Day 1 체크리스트로 조건을 확정합니다.
 
 ## 학습 목표
 
-- 핵심 9개 Run의 배정·반복·순서 seed와 선택 확장 여부를 미리 고정합니다.
+- 대표 과제와 M1·M3·M5의 실행 순서·조건·한계를 미리 고정합니다.
 - 방법별 작업 폴더와 활성 지침을 격리합니다.
-- 구현 대화에서 숨긴 평가기로 세 시점의 품질을 채점합니다.
-- 시간·사람 개입·토큰·병합 비용·불확실성과 품질의 Pareto 전선을 그립니다.
+- 구현 대화에서 숨긴 기능 평가기와 hard gate를 원시 근거로 사용합니다.
+- 시간·사람 개입·토큰은 실제 효율 질문에 필요할 때 원시값으로 기록합니다.
 - 결과에 맞춰 개발 하네스 v2를 작성합니다.
 
 ## 개념 이해
@@ -4464,9 +4489,11 @@ M5  개발 하네스 v1과 사람의 선택적 직접 수정
 
 과제의 도메인은 달라도 요구사항 수, 오류 조건, 테스트 난도와 제한 시간을 비슷하게 맞춥니다. 실행 순서는 결과를 보기 전에 섞어 둡니다.
 
-핵심 실험은 `3개 방식 × 3개 과제 = 9회`입니다. 예를 들어 세 블록에 `M1-A/M3-B/M5-C`, `M1-B/M3-C/M5-A`, `M1-C/M3-A/M5-B`를 배정하면 모든 방식이 모든 과제를 한 번씩 만나며 방식별 세 번의 반복 관측이 생깁니다. 각 블록의 실제 실행 순서는 결과를 보기 전에 기록한 seed로 섞습니다. 선택 확장은 같은 원칙으로 M2·M4의 세 과제를 더해 총 15회로 만듭니다.
+핵심 사례 연구는 대표 Task 하나를 고르고 같은 시작 commit의 세 복사본에서 M1·M3·M5를 실행합니다. 실행 순서와 이미 알게 된 내용 때문에 뒤의 방식이 영향을 받을 수 있음을 보고서의 한계로 남깁니다. 이 결과는 자신의 선택 기준을 만드는 증거이지 방법의 인과적 우열을 확정하는 실험이 아닙니다.
 
-같은 method-task cell의 생성 변동성까지 보려면 예산 안에서 모든 cell 또는 사전 지정한 균형 표본을 같은 횟수로 추가 반복합니다. 점수가 잘 나온 cell만 다시 돌리지 않습니다. 표본이 세 개뿐인 핵심 결과는 raw 점, 중앙값·범위와 task별 paired difference를 함께 제시하고, 불안정한 평균 차이를 일반 법칙처럼 쓰지 않습니다. 반복이 충분할 때만 bootstrap interval 같은 불확실성 요약을 추가합니다.
+여러 과제에 일반화하거나 변동성을 주장하려는 경우에만 `3개 방식 × 3개 과제 = 9회` 교차 배정을 선택 연구로 수행합니다. M2·M4까지 더하면 15회가 되며, 이때만 결과를 보기 전에 method-task 배정과 seed를 고정합니다.
+
+같은 method-task cell의 생성 변동성까지 보려면 예산 안에서 모든 cell 또는 사전 지정한 균형 표본을 같은 횟수로 추가 반복합니다. 점수가 잘 나온 cell만 다시 돌리지 않습니다. 핵심 세 사례는 방식별 원시 근거 프로필만 제시하고 중앙값·범위·task별 paired difference를 계산하지 않습니다. 이런 요약은 선택 연구에서 사전 등록한 교차 배정과 반복 표본을 확보했을 때만 사용하며, 반복이 충분할 때만 bootstrap interval 같은 불확실성 요약을 추가합니다.
 
 ### 변수를 고정하는 이유
 
@@ -4486,7 +4513,7 @@ M5  개발 하네스 v1과 사람의 선택적 직접 수정
 - 허용·거부 Tool과 permission 위반·사람 승인
 - input·cached input·cache write·output token과 cache 설정
 
-### 세 시점의 품질
+### 선택 연구 — 세 시점의 품질
 
 최종 코드만 채점하면 사람의 수정이 많은 방식이 유리해질 수 있습니다. 그래서 품질을 세 시점으로 나눕니다.
 
@@ -4498,20 +4525,18 @@ Q_repaired  모든 방법에 같은 사람 수정 예산을 적용한 결과
 
 `Q_agent`는 첫 결과의 완성도, `Q_method`는 해당 작업 방식 전체의 효과, `Q_repaired`는 같은 사람 개입 조건에서 회복할 수 있는 품질을 보여 줍니다.
 
-### 품질 점수와 하드 게이트
+### 핵심 근거 프로필과 hard gate
 
-품질은 100점 만점으로 기록하되, 원시 테스트 결과도 함께 보존합니다.
+핵심에서는 서로 다른 성격의 근거를 100점 하나로 합치지 않습니다. 다음 프로필을 원시 상태로 나란히 기록합니다.
 
-| 영역 | 배점 | 근거 |
-|---|---:|---|
-| 숨겨진 기능 테스트 | 40 | `private_evaluator` |
-| 오류·보안·신뢰성 | 20 | 엣지 케이스와 하드 게이트 |
-| 요구사항 충족 | 15 | 인수 조건 매트릭스 |
-| 테스트 품질 | 10 | 경계·회귀·가독성 |
-| 구조와 유지보수성 | 10 | 블라인드 검토 |
-| 문서와 재현성 | 5 | 실행·설계·인계 자료 |
+| 영역 | 기록 | 근거 |
+|---|---|---|
+| 공개·숨겨진 기능 테스트 | `통과 수/전체 수`와 실패 이름 | JUnit과 `private_evaluator` |
+| 오류·보안·신뢰성 | `PASS / FAIL / NOT_VERIFIED` | 엣지 케이스와 hard gate |
+| 요구사항 | 항목별 상태 | 인수 조건 매트릭스 |
+| 테스트·구조·문서 | 근거 경로와 사람 메모 | diff, 테스트와 재현 자료 |
 
-아래 결함은 총점과 별도로 실패로 기록합니다.
+아래 결함은 근거 프로필과 별도로 실패로 기록합니다.
 
 - 인증이나 승인 우회
 - 같은 부작용의 중복 실행
@@ -4520,11 +4545,11 @@ Q_repaired  모든 방법에 같은 사람 수정 예산을 적용한 결과
 - 테스트 삭제나 무력화
 - 계약과 반대되는 상태 전이
 
-### 공개 테스트, 숨겨진 평가기와 블라인드 리뷰
+### 공개 테스트, 숨겨진 평가기와 선택적 blind review
 
 구현 작업은 공개 테스트로 기본 동작을 확인합니다. 숨겨진 평가기는 구현 과정에서 보이지 않게 두어 공개 테스트에만 맞춘 코드를 걸러냅니다.
 
-구조와 문서처럼 자동 테스트만으로 판단하기 어려운 부분은 블라인드 리뷰로 채점합니다. Reviewer에게 방법명과 구현 대화를 보여 주지 않으면 “하네스를 썼으니 더 좋을 것” 같은 기대가 평가에 섞이는 일을 줄일 수 있습니다.
+구조와 문서처럼 자동 테스트만으로 판단하기 어려운 부분은 학습자가 근거를 읽고 메모합니다. AI blind reviewer는 선택 연구의 두 번째 의견이며 완료 점수나 정답 권위자가 아닙니다. 사용한다면 방법명과 구현 대화를 가리고, 사람 판단과 불일치를 그대로 보존합니다.
 
 ### 시간과 사람 개입
 
@@ -4539,7 +4564,7 @@ T_review 결과 검토에 쓴 시간
 
 세션 수가 많아질수록 전달 문서, 중복 구현과 통합 비용도 함께 기록해야 합니다.
 
-### Pareto 전선
+### 선택 연구 — Pareto 전선
 
 품질, 시간, 사람 개입과 토큰을 하나의 종합 점수로 합치면 어떤 장단점이 있었는지 가려집니다. Pareto 전선은 한 지표를 개선하려면 다른 지표를 희생해야 하는 결과들을 보여 줍니다.
 
@@ -4575,12 +4600,11 @@ Worktree와 병합 규칙
 ### 개념이 연결되는 방식
 
 ```text
-동형 과제 + 고정된 실행 조건 + seed·교차 배정
-→ 핵심 M1·M3·M5 반복(선택 M1~M5 확장)
-→ Q_agent / Q_method / Q_repaired 채점
-→ 시간·사람 개입·토큰·통합·compaction·permission·cache 수집
-→ 숨겨진 평가기와 블라인드 리뷰
-→ raw 점·불확실성·품질-시간-비용 Pareto 전선
+대표 과제 + 격리된 같은 시작 조건
+→ 핵심 M1·M3·M5 한 번씩 실행
+→ 기능 테스트 / hard gate / 요구사항 / raw failure
+→ 필요한 경우 시간·사람 개입·토큰 원시값
+→ 선택 연구에서만 교차 배정·반복·blind review·Pareto
 → 개발 하네스 v2
 ```
 
@@ -4590,26 +4614,26 @@ Worktree와 병합 규칙
 - 앞선 Run의 코드와 결론이 뒤의 Run에 섞입니다.
 - 실행 결과를 본 뒤 순서나 반복 대상을 바꿉니다.
 - 구현 세션이 숨겨진 평가기를 읽습니다.
-- 최종 점수만 비교하고 사람 수정량을 기록하지 않습니다.
+- 종합 점수나 단일 수치만 비교하고 사람 개입과 원시 근거를 기록하지 않습니다.
 - 전체 시간만 보고 검토·병합에 든 사람 시간을 빠뜨립니다.
 - 토큰을 많이 쓴 방식이 더 성실했다고 해석합니다.
 - 여러 지표를 근거 없이 한 점수로 합쳐 장단점을 가립니다.
 - 적은 Run에서 나온 결과를 모든 프로젝트에 적용할 결론으로 확대합니다.
 - 방식과 과제 배정을 counterbalance하지 않아 한 방식이 쉬운 과제만 만납니다.
-- 평균 하나만 제시하고 반복 간 범위·paired difference·누락을 숨깁니다.
+- 선택 반복 연구에서 평균 하나만 제시하고 반복 간 범위·paired difference·누락을 숨깁니다.
 - compaction 뒤 불변식 손실, Tool permission 위반과 cache 비용을 단순 토큰 합계에 묻습니다.
 
 ### 학습 후 설명할 수 있어야 하는 것
 
 - M1~M5에서 사람과 Codex의 책임이 어떻게 달라지는지
-- 핵심 3개 방식의 교차 배정·반복·무작위 순서와 선택 5개 방식 확장을 설계하는 방법
+- 핵심 3개 방식의 제한된 사례 연구와 일반화 가능한 반복 연구를 구분하는 방법
 - 같은 과제를 반복하지 않고 동형 과제를 사용하는 이유
 - 모델·시작 commit·계약·평가기 같은 조건을 고정해야 하는 이유
-- `Q_agent`·`Q_method`·`Q_repaired`를 나눠 채점하는 이유
-- 숨겨진 평가기와 블라인드 리뷰가 필요한 이유
-- `T_wall`과 `T_human`을 분리해 기록하는 이유
-- Pareto 전선으로 결과를 해석하는 방법
-- 작은 표본의 raw 점·범위·paired difference와 불확실성을 함께 보고하는 이유
+- 기능 테스트·hard gate·사람 판단을 하나의 점수로 합치지 않는 이유
+- 숨겨진 기능 평가기와 선택적 blind review의 책임 차이
+- 효율 비교를 선택했을 때 `T_wall`과 `T_human`을 분리하는 이유
+- 반복 연구를 선택했을 때만 Pareto와 불확실성을 해석해야 하는 이유
+- 선택 반복 연구에서 작은 표본의 원시값·범위·paired difference와 불확실성을 함께 보고하는 이유
 - 실험 결과를 개발 하네스 v2의 규칙으로 바꾸는 과정
 
 ### 계획 폴더와 Run 작업 폴더
@@ -4629,23 +4653,23 @@ Worktree와 병합 규칙
 
 | 파일 | 준비된 상태 | 학습자가 할 일 |
 |---|---|---|
-| `run-matrix.csv` 템플릿 | header만 있는 실행 계획표 | 파일럿 뒤 핵심 9개와 선택 확장 Run의 배정·seed·순서를 고정 |
+| `run-matrix.csv` 템플릿 | header만 있는 실행 계획표 | 파일럿 뒤 핵심 M1·M3·M5 사례와 선택 연구의 배정·순서를 고정 |
 | `environment.template.json`, `method-manifest.template.json` | Run 환경·활성 기능 기록용 빈 템플릿 | 실제 값으로 복사해 채우고 hash 기록 |
-| `score-register.csv`, `score-details.csv` | 총점·세부 근거용 빈 양식 | 결과를 본 뒤 기준을 바꾸지 않고 기록 |
+| 근거 register와 요구사항 상태표 | 점수 없는 원시 증거용 빈 양식 | 테스트 수·상태·실패·근거 경로를 기록 |
 | `architecture-template.md`, `harness-v2.md` | M4 설계와 최종 운영법의 뼈대 | 본인의 판단과 실험 근거로 채우기 |
-| `scoring-rubric.md`, `data-dictionary.md` | 사전에 정한 채점·열 정의 | 실행 전에 읽고 애매한 기준 확정 |
+| `scoring-rubric.md`, `data-dictionary.md` | 무점수 판정 규칙과 열 정의 | 실행 전에 읽고 애매한 기준 확정 |
 | `analyze_runs.py`, `tests/` | 완성된 집계 도구와 단위 테스트 | 수동 기록을 이해한 뒤 검증·실행 |
 
 `private_evaluator/`는 과정 패키지에만 있고 구현 작업에는 복사되지 않습니다. 준비된 코드, 테스트, rubric과 분석기는 결과를 보장하는 답안이 아닙니다. 과제의 ground truth, 방법별 차이, 사람 수정 예산과 최종 하네스에 넣을 규칙은 학습자가 결과를 보기 전에 정하고 마지막에 다시 수용 여부를 판단합니다.
 
-주차 `prompts/`의 M1~M5 파일은 **[실험 입력]**, `blind-reviewer.md`는 **[자동 측정용]**입니다. 핵심 M1·M3·M5와 선택 M2·M4의 목적·placeholder를 읽고 대화형 pilot에서 직접 전송합니다. pilot 뒤 필요한 수정만 기록해 동결하며 반복 Run은 공용 Runner로 같은 본문을 사용합니다.
+주차 `prompts/`의 M1~M5 파일은 **[실험 입력]**, `blind-reviewer.md`는 **[선택 연구 검토용]**입니다. 핵심 M1·M3·M5와 선택 M2·M4의 목적·placeholder를 읽고 대화형 pilot에서 직접 전송합니다. 반복 연구를 선택했을 때만 pilot 뒤 본문을 동결해 공용 Runner로 재사용합니다.
 
 ## 이번 주에 직접 만들고 채울 것
 
 ```text
 runs/run-matrix.csv
-runs/score-register.csv
-runs/score-details.csv
+runs/evidence-register.csv
+runs/requirements-status.csv
 runs/<RUN_ID>/
 runs/analysis/
 runs/harness-v2.md
@@ -4656,26 +4680,26 @@ runs/method-report.md
 
 | 일차 | 작업 | 결과 |
 |---:|---|---|
-| 1 | 준비 자료 확인·대화형 pilot·실험 확정 | 핵심 9개 교차 배정·seed·방법 명세 |
-| 2 | 핵심 M1 | 세 과제의 단일 실행 결과 |
+| 1 | 준비 자료 확인·대화형 pilot·사례 연구 확정 | 대표 Task·실행 순서·방법 명세·한계 |
+| 2 | 핵심 M1 | 대표 과제의 단일 실행 결과 |
 | 3 | 선택 M2 | 구조화된 단일 실행 확장 결과 |
-| 4 | 핵심 M3 | 세 과제의 역할 분리 결과 |
+| 4 | 핵심 M3 | 대표 과제의 역할 분리 결과 |
 | 5 | 선택 M4 | 사람 설계·병렬 구현 확장 결과 |
-| 6 | 핵심 M5 | 세 과제의 하네스 적용 결과 |
-| 7 | 평가·반복·분석 | 세 품질 시점과 Pareto |
+| 6 | 핵심 M5 | 대표 과제의 하네스 적용 결과 |
+| 7 | 근거 평가·분석 | 기능·gate·요구사항·원시 비용 프로필 |
 | 8 | 개발 하네스 v2·종합 회고 | 최종 운영법과 종합 보고서 |
 
 ### 이번 주의 실행 지도
 
 | Day | 먼저 읽을 파일 | IDE·Codex에서 열 폴더 | 사용할 표면 | 공개 산출물 | 개인 기록 |
 |---:|---|---|---|---|---|
-| 1 | 주차 `README.md`, `lab/benchmark/` 계약·rubric·matrix, 공용 Task·app | `lab/benchmark/`와 폐기 가능한 pilot Run | IDE + 같은 Codex 표면의 수동 pilot | 동결 manifest·순서·seed·pilot 증거 | `.local/notes/day01.md` |
-| 2 | M1 prompt와 배정 Task | 각 `lab/benchmark/workspaces/<run-id>/` | 수동 pilot 뒤 공용 Runner | M1 세 Run·세 snapshot | `.local/raw/<run-id>/` |
-| 3 | M2 prompt와 배정 Task | 각 workspace | 선택 확장, 같은 자동 표면 | M2 세 Run·세 snapshot | `.local/raw/<run-id>/` |
-| 4 | M3 역할·handoff·권한 manifest | 각 workspace | 독립 작업 또는 Subagent 중 사전 고정 | M3 세 Run·handoff·trace | `.local/raw/<run-id>/` |
-| 5 | M4 architecture·Worktree 계약 | 각 Worktree/Run 루트 | 선택 확장, IDE + Codex | M4 반복 Run·merge 증거 | `.local/notes/day05.md` |
-| 6 | M5 동결 하네스·invariant·gate | 각 workspace | 같은 Codex 자동 표면 | M5 세 Run·Hook/gate/compaction 증거 | `.local/raw/<run-id>/` |
-| 7 | 모든 snapshot·rubric·private evaluator 경계 | `lab/benchmark/` | IDE·평가 runner·블라인드 검토 | score details·불확실성·Pareto 자료 | `.local/notes/day07.md` |
+| 1 | 주차 `README.md`, `lab/benchmark/` 계약·판정표·matrix, 공용 Task·app | `lab/benchmark/`와 폐기 가능한 pilot Run | IDE + 같은 Codex 표면의 수동 pilot | 대표 Task·순서·manifest·pilot 증거 | `.local/notes/day01.md` |
+| 2 | M1 prompt와 대표 Task | `lab/benchmark/workspaces/<run-id>/` | 대화형 실행 | M1 기능·gate·실패 근거 | `.local/raw/<run-id>/` |
+| 3 | M2 prompt와 대표 Task | 선택 workspace | 선택 확장, 같은 Codex 표면 | M2 기능·gate·실패 근거 | `.local/raw/<run-id>/` |
+| 4 | M3 역할·handoff·권한 manifest | 해당 workspace | 독립 작업 또는 Subagent 중 사전 고정 | M3 근거·handoff·trace | `.local/raw/<run-id>/` |
+| 5 | M4 architecture·Worktree 계약 | 선택 Worktree/Run 루트 | 선택 확장, IDE + Codex | M4 기능·merge 근거 | `.local/notes/day05.md` |
+| 6 | M5 동결 하네스·invariant·gate | 해당 workspace | 같은 Codex 표면 | M5 기능·Hook/gate 근거 | `.local/raw/<run-id>/` |
+| 7 | 세 Run의 기능·gate·요구사항과 private evaluator 경계 | `lab/benchmark/` | IDE·로컬 평가기 | evidence register·raw comparison | `.local/notes/day07.md` |
 | 8 | 분석 결과와 `harness-v2.md` 뼈대 | 주차 루트 | IDE/문서 편집 + ChatGPT 반례 | `runs/harness-v2.md`, 종합 보고서·글 | `.local/notes/week10-retrospective.md` |
 
 ---
@@ -4690,7 +4714,7 @@ runs/method-report.md
 2. 새 workspace에서 M3의 역할·handoff와 M5의 invariant·gate가 실제로 보이는지 확인합니다.
 3. 결과의 diff·테스트·Tool permission과 compaction 전후 상태를 확인하고, 필요한 측정 열을 확정합니다.
 
-pilot은 정식 점수에 넣지 않습니다. 수동 요청과 후속 대화로 조건을 이해한 뒤에만 반복 실행과 자동 분석을 준비합니다.
+pilot은 세 방식의 비교 근거에 넣지 않습니다. 수동 요청과 후속 대화로 조건을 이해한 뒤 대표 Task, 실행 순서와 각 방식의 경계를 확정합니다.
 
 아래 항목을 `run-matrix.csv`와 각 Run의 `environment.json`에 고정합니다.
 
@@ -4702,16 +4726,13 @@ Task 계약 버전
 의존성 lock hash
 시간 제한
 sandbox·승인·네트워크 정책
-사람 수정 예산
 숨겨진 평가기 버전
-method-task 배정 블록·random seed·실행 순서
-반복 번호와 사전 지정한 추가 반복
-compaction 정책·invariant set
-Tool allow/deny·approval 정책
-prompt cache mode·관련 usage 필드
+대표 Task·실행 순서
+Tool allow/deny·approval 정책과 hard gate
+선택 연구일 때만 method-task 배정·seed·반복·사람 수정 예산·compaction·cache 측정
 ```
 
-`runs/run-matrix.csv`에 핵심 9개 Run을 모두 만든 뒤 실험을 시작합니다. 선택 확장 6개와 추가 반복도 결과를 보기 전에 행을 예약합니다. Latin-square식 method-task 배정과 seed로 섞은 실제 순서를 둘 다 보존해 순서 효과를 숨기지 않습니다.
+`runs/run-matrix.csv`에 핵심 M1·M3·M5 세 Run을 만든 뒤 시작합니다. 세 Run은 같은 대표 Task와 시작 commit을 사용하며 결과를 별개 workspace에 보존합니다. M2·M4 또는 9/15회 교차 배정을 선택했다면 그 행과 seed도 결과를 보기 전에 예약합니다.
 
 각 Run은 `lab/benchmark/workspaces/<RUN_ID>/`의 독립 workspace로 만듭니다. 기존 workspace를 덮어쓰지 말고 같은 시작 commit의 `shared/benchmark/app/`, 배정한 계약과 템플릿을 복사합니다. OS별 복사 명령보다 IDE나 검토한 보조 스크립트를 써도 되지만, 원본·복사본의 Git tree/hash와 Gradle wrapper 실행 비트를 대조해야 합니다. 공개 `runs/<RUN_ID>/environment.json`과 `method-manifest.json`은 실제 값으로 채우고 SHA-256을 남기며 템플릿 빈값을 증거로 쓰지 않습니다.
 
@@ -4736,27 +4757,21 @@ M3과 M5의 원본 묶음은 `week10-ai-development-methods/lab/benchmark/method
 - 구현 작업에서 `private_evaluator/`가 보이지 않는가
 - 모델·reasoning·시작 commit이 실제 실행 명령과 일치하는가
 
-`private_evaluator/`는 과정 패키지 쪽에만 있고 생성된 학습 저장소에는 복사되지 않습니다. 구현 작업의 CWD는 해당 Run 루트로 제한하고, 비공개 평가는 별도 평가 작업에서 과정 패키지의 evaluator를 읽어 실행합니다. 절대경로나 비공개 결과를 구현 prompt에 넣지 않습니다.
+`private_evaluator/`는 과정 패키지 쪽에만 있고 생성된 학습 저장소에는 복사되지 않습니다. 구현 작업의 CWD는 해당 Run 루트로 제한하고, 비공개 평가는 별도 평가 작업에서 과정 패키지의 evaluator를 읽어 실행합니다. 절대경로나 비공개 결과를 구현 prompt에 넣지 않습니다. evaluator의 통과 수는 기능 근거이지 구조·문서까지 포함한 종합 품질 점수가 아닙니다.
 
 주차 `prompts/`의 M1~M5 **[실험 입력]**은 방법 차이를 고정하는 제공 본문입니다. 핵심 M1·M3·M5를 먼저 읽고 pilot에서 불명확했던 부분만 수정합니다. 선택 M2·M4도 수행할 때만 동결합니다. 프롬프트를 처음부터 다시 쓸 필요는 없습니다.
 
 검토한 본문은 `week10-ai-development-methods/lab/benchmark/method-prompts/`에 동결합니다. `{TASK_FILE}`은 workspace 기준 계약 경로로 바꾸고, M4의 `{ARCHITECTURE_FILE}`은 수행할 때만 해당 파일로 바꿉니다. hash를 `runs/run-matrix.csv`에 적은 뒤 결과에 맞춰 요청 구조를 바꾸지 않습니다.
 
-정식 benchmark에서는 workspace, 활성 설정과 치환 본문을 확인한 뒤 그 workspace를 앱 primary folder나 CLI CWD로 지정합니다. 첫 요청 전에 실제 CWD와 발견된 설정·Skill 경로를 기록합니다. 반복 실행은 `shared/tools/runner/run_codex_exec.py`에 workspace를 `--working-directory`, `week10-ai-development-methods/.local/raw/<run-id>`를 `--output-directory`로 주고 코드 구현을 위해 `--sandbox workspace-write`를 명시한 뒤 `--dry-run`을 통과해야 시작합니다. Runner가 방법이나 prompt를 몰래 고르지 않게 실제 명령·입력 hash를 `runs/run-matrix.csv`와 대조하며, 대화형 pilot은 정식 자동 Run과 다른 표본으로 둡니다.
+각 사례에서는 workspace, 활성 설정과 치환 본문을 확인한 뒤 그 workspace를 앱 primary folder나 CLI CWD로 지정합니다. 첫 요청 전에 실제 CWD와 발견된 설정·Skill 경로를 기록합니다. 반복 연구를 선택했다면 `shared/tools/runner/run_codex_exec.py`에 workspace와 `.local/raw/<run-id>`를 명시하고 `--dry-run`을 통과한 뒤에만 사용합니다. 대화형 핵심 사례와 자동 반복 Run은 같은 표본처럼 합치지 않습니다.
 
 ---
 
 ### Day 2 — M1: 절차를 지정하지 않은 단일 실행
 
-선택한 실행 표면에서 검토·치환 후 동결한 M1 본문을 전달합니다. 계획 방식, 검토 순서와 역할 분담은 별도로 지정하지 않습니다. 대화형 파일럿에서 Codex가 질문했다면 답변 내용과 시간을 기록하고, 정식 자동 Run에서는 추가 교정 요청을 보내지 않습니다.
+선택한 실행 표면에서 검토·치환 후 동결한 M1 본문을 전달합니다. 계획 방식, 검토 순서와 역할 분담은 별도로 지정하지 않습니다. 대화형 파일럿에서 Codex가 질문했다면 답변 내용과 시간을 기록하고, 핵심 정식 사례에서는 추가 교정 요청을 보내지 않습니다.
 
-보존할 시점:
-
-```text
-첫 에이전트 commit → Q_agent
-M1 실행 종료 commit → Q_method
-동일한 사람 수정 예산 적용 → Q_repaired
-```
+핵심에서는 각 방법의 정해진 절차가 끝난 commit 하나를 보존합니다. 첫 결과와 같은 사람 수정 예산의 회복 정도까지 연구하려면 `Q_agent / Q_method / Q_repaired` 세 snapshot을 선택적으로 추가합니다.
 
 기록:
 
@@ -4840,7 +4855,7 @@ PLAN
 → GATE
 ```
 
-자동 수정과 재시도가 끝난 시점을 `Q_method`로 고정합니다. 숨겨진 평가 결과는 구현 작업에 미리 제공하지 않습니다. 이후 사람 수정 단계에서 어떤 정보를 제공했는지와 직접 바꾼 코드량을 기록합니다.
+자동 수정과 재시도가 끝난 commit을 M5의 핵심 결과로 고정합니다. 숨겨진 평가 결과는 구현 작업에 미리 제공하지 않습니다. 선택 연구로 사람 수정 단계를 추가했다면 어떤 정보를 제공했는지와 직접 바꾼 코드량을 기록합니다.
 
 실행 전에 Run 루트에서 발견되는 `AGENTS.md`, Skills, MCP, Hooks와 Subagent를 직접 확인합니다. “M5이므로 전부 켠다”가 아니라 동결한 하네스 v1 묶음과 일치하는지 대조하고, 승인 요청과 중단 상황에서는 학습자가 계속할지 결정합니다.
 
@@ -4859,65 +4874,47 @@ PLAN
 
 ### Day 7 — 평가와 분석
 
-각 실행을 세 시점에서 채점합니다.
-
-```text
-Q_agent
-Q_method
-Q_repaired
-```
-
-평가 순서:
+각 핵심 실행을 다음 순서로 확인합니다.
 
 ```text
 commit 고정
 → 공개 테스트
 → private evaluator
 → 하드 게이트
-→ 블라인드 구조·문서 검토
-→ score-register.csv 기록
+→ 요구사항 상태와 원시 실패 대조
+→ evidence-register.csv 기록
 ```
 
-`runs/score-register.csv`에는 세 시점의 총점과 실행 비용을 한 행에 적습니다. 자동 평가·블라인드 검토·hard gate의 세부 근거는 `runs/score-details.csv`에 `run_id + snapshot`을 키로 세 행씩 남깁니다. 각 행에는 해당 commit, 비공개 평가 JSON과 블라인드 검토 파일의 경로를 적습니다.
+`runs/evidence-register.csv`에는 Run별 기능 테스트의 통과 수/전체 수, hard gate, 요구사항 상태, wall/human/token 원시값과 실패 근거 경로를 적습니다. `runs/requirements-status.csv`는 각 요구사항을 `PASS / FAIL / NOT_VERIFIED`로 나눕니다. 수집하지 않은 시간·토큰을 0으로 쓰지 않습니다.
 
-블라인드 검토를 자동화하기 전에 `scoring-rubric.md`로 snapshot 하나를 본인이 직접 채점하고 근거 파일을 연결합니다. 그다음 문서 끝의 **[자동 측정용]** `blind-reviewer.md`를 열어 볼 수 있는 자료, 채점 범위와 `NOT_VERIFIED` 규칙을 확인하고 대화형 작업에 직접 전송해 한 번 시험합니다. 결과가 의도한 형식인지 확인한 뒤 본문을 동결해 반복 평가에 사용합니다. AI 점수와 본인 점수가 다르면 어느 근거를 채택할지 학습자가 결정하고, 확인하지 못한 항목을 추정 점수로 채우지 않습니다.
+구조·문서에 대한 사람 메모는 점수로 합산하지 않습니다. 선택 연구로 `blind-reviewer.md`를 사용한다면 먼저 본인이 같은 근거를 검토하고, AI 결과는 별도 파일에 두어 불일치와 최종 판단을 남깁니다.
 
 #### 분석 도구 확인
 
-수동으로 `score-register.csv`와 `score-details.csv`의 한 Run을 채워 두 파일의 관계를 이해한 뒤 아래 로컬 단위 테스트를 실행합니다. API나 Codex를 호출하지 않습니다.
+수동으로 두 근거 CSV의 한 Run을 채워 관계를 이해한 뒤 아래 로컬 단위 테스트를 실행합니다. API나 Codex를 호출하지 않습니다.
 
 ```text
 python -m unittest discover -s week10-ai-development-methods/lab/benchmark/tests -v
 ```
 
-빈 CSV, 범위를 벗어난 점수, 음수 시간과 빈 hard gate는 유효한 결과로 간주하지 않아야 합니다.
+빈 CSV, 음수 시간, 잘못된 상태, 테스트 전체 수보다 큰 통과 수와 빈 hard gate는 유효한 결과로 간주하지 않아야 합니다.
 
 `analyze_runs.py`로 다음을 생성합니다.
 
-- 방식별 표본 수
-- 중앙값과 범위
-- 세 품질 점수
-- 하드 게이트 통과율
-- 전체·사람·검토·병합 시간
-- 토큰과 세션 수
-- compaction·invariant 보존 실패
-- Tool permission 위반·거부·승인
-- cache read/write와 전체 입력 비용
-- 누락 데이터 경고
-- raw 점·중앙값·범위·task별 paired difference
-- 표본 수에 맞는 불확실성 경고
-- 그래프용 CSV
-- Pareto 전선
+- Run별 task·method와 기능 테스트 통과 수/전체 수
+- hard gate와 요구사항 `PASS / FAIL / NOT_VERIFIED` 수
+- wall·human·token 원시값
+- 실패·근거 경로
+- 잘못되거나 누락된 필수 입력의 오류 거부
+- 같은 Task끼리 비교한 설명용 표와 일반화 금지 경고
 
-핵심 9개 Run이 기록된 뒤 아래 공통 명령을 실행합니다. 선택 확장까지 했다면 `--expected-run-count 15`로 바꿉니다.
+핵심 세 Run이 기록된 뒤 아래 공통 명령을 실행합니다.
 
 ```text
-python week10-ai-development-methods/lab/benchmark/analyze_runs.py week10-ai-development-methods/runs/score-register.csv --score-details week10-ai-development-methods/runs/score-details.csv --run-matrix week10-ai-development-methods/runs/run-matrix.csv --expected-run-count 9 --summary-csv week10-ai-development-methods/runs/analysis/method-summary.csv --report-json week10-ai-development-methods/runs/analysis/report.json
+python week10-ai-development-methods/lab/benchmark/analyze_runs.py week10-ai-development-methods/runs/evidence-register.csv --requirements-status week10-ai-development-methods/runs/requirements-status.csv --run-matrix week10-ai-development-methods/runs/run-matrix.csv --report-json week10-ai-development-methods/runs/analysis/report.json
 ```
 
-`method-summary.csv`는 그래프 입력으로 사용할 수 있고 `report.json`에는 누락 경고와 Pareto 결과가 들어갑니다. hard gate는 빈칸 대신 `NOT_VERIFIED`로 적고 별도 건수로 남깁니다. 방법당 세 관측의 중앙값·범위와 task별 paired difference를 raw 점과 함께 봅니다. 작은 표본의 interval은 불안정하다고 명시하며 겹침 여부만으로 승패를 단정하지 않습니다. Pareto도 토큰·permission·불변식 위험을 모두 합친 보편 순위가 아닙니다.
-
-반복 실행은 Day 1에 정한 대상만 수행합니다.
+`report.json`에는 검증된 원시 근거와 일반화 금지 경고가 들어갑니다. 필수값이 누락되거나 잘못되면 분석기가 보고서를 만들지 않고 오류로 종료합니다. hard gate는 빈칸 대신 `NOT_VERIFIED`로 적습니다. 핵심 세 Run의 차이는 이 대표 Task와 실행 순서에 한정해 해석합니다. 중앙값·범위·paired difference·Pareto가 필요한 연구라면 Day 1에 사전 등록한 교차 배정과 반복 자료로 별도 분석하고 핵심 보고서와 섞지 않습니다.
 
 ---
 
@@ -4938,20 +4935,21 @@ Worktree와 병합 기준
 적용하지 않기로 한 요소와 근거
 ```
 
-실험 설계, 핵심 9개 Run의 raw 점·중앙값·범위·paired difference, 선택 확장 여부, 불확실성 경고와 Pareto 해석은 `week10-ai-development-methods/runs/method-report.md`에 씁니다. 개인적인 선호와 다음 실험 메모는 `.local/notes/week10-retrospective.md`에 분리합니다.
+대표 Task, 세 Run의 원시 근거, 실행 순서의 영향, 선택 확장 여부와 일반화 한계는 `week10-ai-development-methods/runs/method-report.md`에 씁니다. 연구 트랙을 수행했다면 반복·불확실성·Pareto 결과를 별도 절에 추가합니다. 개인적인 선호와 다음 실험 메모는 `.local/notes/week10-retrospective.md`에 분리합니다.
 
 ## 완료 기준
 
-- [ ] 핵심 9개 Run의 method-task 교차 배정·seed·순서·반복을 시작 전에 고정했습니다.
+- [ ] 대표 Task와 핵심 M1·M3·M5 세 Run의 같은 시작 조건·격리·실행 순서를 시작 전에 고정했습니다.
 - [ ] 점수에 넣지 않는 대화형 pilot에서 핵심 M1·M3·M5의 대표 흐름을 직접 확인했습니다.
 - [ ] 핵심 M1·M3·M5 입력을 동결했고, 선택 확장을 했다면 M2·M4도 같은 절차로 동결했습니다.
 - [ ] 방법별 작업 폴더와 활성 지침을 확인했습니다.
-- [ ] 핵심 세 방식이 모든 동형 Task와 같은 시작 코드를 사용했고, 선택 M2·M4도 같은 조건을 지켰습니다.
-- [ ] `Q_agent`·`Q_method`·`Q_repaired`를 commit과 함께 기록했습니다.
+- [ ] 핵심 세 방식이 같은 대표 Task와 시작 코드를 사용했고, 선택 M2·M4도 같은 조건을 지켰습니다.
+- [ ] 각 방식의 최종 commit, 기능 테스트 통과 수/전체 수, hard gate, 요구사항 상태와 원시 실패를 기록했습니다.
 - [ ] 숨겨진 평가기와 구현 작업의 경계를 지켰습니다.
-- [ ] 시간·토큰·조정 비용·하드 게이트와 compaction invariant·Tool permission·cache 지표를 분석했습니다.
-- [ ] raw 점·반복 범위·paired difference·불확실성, Pareto 전선과 실험 한계를 보고서에 포함했습니다.
-- [ ] AI의 점수·분석과 최종 하네스 규칙을 근거를 보고 직접 수용하거나 거절했습니다.
+- [ ] 시간·토큰은 비교 질문에 필요하고 실제 수집된 경우에만 원시값으로 분석했습니다.
+- [ ] 세 Run으로 보편 순위를 주장하지 않고 실행 순서·과제·표본의 한계를 보고서에 포함했습니다.
+- [ ] 선택 연구를 수행했다면 AI review·반복·Pareto 결과를 핵심 완료 판정과 분리했습니다.
+- [ ] 선택 AI 검토를 수행했다면 의견을 근거와 비교해 직접 수용하거나 거절했습니다.
 - [ ] 개발 하네스 v2와 종합 보고서를 완성했습니다.
 - [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 <!-- MODULE:10 END -->
@@ -5181,14 +5179,20 @@ NOT_APPLICABLE — 조건부 항목이 적용되지 않는 이유
 
 ### 공개 준비와 배포는 다르다
 
-최종 상태를 구분해 기록합니다.
+정보 공개 상태와 배포 상태는 서로 독립적으로 기록합니다. 하나의 목록에서 둘 중 하나만 고르는 값이 아닙니다.
 
 ```text
-PUBLISHED             실제 공개했고 접근도 확인함
-READY_NOT_PUBLISHED   공개 가능한 상태지만 공개하지 않기로 함
-PRIVATE_HANDOFF       특정 상대에게만 전달 가능한 상태
-NOT_READY             막아야 할 결함이나 근거 부족이 남음
-NOT_DEPLOYED          배포를 선택하지 않았거나 수행하지 않음
+disclosure_status:
+  PUBLISHED             실제 공개했고 접근도 확인함
+  READY_NOT_PUBLISHED   공개 가능한 상태지만 공개하지 않기로 함
+  PRIVATE_HANDOFF       특정 상대에게만 전달 가능한 상태
+  NOT_READY             막아야 할 결함이나 근거 부족이 남음
+
+deployment_status:
+  DEPLOYED               실제 배포했고 접근·중지 경로를 확인함
+  READY_NOT_DEPLOYED     배포 준비는 됐지만 실행하지 않기로 함
+  NOT_DEPLOYED           배포를 선택하지 않았거나 수행하지 않음
+  NOT_APPLICABLE         배포 대상이 아닌 결과물
 ```
 
 배포 URL이 없어도 포트폴리오 준비를 완료할 수 있습니다. 반대로 URL이 있어도 핵심 주장, 개인정보와 라이선스가 검증되지 않았다면 공개 준비가 끝난 것이 아닙니다.
@@ -5299,13 +5303,13 @@ README, 사례 연구, 라이브 데모, 녹화 영상, notebook, 기술 글, Wo
 
 먼저 본인이 `public-safety-checklist.md`를 확인합니다. 추가 관점이 필요하면 `portfolio-readiness-review.md`의 읽기 전용 요청을 프로젝트에 맞춰 사용합니다. 검토는 배포, 업로드, 저장소 공개, 권한 변경이나 외부 메시지를 실행하지 않으며 학습자의 결정을 대신하지 않습니다.
 
-최종 상태와 이유를 기록합니다.
+정보 공개 상태와 배포 상태를 각각 고르고 이유를 기록합니다.
 
 - `PUBLISHED`: 실제 공개했고 접근도 확인함
 - `READY_NOT_PUBLISHED`: 공개 가능한 상태지만 공개하지 않기로 함
 - `PRIVATE_HANDOFF`: 특정 상대에게만 전달 가능한 상태
 - `NOT_READY`: 막아야 할 결함이나 근거 부족이 남음
-- `NOT_DEPLOYED`: 배포를 선택하지 않았거나 수행하지 않음
+- `DEPLOYED / READY_NOT_DEPLOYED / NOT_DEPLOYED / NOT_APPLICABLE`: 실제 배포 여부와 적용 가능성을 별도 축으로 기록
 
 공개를 선택했다면 실제 공개 위치와 권한을 직접 확인합니다. 공개하지 않았다면 성공한 것처럼 URL을 꾸미지 않고 전달 방법이나 보류 이유를 적습니다. 비용이 들거나 외부 상태를 바꾸는 후속 작업은 대상, 예상 변경, 제거 방법을 읽고 다시 승인한 뒤에만 수행합니다.
 

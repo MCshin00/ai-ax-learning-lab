@@ -145,7 +145,7 @@ runs/trigger-evaluation/
 | 2 | 첫 Skill 설계 | `SKILL.md`와 출력 템플릿 |
 | 3 | 결정적 검증 분리 | 계약 검사 스크립트와 테스트 |
 | 4 | 명시 호출·자동 선택 | 두 호출 방식의 실행 기록 |
-| 5 | 발동 평가 | 긍정·부정·경계 사례 30개 |
+| 5 | 발동 평가 | 긍정·부정·경계 대표 3건, 선택 연구 시 전체 30개 |
 | 6 | 실제 과제 적용과 회고 | 적용 전후 비교와 회고 요약 |
 
 ### 이번 주의 실행 지도
@@ -184,7 +184,7 @@ codex -C ./week02-codex-skills/lab
 | `.agents/skills/task-contract-writer/assets/task-contract-template.md` | 출력 heading이 준비됨 | validator가 찾는 정확한 heading과 비어 있는 본문 |
 | `.agents/skills/task-contract-writer/scripts/validate_contract.py` | 의도적으로 미구현 | 모델 판단 없이 코드로 검사할 수 있는 항목 |
 | `.agents/skills/task-contract-writer/tests/` | 시작용 테스트가 준비됨 | 처음 실패할 테스트와 아직 빠진 오류 사례 |
-| `evals/skill-trigger-cases.jsonl` | positive·negative·boundary 30개가 준비됨 | 기대값이 타당한지, 수정할 때 보지 않을 별도 사례가 필요한지 |
+| `evals/skill-trigger-cases.jsonl` | positive·negative·boundary 30개가 준비됨 | 핵심 대표 3건의 기대값이 타당한지, 선택 연구 시 나머지 사례와 별도 holdout이 필요한지 |
 | `.agents/skills/experiment-recorder/` | 선택 실습용 시작 자료 | 이번 주 필수 범위와 섞지 않아야 할 이유 |
 
 파일을 읽은 뒤 `../.local/notes/week02-skill-design.md`에 다음을 먼저 적습니다.
@@ -351,9 +351,10 @@ $task-contract-writer를 사용해 이 요구사항을 작업 계약으로 정�
 }
 ```
 
-대량 실행 전에 positive·negative·boundary에서 한 사례씩 골라 앱이나 대화형 CLI에서 직접 요청합니다. 학습자가 예상한 발동 여부와 실제 근거가 어떻게 다른지 확인한 뒤에야 30개 평가로 넘어갑니다.
+핵심 평가로 positive·negative·boundary에서 한 사례씩 골라 앱이나 대화형 CLI에서 직접 요청합니다. 학습자가 예상한 발동 여부와 실제 근거가 어떻게 다른지 이 대표 3건에서 확인합니다. 발동 성능을 정량적으로 비교하려는 경우에만 선택 연구로 30개 전체를 동결하고 실행합니다.
 
-자동 선택을 시험할 때는 프롬프트에 Skill 이름이나 `$task-contract-writer`를 넣지 않습니다. `expected_trigger`와 그 근거는 실행 전에 학습자가 확정합니다. 각 사례는 `lab/`을 작업 위치로 둔 새 실행에서 평가하고 `../runs/trigger-evaluation/observations.jsonl`에 실제 발동 여부와 근거를 남깁니다. 대표 사례를 수동으로 확인한 뒤 `../prompts/skill-trigger-evaluation.md`를 엽니다. 이 파일은 **[자동 측정용]**입니다. 입력·출력과 판정 규칙을 이해하고 동결한 다음 대화창에 직접 보내거나, 수동 pilot 뒤에만 Runner로 집계할 수 있습니다. 다만 이 요청은 30개 실행이나 기대값 판정을 대신하지 않습니다.
+자동 선택을 시험할 때는 프롬프트에 Skill 이름이나 `$task-contract-writer`를 넣지 않습니다. `expected_trigger`와 그 근거는 실행 전에 학습자가 확정합니다. 핵심 대표 3건은 `lab/`을 작업 위치로 둔 서로 격리된 새 실행에서 평가하고 `../runs/trigger-evaluation/observations.jsonl`에 실제 발동 여부와 근거를 남깁니다. 대표 사례를 수동으로 확인한 뒤 `../prompts/skill-trigger-evaluation.md`를 엽니다. 이 파일은 **[자동 측정용]**입니다. 입력·출력과 판정 규칙을 이해하고 동결한 다음 대화창에 직접 보내거나, 수동 pilot 뒤에만 Runner로 집계할 수 있습니다. 선택 연구에서 전체 30개를 실행할 때도 이 요청은 학습자의 기대값 판정과 대표 사례 수동 확인을 대신하지 않습니다.
+전체 30개 선택 연구를 수행했을 때에만 다음 정량 지표를 집계합니다.
 
 - 전체 precision과 recall
 - positive의 TPR·FNR
@@ -361,7 +362,7 @@ $task-contract-writer를 사용해 이 요구사항을 작업 계약으로 정�
 - boundary의 accuracy
 - 경계 사례에서 틀린 문장 유형
 
-설명을 수정하기 전 결과와 수정한 뒤 결과를 서로 다른 커밋으로 보존합니다. 같은 30개를 보고 description을 고친 뒤 다시 측정한 결과는 독립 평가가 아니라 회귀 확인입니다. 일반화 성능을 주장하려면 수정할 때 보지 않은 별도 사례를 마지막에 추가합니다.
+설명을 수정하기 전 결과와 수정한 뒤 결과를 서로 다른 커밋으로 보존합니다. 선택 연구에서 같은 30개를 보고 description을 고친 뒤 다시 측정한 결과는 독립 평가가 아니라 회귀 확인입니다. 일반화 성능을 주장하려면 수정할 때 보지 않은 별도 사례를 마지막에 추가합니다.
 
 AI는 오분류 유형과 description 수정 후보를 제안할 수 있습니다. 경계 사례의 기대값을 바꾸거나 수정안을 채택하고 최종 평가표를 승인하는 일은 학습자가 맡습니다.
 
@@ -393,9 +394,10 @@ B의 결과는 Skill이 만들었다는 이유만으로 승인하지 않습니�
 - [ ] `task-contract-writer`를 직접 만들었습니다.
 - [ ] 계약 검증 스크립트와 테스트가 통과합니다.
 - [ ] 명시 호출과 자동 선택을 따로 시험했습니다.
-- [ ] 긍정·부정·경계 사례 30개를 평가했습니다.
+- [ ] 긍정·부정·경계 대표 사례를 한 건씩, 총 3건 평가했습니다.
+- [ ] 선택 정량 연구를 수행했다면 동결한 30개 전체와 별도 holdout을 다른 목적으로 구분해 기록했습니다.
 - [ ] Skill 설명 수정 전후의 결과를 보존했습니다.
-- [ ] 적용 전후의 시간·누락·테스트 결과를 비교했습니다.
+- [ ] 적용 전후의 누락·테스트 결과를 비교했고, 효율 비교를 선택했다면 같은 기준의 시간 원시값도 별도로 기록했습니다.
 - [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
 
 ---

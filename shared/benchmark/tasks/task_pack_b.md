@@ -9,3 +9,5 @@
 - 멱등성
 - 감사 로그
 - 범위 통제
+
+공개 완료 확인은 `AccountUnlockServicePublicTest`만 실행하며, 원시 통과·실패 수를 기록한다. 세부 기준 ID와 정확한 Wrapper 명령은 `contracts/TASK-B.md`를 따른다.

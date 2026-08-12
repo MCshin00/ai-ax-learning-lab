@@ -17,27 +17,38 @@
 
 ## Forbidden changes
 
-- Task B·C production code 수정
-- 기존 테스트 삭제 또는 assertion 약화
-- 승인 없이 `EXECUTED` 상태로 전이
-- 같은 멱등성 키에 대해 감사 이벤트 중복 생성
-- 실제 결제·네트워크·파일 시스템 호출
+- **A-F-01** Task B·C production code 수정
+- **A-F-02** 기존 테스트 삭제 또는 assertion 약화
+- **A-F-03** 승인 없이 `EXECUTED` 상태로 전이
+- **A-F-04** 같은 멱등성 키에 대해 감사 이벤트 중복 생성
+- **A-F-05** 실제 결제·네트워크·파일 시스템 호출
 
 ## Acceptance criteria
 
-- 등록된 환불 요청의 초기 상태는 `REQUESTED`다.
-- `approve`는 요청을 `APPROVED`로 전이하고 actor와 idempotency key를 감사 로그에 기록한다.
-- 승인 전 `execute`는 실패하며 상태와 감사 로그를 바꾸지 않는다.
-- 승인 후 `execute`는 `EXECUTED`로 전이한다.
-- 동일한 execute idempotency key의 재호출은 성공적으로 같은 결과를 반환하되 실행 감사 이벤트를 추가하지 않는다.
-- 다른 idempotency key로 이미 실행된 요청을 다시 실행하려 하면 실패한다.
-- 알 수 없는 요청 ID와 빈 actor/idempotency key를 안전하게 거부한다.
+- **A-AC-01** 등록된 환불 요청의 초기 상태는 `REQUESTED`다.
+- **A-AC-02** `approve`는 요청을 `APPROVED`로 전이하고 actor와 idempotency key를 감사 로그에 기록한다.
+- **A-AC-03** 승인 전 `execute`는 실패하며 상태와 감사 로그를 바꾸지 않는다.
+- **A-AC-04** 승인 후 `execute`는 `EXECUTED`로 전이한다.
+- **A-AC-05** 동일한 execute idempotency key의 재호출은 성공적으로 같은 결과를 반환하되 실행 감사 이벤트를 추가하지 않는다.
+- **A-AC-06** 다른 idempotency key로 이미 실행된 요청을 다시 실행하려 하면 실패한다.
+- **A-AC-07** 알 수 없는 요청 ID와 빈 actor/idempotency key를 안전하게 거부한다.
+
+### 결정적 검증 매핑
+
+| 기준 | 공개 검증 | 독립 평가 |
+|---|---|---|
+| A-AC-01 | `registerStartsRequested` | 상태 조회 재확인 |
+| A-AC-02, A-AC-04 | `approvalAndExecutionRecordEvidence` | 감사 actor/key와 상태 전이 |
+| A-AC-03, A-F-03 | `executeBeforeApprovalDoesNotChangeStateOrAudit` | 사전 실행 무부작용 |
+| A-AC-05, A-F-04 | `executeReplayIsIdempotent` | 재호출 감사 중복 방지 |
+| A-AC-06, A-AC-07 | 공개되지 않은 고정 엣지 케이스 | 다른 키·미등록 ID·빈 입력 |
+| A-F-01, A-F-02, A-F-05 | diff와 공개 테스트 보존 확인 | 범위·테스트 계약·외부 I/O source policy |
 
 ## Required verification
 
-- `shared/benchmark/app`을 Gradle 프로젝트로 열고 IDE에서 `clean`, `test` 작업을 실행하거나 아래 Wrapper 명령으로 같은 검증을 수행한다.
-- 자동화(Windows): `shared\benchmark\app\gradlew.bat -p shared\benchmark\app clean test`
-- 자동화(macOS/WSL/Linux): `./shared/benchmark/app/gradlew -p ./shared/benchmark/app clean test`
+- `shared/benchmark/app`을 Gradle 프로젝트로 열고 IDE에서 `RefundServicePublicTest`만 실행하거나 아래 Wrapper 명령으로 같은 검증을 수행한다.
+- 자동화(Windows): `shared\benchmark\app\gradlew.bat -p shared\benchmark\app clean test --tests "lab.benchmark.refund.RefundServicePublicTest"`
+- 자동화(macOS/WSL/Linux): `./shared/benchmark/app/gradlew -p ./shared/benchmark/app clean test --tests "lab.benchmark.refund.RefundServicePublicTest"`
 - 변경 diff에서 Task B·C production code가 수정되지 않았는지 확인한다.
 
 ## Stop conditions

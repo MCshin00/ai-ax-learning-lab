@@ -4,7 +4,7 @@
 
 ## 사용 방법
 
-`week02-codex-skills/`를 Codex 앱의 primary folder 또는 CLI의 CWD로 둡니다. 먼저 비교할 Skill 두 개의 `SKILL.md`, 참조 자료와 스크립트를 직접 읽고 차이를 간단히 적습니다. 아래 본문의 두 경로를 채운 뒤 새 대화창에 직접 붙여넣어 보냅니다. AI의 표는 본인이 놓친 부분을 찾는 데 사용하고, 최종 판단은 원문을 다시 확인해 내립니다.
+`week02-codex-skills/lab/`를 Codex 앱의 primary folder 또는 CLI의 CWD로 둡니다. Skill은 이 폴더의 `.agents/skills/` 아래에 있습니다. 먼저 비교할 Skill 두 개의 `SKILL.md`, 참조 자료와 스크립트를 직접 읽고 차이를 간단히 적습니다. 아래 본문의 두 경로를 채운 뒤 새 대화창에 직접 붙여넣어 보냅니다. AI의 표는 본인이 놓친 부분을 찾는 데 사용하고, 최종 판단은 원문을 다시 확인해 내립니다.
 
 ## 전송할 본문
 

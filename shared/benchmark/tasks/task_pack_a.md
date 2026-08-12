@@ -10,3 +10,5 @@
 - 감사 로그 중복 방지
 - 입력 검증
 - 범위 통제
+
+공개 완료 확인은 `RefundServicePublicTest`만 실행하며, 원시 통과·실패 수를 기록한다. 세부 기준 ID와 정확한 Wrapper 명령은 `contracts/TASK-A.md`를 따른다.
