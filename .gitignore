@@ -37,3 +37,5 @@ build/
 .local/
 # 이전 개발 하네스에서 만든 임시 Run도 계속 로컬 전용으로 유지합니다.
 .week05-runs/
+
+/.learning/legacy-references/

@@ -1,5 +1,5 @@
 {
-  "layout_version": 4,
+  "layout_version": 5,
   "created_at": "2026-07-25T10:42:29.915424+00:00",
   "current_week": 2,
   "applied_weeks": [
@@ -31,10 +31,10 @@
       "week02-codex-skills/lab/evals/skill-trigger-cases.jsonl"
     ]
   },
-  "updated_at": "2026-08-12T16:31:25.484855+00:00",
-  "source_guide_sha256": "603afbc482ba393e5c135ff4303188d5f8db9a4d367e1049de872baaa10e44d1",
+  "updated_at": "2026-08-12T18:08:40.025521+00:00",
+  "source_guide_sha256": "18a0b9701e39e1b357a208ef706e927da3e2516bc0372c859bcb00cd7f5d5d26",
   "migrated_from_layout_version": 2,
-  "layout_migrated_at": "2026-08-12T16:31:25.222560+00:00",
+  "layout_migrated_at": "2026-08-12T17:39:12.701181+00:00",
   "layout_migrations": [
     {
       "from": 2,
@@ -45,6 +45,11 @@
       "from": 3,
       "to": 4,
       "completed_at": "2026-08-12T16:31:25.223403+00:00"
+    },
+    {
+      "from": 4,
+      "to": 5,
+      "completed_at": "2026-08-12T17:39:12.702003+00:00"
     }
   ],
   "layout_migrated_file_count": 325
