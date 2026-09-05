@@ -48,6 +48,8 @@
 | C-AC-08 | 공개되지 않은 고정 엣지 케이스 | 미등록 ID·빈 키 |
 | C-F-01, C-F-05, C-F-06 | diff와 공개 테스트 보존 확인 | 범위·no-sleep·테스트 계약 source policy |
 
+기존 과정 제공 `*PublicTest.java`는 원본 그대로 보존합니다. 테스트 강화나 새 경계 사례는 같은 패키지의 별도 `*Test.java` 파일에 추가합니다. 원본 보존 검사는 기대 assertion이 남아 있는지 확인하는 근거이며, 추가 테스트도 실제로 실행해 결과를 남깁니다.
+
 ## Required verification
 
 - `shared/benchmark/app`을 Gradle 프로젝트로 열고 IDE에서 `CancellationJobServicePublicTest`만 실행하거나 아래 Wrapper 명령으로 같은 검증을 수행한다.

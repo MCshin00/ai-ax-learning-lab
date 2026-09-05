@@ -20,10 +20,17 @@
 - 프롬프트 문구와 작업 폴더에 이미 있는 맥락이 각각 무엇을 전달하는지 구분합니다.
 - 저장소 규칙과 일회성 작업 요구를 구분합니다.
 - 일반적인 대화형 사용과 재현 가능한 `codex exec --json` 측정을 구분합니다.
-- JSONL 로그에서 결과·오류·도구 사용·토큰을 읽습니다.
+- 선택 심화를 수행했다면 JSONL 로그에서 결과·오류·도구 사용을 읽습니다.
 - 실패를 재현 가능한 기록으로 남깁니다.
 
 ## 개념 이해
+
+### 정상과 실패를 연결해서 읽기
+
+요청 A와 B가 같은 정규화 기능을 구현했더라도 응답의 길이로 비교하지 않습니다. 먼저 과제 README의 빈 입력·공백 처리 조건을 읽고 공개 테스트의 예상 결과를 적습니다. Codex가 만든 diff에서 해당 분기를 찾고 테스트를 실행합니다. 누락된 분기가 실패했다면 그 요구사항만 후속 요청으로 전달하고 다시 확인합니다. 결과 메모에는 요청의 차이, 빠진 조건과 수정 근거만 남깁니다.
+
+새 입력 한 건의 결과를 먼저 예상해 본 뒤 구현과 비교합니다. AI가 코드를 완성했는지와 자신이 경계 조건을 이해했는지를 구분할 수 있습니다.
+
 
 ### Codex 작업은 무엇으로 결정되는가
 
@@ -69,20 +76,15 @@ Codex의 결과는 모델 하나만으로 결정되지 않습니다. 사용자�
 
 로그에 완료 이벤트가 있다고 해서 구현이 정확하다는 뜻은 아닙니다. 완료 여부는 Codex 실행 상태이고 기능의 정확성은 테스트와 인수 조건으로 판단합니다. 실행 로그와 품질 검증 결과를 따로 기록해야 하는 이유입니다.
 
-### 전체 시간과 사람 작업 시간
+### 결과와 수정 판단
 
-병렬 작업이나 자동화를 비교할 때는 시간을 둘로 나눕니다.
-
-- `T_wall`: 실행을 시작한 순간부터 최종 결과가 나온 순간까지의 전체 경과 시간
-- `T_human`: 사람이 요청을 작성하고 결과를 읽고 판단하고 직접 수정한 시간
-
-Codex가 빠르게 끝나도 사람이 결과를 고치는 데 오래 걸리면 실제 효율은 낮을 수 있습니다. 반대로 전체 실행은 길어도 사람이 다른 일을 할 수 있었다면 사람 시간은 적게 들 수 있습니다. 두 수치를 함께 봐야 속도와 개입 비용을 구분할 수 있습니다.
+Codex가 종료된 상태와 과제가 완료된 상태를 구분합니다. 첫 결과에서 어떤 인수 조건이 통과했는지, 무엇이 빠졌는지, 후속 요청이나 직접 수정으로 무엇을 바꿨는지 확인합니다. 시간 대신 실패한 테스트와 수정 전후 diff를 근거로 두 요청의 차이를 설명합니다.
 
 ### 비교 실험의 기본 조건
 
 요청 방식 A와 B를 비교하려면 시작 코드를 같게 맞추고 모델·reasoning·시간 제한·검증 명령을 기록합니다. 결과를 본 뒤 평가 기준을 바꾸지 않도록 인수 조건도 실행 전에 정합니다.
 
-좋은 비교는 “어느 쪽이 마음에 들었는가”에서 끝나지 않습니다. 첫 테스트 통과 여부, 누락된 요구사항, 추가 교정 횟수, 사람 작업 시간처럼 다시 확인할 수 있는 증거를 남깁니다.
+좋은 비교는 “어느 쪽이 마음에 들었는가”에서 끝나지 않습니다. 첫 테스트 통과 여부, 누락된 요구사항, 교정 내용처럼 다시 확인할 수 있는 증거를 남깁니다.
 
 ### 준비된 작업 맥락과 직접 보내는 요청을 구분하기
 
@@ -118,7 +120,7 @@ JSONL 로그         실행 과정과 사용량
 
 - 서로 다른 시작 코드에서 A/B 실험을 실행해 요청 방식 외의 변수가 섞입니다.
 - 실행이 정상 종료됐다는 이유로 테스트 없이 성공으로 기록합니다.
-- 토큰 수만 비교하고 사람의 검토·수정 시간을 빠뜨립니다.
+- 토큰 수나 완료 보고만 보고 실제 테스트와 요구사항 누락을 확인하지 않습니다.
 - `AGENTS.md`에 일회성 요구까지 넣어 저장소 규칙이 계속 불어납니다.
 - 루트와 하위 `AGENTS.md`의 지침이 충돌하지만 실제 적용 결과를 확인하지 않습니다.
 - JSONL 파싱 오류와 Codex가 기록한 실행 오류를 같은 문제로 처리합니다.
@@ -129,7 +131,7 @@ JSONL 로그         실행 과정과 사용량
 - 짧은 요청, 작업 계약, `AGENTS.md`는 각각 어떤 범위를 맡는가?
 - Codex 실행 성공과 기능 검증 성공은 왜 다른가?
 - JSONL 로그에서 무엇을 측정할 수 있는가?
-- `T_wall`과 `T_human`을 따로 재는 이유는 무엇인가?
+- Codex 실행 완료와 기능 테스트 통과를 구분하는 이유는 무엇인가?
 - 요청 방식 두 개를 공정하게 비교하려면 무엇을 고정해야 하는가?
 
 ## 준비된 자료와 이번 주 산출물
@@ -156,8 +158,8 @@ JSONL 로그         실행 과정과 사용량
 week01-codex-prompt-comparison/.local/notes/00_ai_ax_direction.md              선택: 학습 방향 메모
 week01-codex-prompt-comparison/.local/scratch/run-a/                           대화형 작업 복사본
 week01-codex-prompt-comparison/.local/scratch/run-b/                           대화형 작업 복사본
-week01-codex-prompt-comparison/runs/run-a/{request.md,response.md,run.json,evidence/}
-week01-codex-prompt-comparison/runs/run-b/{request.md,response.md,run.json,evidence/}
+week01-codex-prompt-comparison/runs/run-a/notes.md                             요청·결과·검증 근거
+week01-codex-prompt-comparison/runs/run-b/notes.md                             비교 문서에 합쳐도 됨
 week01-codex-prompt-comparison/runs/measured-a/                                선택 측정의 정제 증거
 week01-codex-prompt-comparison/runs/measured-b/                                선택 측정의 정제 증거
 week01-codex-prompt-comparison/runs/comparison.md
@@ -179,7 +181,7 @@ week01-codex-prompt-comparison/.local/notes/week01-retrospective.md
 | Day | 먼저 읽을 파일 | IDE·Codex에서 열 폴더 | 사용할 표면 | 공개 산출물 | 개인 기록 |
 |---:|---|---|---|---|---|
 | 1 | 주차 `README.md`, `lab/ticket-title-normalizer/README.md`, 코드·테스트 | `lab/ticket-title-normalizer/` | IDE의 Gradle·테스트·디버거 | 기준선 테스트와 환경을 `runs/day01-baseline/`에 기록 | `.local/notes/day01.md` |
-| 2 | `prompts/minimal.md`, `prompts/structured.md` | 각각 `.local/scratch/run-a/`, `.local/scratch/run-b/` | Codex 앱·IDE 확장·대화형 CLI 중 하나와 IDE | 각 Run의 `request.md`, `response.md`, `run.json`, diff·tests | `.local/notes/day02.md` |
+| 2 | `prompts/minimal.md`, `prompts/structured.md` | 각각 `.local/scratch/run-a/`, `.local/scratch/run-b/` | Codex 앱·IDE 확장·대화형 CLI 중 하나와 IDE | 비교 문서 또는 각 Run의 `notes.md`, diff·tests 링크 | `.local/notes/day02.md` |
 | 3 | 루트와 과제의 `AGENTS.md`, `prompts/agents-audit.md` | `lab/ticket-title-normalizer/` | Codex 직접 협업 + IDE 대조 | 하위 `AGENTS.md`, 적용 근거와 실패 카드 | `.local/notes/day03.md` |
 | 4 | 두 Run 증거, `shared/tools/runner/run_codex_exec.py` | 새 `.local/scratch/measured-a/`, `measured-b/` | 수동 파일럿 뒤 `codex exec`·Runner | 정제된 request·response·events/log, `run.json`, tests | `.local/raw/<run-id>/` |
 | 5 | A/B Run 전체, `shared/templates/weekly-retrospective.md` | 주차 루트 | IDE diff·테스트, 필요하면 ChatGPT 반례 검토 | `runs/comparison.md`, 근거 링크와 회고 요약 | `.local/notes/week01-retrospective.md` |
@@ -277,7 +279,7 @@ cp -R week01-codex-prompt-comparison/lab/ticket-title-normalizer week01-codex-pr
 cp -R week01-codex-prompt-comparison/lab/ticket-title-normalizer week01-codex-prompt-comparison/.local/scratch/run-b
 ```
 
-작업 복사본 전체와 build·IDE cache는 공개하지 않습니다. 실제 요청·응답, 환경·CWD·모델·날짜를 담은 `run.json`, 검토한 diff·테스트·실패 카드와 정제 로그만 `runs/run-a/`, `runs/run-b/`에 저장해 Git에 포함합니다. 개인 생각과 정제 전 원본은 `.local/`에 둡니다.
+`runs/comparison.md` 한 문서에 공통 실행 조건, 각 요청 원문·관찰 결과와 diff·테스트 근거를 연결합니다. Run별 `notes.md`가 편하면 나눠도 되지만 같은 내용을 다시 쓰지 않습니다. 전체 응답·JSONL·별도 metadata는 상세 재현이 필요할 때 추가하며, 작업 복사본의 build·IDE cache와 정제 전 원본은 공개하지 않습니다.
 
 #### A와 B를 동시에 실행하려면
 
@@ -286,10 +288,10 @@ cp -R week01-codex-prompt-comparison/lab/ticket-title-normalizer week01-codex-pr
 1. Codex 앱에서 `week01-codex-prompt-comparison/.local/scratch/run-a`와 `run-b`를 각각 별도 Local 프로젝트로 추가합니다. 한 프로젝트 안에서 폴더 이름만 언급하는 것으로 대신하지 말고, 각 프로젝트의 primary folder가 정확히 해당 scratch 폴더인지 확인합니다.
 2. 각 프로젝트에서 새 작업을 열고 두 작업의 모델, reasoning, 권한과 검증 조건을 같게 맞춥니다.
 3. Run A에는 A 프롬프트만, Run B에는 B 프롬프트만 보냅니다. 두 작업이 상대 Run이나 저장소 공용 파일을 수정하지 않도록 작업 경계를 함께 적습니다.
-4. 각 작업의 실제 요청·응답과 검토한 테스트·diff를 공개 `runs/run-a/`, `runs/run-b/`에 옮기고 `run.json`에 실제 scratch CWD를 기록합니다.
+4. 비교 문서에 실제 요청, 결과와 테스트·diff 근거를 연결하고 각 작업의 scratch CWD를 적습니다.
 5. 두 실행이 끝난 뒤 공개 `runs/comparison.md`를 작성하고 각 주장에 Run 증거를 연결합니다. 개인적인 감상만 `.local/notes/`에 둡니다.
 
-서로 다른 폴더를 primary folder로 연 두 작업이면 A/B의 수정 경로가 분리됩니다. 두 결과는 같은 Day 마감 커밋에 함께 넣거나 별도 브랜치에서 커밋한 뒤 합칠 수 있습니다. Git Worktree의 브랜치 분리·병합 자체는 4주차에서 더 자세히 다룹니다.
+서로 다른 폴더를 primary folder로 연 두 작업이면 A/B의 수정 경로가 분리됩니다. 두 결과는 같은 변경 단위 커밋에 함께 넣거나 별도 브랜치에서 커밋한 뒤 합칠 수 있습니다. Git Worktree의 브랜치 분리·병합 자체는 4주차에서 더 자세히 다룹니다.
 
 이제 아래 두 파일을 직접 엽니다.
 
@@ -332,7 +334,7 @@ codex -C ./week01-codex-prompt-comparison/.local/scratch/run-a
 2. 변경된 코드를 읽습니다.
 3. IDE에서 공개 JUnit 테스트를 직접 실행합니다.
 4. 누락되었거나 이해되지 않는 부분을 적습니다.
-5. 대화창에서 실제로 보낸 첫 요청과 응답을 각각 `week01-codex-prompt-comparison/runs/run-a/request.md`, `response.md`에 옮깁니다.
+5. 비교 문서의 Run A 구획에 실제 첫 요청과 결과를 적고 판단에 필요한 응답·diff·테스트만 연결합니다.
 
 `week01-codex-prompt-comparison/.local/scratch/run-a`를 IDE에서 별도 Gradle 프로젝트로 열거나 현재 IDE 작업 공간에 추가합니다. Gradle 동기화 뒤 `TicketTitleNormalizerTest`를 실행하고, 통과·실패 개수와 첫 실패 원인을 공개 Run의 evidence에 기록합니다. Codex가 테스트를 실행했다고 보고했더라도 학습자가 결과 창을 다시 확인합니다.
 
@@ -358,7 +360,7 @@ Report               변경·검증·남은 위험
 codex -C ./week01-codex-prompt-comparison/.local/scratch/run-b
 ```
 
-첫 응답 뒤에는 Run A와 같은 순서로 코드와 테스트를 직접 확인하고, 실제 요청과 응답을 `run-b/request.md`, `run-b/response.md`에 옮깁니다. `run-b`도 별도 Gradle 프로젝트로 열어 같은 JUnit 테스트를 실행하고 같은 항목을 기록합니다.
+첫 응답 뒤에는 Run A와 같은 순서로 코드와 테스트를 직접 확인하고, 비교 문서의 Run B 구획에 요청과 관찰 결과를 적습니다. `run-b`도 별도 Gradle 프로젝트로 열어 같은 JUnit 테스트를 실행하고 같은 항목을 기록합니다.
 
 원본과 달라진 줄은 IDE의 파일 비교 기능으로 먼저 확인합니다. VS Code에서는 두 파일을 차례로 선택해 비교하고, IntelliJ에서는 `Compare Files`를 사용합니다. 줄 수를 함께 기록하고 싶을 때만 아래 명령을 보조로 사용합니다. `git diff --no-index`의 종료 코드 `1`은 차이가 발견됐다는 뜻이며 오류가 아닙니다.
 
@@ -367,7 +369,7 @@ git diff --no-index --numstat week01-codex-prompt-comparison/lab/ticket-title-no
 git diff --no-index --numstat week01-codex-prompt-comparison/lab/ticket-title-normalizer/src/main/java week01-codex-prompt-comparison/.local/scratch/run-b/src/main/java
 ```
 
-`week01-codex-prompt-comparison/runs/comparison.md`에는 두 요청의 원문 링크, 각 프롬프트가 작업 폴더의 어떤 맥락을 명시했는지, 첫 결과의 테스트 통과 여부, 누락된 요구사항, 추가 교정 횟수와 사람이 검토한 시간을 적습니다. 어느 요청이 “더 그럴듯해 보였는지”보다 코드·diff·테스트를 근거로 판정합니다.
+`week01-codex-prompt-comparison/runs/comparison.md`에는 두 요청의 원문 링크, 각 프롬프트가 작업 폴더의 어떤 맥락을 명시했는지, 첫 결과의 테스트 통과 여부, 누락된 요구사항, 교정한 내용과 최종 판단을 적습니다. 어느 요청이 “더 그럴듯해 보였는지”보다 코드·diff·테스트를 근거로 판정합니다.
 
 이 실험을 마친 뒤에만 선택적으로 C, 즉 **짧지만 명시적인 요청**을 만들어 볼 수 있습니다. 목표·핵심 경계·검증만 남기고 B의 반복 설명은 덜어낸 뒤 새 `.local/scratch/run-c/`에서 실행하고 정제 증거는 `runs/run-c/`에 남깁니다. 이미 A/B를 끝낸 학습자에게 C를 위해 기존 실습을 다시 하도록 요구하지 않습니다.
 
@@ -403,7 +405,7 @@ AI의 설명을 정답으로 받아들이지 말고 루트와 하위 `AGENTS.md`
 
 ### Day 4 — 선택 심화: 대화창에 보낸 입력을 JSONL로 재현하기
 
-Day 2까지가 일반적인 Codex 사용 실습입니다. 이 단계는 대화창에서 사용한 두 고정 입력을 같은 조건에서 반복 측정하고 싶을 때만 진행합니다. 각 Run의 `request.md`에는 실제 프롬프트 본문만 저장하고 사용 설명이나 Markdown 코드 울타리는 넣지 않습니다.
+Day 2까지가 일반적인 Codex 사용 실습입니다. 이 단계는 대화창에서 사용한 두 고정 입력을 같은 조건에서 반복 측정하고 싶을 때만 진행합니다. 비교 문서에서 고정한 요청을 각 Run의 `request.md`로 옮깁니다. 이 파일에는 실제 프롬프트 본문만 저장하고 사용 설명이나 Markdown 코드 울타리는 넣지 않습니다.
 
 원본과 대화형 결과는 보존하고, 측정용 복사본을 새로 만듭니다.
 
@@ -455,7 +457,7 @@ macOS·Linux·WSL에서는 위 Runner 명령의 각 인수를 한 줄에 이어 
 python shared/tools/runner/export_public_run.py --repo-root . --raw-directory week01-codex-prompt-comparison/.local/raw/measured-a --public-directory week01-codex-prompt-comparison/runs/measured-a --evidence test=<검토한-test-경로> --evidence diff=<검토한-diff-경로> --evidence failure=<검토한-failure-card-경로> --evidence log=<정제한-log-경로>
 ```
 
-`measured-b`도 같은 절차로 별도 public directory에 승격합니다. 사람 검토 시간은 시작·종료 시각으로 직접 기록하고, 비정제 원본과 scratch는 `.local/`에 남깁니다.
+`measured-b`도 같은 절차로 별도 public directory에 승격합니다. 공개에 필요한 결과만 정제하고, 비정제 원본과 scratch는 `.local/`에 남깁니다.
 
 원한다면 원본 로그의 복사본 한 줄을 의도적으로 손상시켜 파싱 오류와 정상 JSON으로 기록된 실행 오류가 어떻게 다른지도 확인합니다. 이 측정은 대화형 Run A·B의 결과를 대체하지 않고, 같은 요청을 자동 실행했을 때의 별도 표본으로 기록합니다.
 
@@ -488,7 +490,7 @@ cp shared/templates/weekly-retrospective.md week01-codex-prompt-comparison/.loca
 직접 전송한 Run A와 Run B 프롬프트는 무엇이 달랐는가?
 AGENTS.md에는 어떤 내용을 넣는 편이 좋은가?
 선택 측정을 했다면 JSONL에서 파싱 오류와 실행 오류를 어떻게 구분했는가?
-전체 경과 시간과 사람 작업 시간을 왜 따로 재는가?
+실행 완료와 과제 완료는 어떻게 다른가?
 이번 결과로 말할 수 있는 것과 아직 말하기 어려운 것은 무엇인가?
 ```
 
@@ -502,7 +504,7 @@ AGENTS.md에는 어떤 내용을 넣는 편이 좋은가?
 - [ ] 선택 측정을 했다면 대화형 결과와 자동 실행 표본을 구분하고 JSONL 요약을 남겼습니다.
 - [ ] 실패 카드가 2개 이상 있습니다.
 - [ ] 자료 없이 핵심 질문에 답할 수 있습니다.
-- [ ] 각 Day의 학습 결과와 마지막 검증 시점을 커밋으로 남겼습니다.
+- [ ] 재사용할 코드·설정과 검증 근거를 의미 있는 변경 단위로 커밋했습니다.
 
 ---
 

@@ -47,3 +47,9 @@ Windows 예: `gradlew.bat clean test --tests "lab.benchmark.refund.RefundService
 macOS·Linux·WSL 예: `./gradlew clean test --tests "lab.benchmark.refund.RefundServicePublicTest"`
 
 세 과제를 모두 구현한 경우에만 필터 없는 `clean test`를 전체 회귀 검증으로 사용합니다. 완료 기록에는 테스트 메서드 통과·실패 수와 실행 명령을 남기고, 실행하지 못한 기준은 `NOT_VERIFIED`로 둡니다.
+
+## 공개 테스트 원본과 추가 테스트
+
+과정이 제공한 `*PublicTest.java`는 그대로 보존합니다. 새 경계·회귀 검증은 별도 `*Test.java` 파일에 추가하고 IDE에서 해당 파일을 함께 실행합니다. 원본 보존 검사는 UTF-8 BOM과 줄바꿈 차이를 제외한 내용을 과정 원본과 대조합니다. 주석에 테스트 이름만 남기는 방식으로는 통과하지 않습니다. 원본 보존과 실제 기능 테스트 결과는 각각 확인합니다.
+
+기본 과제 명령은 해당 공개 테스트만 실행합니다. 추가 테스트를 썼다면 그 테스트도 IDE에서 실행하거나 `--tests`에 해당 클래스 이름을 더 지정합니다. 아직 구현하지 않은 다른 과제를 포함하는 전체 테스트를 현재 과제의 완료 기준으로 삼지 않습니다.
