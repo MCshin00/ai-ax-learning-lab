@@ -9,6 +9,47 @@ from runner.parse_codex_jsonl import summarize
 
 
 class ParseCodexJsonlTests(unittest.TestCase):
+    def test_item_lifecycles_count_once_and_keep_latest_call_details(self) -> None:
+        events = []
+        for item in (
+            {"id": "cmd-1", "type": "command_execution", "command": "python -B tests.py"},
+            {"id": "mcp-1", "type": "mcp_tool_call", "tool": "lookup"},
+            {"id": "patch-1", "type": "file_change"},
+        ):
+            for event_type in ("item.started", "item.updated", "item.completed"):
+                events.append(json.dumps({"type": event_type, "item": item}))
+        result = summarize(self.write(events))
+        self.assertEqual(1, result["command_execution_count"])
+        self.assertEqual(["python -B tests.py"], result["commands"])
+        self.assertEqual(1, result["mcp_call_count"])
+        self.assertEqual(["lookup"], result["mcp_calls"])
+        self.assertEqual(1, result["file_change_count"])
+        self.assertEqual(3, result["event_counts"]["item.completed"])
+
+    def test_distinct_invocations_of_the_same_command_are_not_collapsed(self) -> None:
+        result = summarize(self.write([
+            json.dumps({"type": "item.completed", "item": {"id": item_id, "type": "command_execution", "command": "run-tests"}})
+            for item_id in ("one", "two")
+        ]))
+        self.assertEqual(2, result["command_execution_count"])
+
+    def test_item_ids_are_scoped_to_the_thread(self) -> None:
+        events = []
+        for thread_id in ("thread-one", "thread-two"):
+            events.extend([
+                json.dumps({"type": "thread.started", "thread_id": thread_id}),
+                json.dumps({"type": "item.completed", "item": {"id": "item_0", "type": "command_execution", "command": "run-tests"}}),
+            ])
+        self.assertEqual(2, summarize(self.write(events))["command_execution_count"])
+
+    def test_legacy_items_without_ids_count_completion_only(self) -> None:
+        item = {"type": "command_execution", "command": "run-tests"}
+        result = summarize(self.write([
+            json.dumps({"type": event_type, "item": item})
+            for event_type in ("item.started", "item.updated", "item.completed")
+        ]))
+        self.assertEqual(1, result["command_execution_count"])
+
     def write(self, lines: list[str]) -> Path:
         directory = Path(tempfile.mkdtemp())
         path = directory / "events.jsonl"

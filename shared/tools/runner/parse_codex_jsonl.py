@@ -39,6 +39,8 @@ def summarize(path: Path, metadata_path: Path | None = None) -> dict[str, Any]:
     mcp_calls: list[str] = []
     final_agent_message: str | None = None
     total_objects = 0
+    current_thread_id = ""
+    observed_items: dict[tuple[str, str, str], dict[str, Any]] = {}
 
     if not path.exists():
         return {
@@ -68,6 +70,7 @@ def summarize(path: Path, metadata_path: Path | None = None) -> dict[str, Any]:
         thread_id = event.get("thread_id") or event.get("threadId")
         if isinstance(thread_id, str):
             thread_ids.add(thread_id)
+            current_thread_id = thread_id
 
         event_usage = event.get("usage")
         if isinstance(event_usage, dict):
@@ -84,14 +87,13 @@ def summarize(path: Path, metadata_path: Path | None = None) -> dict[str, Any]:
         item = event.get("item")
         if isinstance(item, dict):
             item_type = str(item.get("type", "UNKNOWN"))
-            item_counts[item_type] += 1
-            if item_type == "command_execution":
-                command = item.get("command")
-                if isinstance(command, str):
-                    commands.append(command)
-            if item_type in {"mcp_tool_call", "mcp_call", "tool_call"}:
-                name = item.get("name") or item.get("tool_name") or item.get("toolName")
-                mcp_calls.append(str(name or "UNKNOWN"))
+            item_id = item.get("id")
+            if isinstance(item_id, str) and item_id:
+                key = (current_thread_id, "id", item_id)
+                observed_items[key] = {**observed_items.get(key, {}), **item}
+            elif event_type == "item.completed":
+                # Older logs may omit IDs. Only their completion events are counted.
+                observed_items[(current_thread_id, "line", str(line_number))] = item
             if item_type == "agent_message":
                 text = item.get("text") or item.get("content")
                 if isinstance(text, str):
@@ -111,6 +113,18 @@ def summarize(path: Path, metadata_path: Path | None = None) -> dict[str, Any]:
                     "message": event.get("message") or event.get("error") or event,
                 }
             )
+
+    # Each lifecycle represents one item, even if started/updated/completed all appear.
+    for item in observed_items.values():
+        item_type = str(item.get("type", "UNKNOWN"))
+        item_counts[item_type] += 1
+        if item_type == "command_execution":
+            command = item.get("command")
+            if isinstance(command, str):
+                commands.append(command)
+        if item_type in {"mcp_tool_call", "mcp_call", "tool_call"}:
+            name = item.get("name") or item.get("tool_name") or item.get("toolName") or item.get("tool")
+            mcp_calls.append(str(name or "UNKNOWN"))
 
     usage_events = completed_turn_usage or fallback_usage[-1:]
     usage = {field: 0 for field in USAGE_FIELDS}
