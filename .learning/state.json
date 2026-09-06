@@ -23,15 +23,15 @@
       "week01-codex-prompt-comparison/lab/schemas/repo-review.schema.json"
     ],
     "2": [
-      "week02-codex-skills/lab/.agents/skills/experiment-recorder/SKILL.md",
-      "week02-codex-skills/lab/.agents/skills/task-contract-writer/assets/task-contract-template.md",
-      "week02-codex-skills/lab/.agents/skills/task-contract-writer/scripts/validate_contract.py",
-      "week02-codex-skills/lab/.agents/skills/task-contract-writer/SKILL.md",
-      "week02-codex-skills/lab/.agents/skills/task-contract-writer/tests/test_validate_contract.py",
-      "week02-codex-skills/lab/evals/skill-trigger-cases.jsonl"
+      "week02-codex-skills/lab/practice/issue-examples.md",
+      "week02-codex-skills/lab/practice/skill-example/issue-brief-example/assets/issue-template.md",
+      "week02-codex-skills/lab/practice/skill-example/issue-brief-example/references/writing-rules.md",
+      "week02-codex-skills/lab/practice/skill-example/issue-brief-example/SKILL.md",
+      "week02-codex-skills/lab/practice/skill-example/study-example.md",
+      "week02-codex-skills/lab/practice/task-contract-example.md"
     ]
   },
-  "updated_at": "2026-09-06T13:59:52.387835+00:00",
+  "updated_at": "2026-09-06T14:21:12.587412+00:00",
   "source_guide_sha256": "7d1264c8a8f4644a6a68145c9bc990efd46c9b2dc1af8bdbf197a4d2904c9d29",
   "migrated_from_layout_version": 2,
   "layout_migrated_at": "2026-08-12T17:39:12.701181+00:00",
