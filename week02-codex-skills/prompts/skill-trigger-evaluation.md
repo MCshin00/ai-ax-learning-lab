@@ -1,43 +1,14 @@
-# Skill 발동 결과 집계
+# 대표 사례로 Skill 고치기
 
-> 분류: **[선택 연구용 집계]**
-
-## 사용 방법
-
-`week02-codex-skills/lab/`을 Codex 앱의 primary folder 또는 CLI의 CWD로 두어 이 폴더의 Skill이 실제로 발견되게 합니다. `../runs/trigger-evaluation/`도 쓰기 가능한 범위로 추가합니다. positive·negative·boundary 대표 사례를 먼저 앱이나 대화형 CLI에서 수동으로 실행합니다. 그다음 학습자가 `expected_trigger`와 근거를 확정하고 실제 관찰 파일을 채웁니다. 아래 본문과 입출력 경로를 확인해 동결한 뒤, 대화창에 직접 붙여넣거나 반복 측정에서 `codex exec` 입력으로 사용할 수 있습니다.
-
-대표 3건은 요청·예상 발동·실제 근거와 차이를 짧게 기록하면 충분하며 이 집계가 필요하지 않습니다. 전체 30개로 description 개선을 비교할 때만 아래 요청을 사용합니다. 실행 전에 기대값을 정하고, 결과를 본 뒤 기대값을 맞춰 고치지 않습니다. 이 요청은 사례 실행과 기대값 판정을 대신하지 않습니다.
-
-## 전송할 본문
+`week02-codex-skills/lab/`에서 정상·일반 질문·정보 부족 요청을 각각 새 작업에 직접 보냅니다. 자동 선택을 볼 때는 Skill 이름을 뺍니다.
 
 ```text
-Skill 발동 평가 결과를 읽기 전용으로 집계해 주세요.
-
-입력:
-- 기대값: evals/skill-trigger-cases.jsonl
-- 실제 관찰값: ../runs/trigger-evaluation/observations.jsonl
-
-허용된 출력:
-- 행별 판정: ../runs/trigger-evaluation/trigger-evaluation.jsonl
-- 요약: ../runs/trigger-evaluation/RESULTS.md
-
-Skill 구현과 입력 파일은 수정하지 마세요. 두 입력을 id로 대응시키고, 실제 관찰값이나 발동 근거가 비어 있으면 추정하지 말고 NOT_VERIFIED로 남겨 주세요.
-
-행별 출력에는 다음을 포함해 주세요.
-- expected_trigger
-- did_trigger
-- true_positive / true_negative / false_positive / false_negative / not_verified
-- 관찰 근거
-- description 개선 후보
-
-전체 precision과 recall을 계산하고, positive에는 TPR·FNR, negative에는 TNR·FPR, boundary에는 accuracy를 따로 계산해 주세요. 같은 30개를 수정 전후로 다시 사용했다면 독립 성능 추정이 아니라 회귀 비교라고 명시해 주세요.
-
-마지막에는 오분류 유형과 description 개선 후보만 제안하세요. expected_trigger를 바꾸거나 최종 판정을 대신하지 마세요.
+다음 요청에서 Skill의 선택 또는 결과가 기대와 다릅니다.
+- 실제 요청: [붙이기]
+- 관찰 결과: [붙이기]
+- 기대 결과: [붙이기]
+description의 선택 문제인지, 절차·템플릿의 출력 문제인지 근거를 찾아 설명해 주세요.
+수정안을 제안해 주세요. 관찰되지 않은 발동 여부는 추측하지 마세요.
 ```
 
-## 실행 후 확인
-
-- 입력 두 파일의 ID가 빠짐없이 대응하는가
-- 분모가 0인 지표를 임의로 계산하지 않았는가
-- `NOT_VERIFIED`를 통과나 실패로 간주하지 않았는가
-- 개선 후보가 실제 오분류 근거와 연결되는가
+검토 후 Creator로 수정하고 같은 요청과 새 요청을 확인합니다.
