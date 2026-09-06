@@ -25,7 +25,6 @@ build/
 # 이전 구조에서 아직 옮기지 않은 개인 자료도 실수로 공개하지 않습니다.
 /week??-*/notes/
 /week??-*/experiments/
-# `runs/`는 실제 요청·응답, 실패 카드와 정제된 로그를 공개하는 영역이므로 제외하지 않습니다.
 
 /week05-development-harness/lab/app_server/schemas/
 /week05-development-harness/lab/app_server/schemas-ts/
@@ -39,3 +38,6 @@ build/
 .week05-runs/
 
 /.learning/legacy-references/
+
+# AI AX Learning Lab에서 추가한 공통 제외 규칙
+# 학습 기록을 공개할지는 작성자가 결정합니다. 개인 기록은 .local/에 둡니다.

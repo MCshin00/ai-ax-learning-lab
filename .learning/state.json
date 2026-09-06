@@ -1,38 +1,32 @@
 {
-  "layout_version": 5,
+  "layout_version": 6,
   "created_at": "2026-07-25T10:42:29.915424+00:00",
   "current_week": 2,
   "applied_weeks": [
     1,
     2
   ],
-  "references_revealed": [
-    1
-  ],
+  "references_revealed": [],
   "applied_files": {
     "1": [
-      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/build.gradle",
-      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/gradle/wrapper/gradle-wrapper.jar",
-      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/gradle/wrapper/gradle-wrapper.properties",
-      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/gradlew",
-      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/gradlew.bat",
-      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/README.md",
-      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/settings.gradle",
-      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/src/main/java/lab/week01/TicketTitleNormalizer.java",
-      "week01-codex-prompt-comparison/lab/ticket-title-normalizer/src/test/java/lab/week01/TicketTitleNormalizerTest.java",
-      "week01-codex-prompt-comparison/lab/schemas/repo-review.schema.json"
+      "week01-codex-prompt-comparison/ticket-title-normalizer/build.gradle",
+      "week01-codex-prompt-comparison/ticket-title-normalizer/gradle/wrapper/gradle-wrapper.jar",
+      "week01-codex-prompt-comparison/ticket-title-normalizer/gradle/wrapper/gradle-wrapper.properties",
+      "week01-codex-prompt-comparison/ticket-title-normalizer/gradlew",
+      "week01-codex-prompt-comparison/ticket-title-normalizer/gradlew.bat",
+      "week01-codex-prompt-comparison/ticket-title-normalizer/README.md",
+      "week01-codex-prompt-comparison/ticket-title-normalizer/settings.gradle",
+      "week01-codex-prompt-comparison/ticket-title-normalizer/src/main/java/lab/week01/TicketTitleNormalizer.java",
+      "week01-codex-prompt-comparison/ticket-title-normalizer/src/test/java/lab/week01/TicketTitleNormalizerTest.java"
     ],
     "2": [
-      "week02-codex-skills/lab/practice/issue-examples.md",
-      "week02-codex-skills/lab/practice/skill-example/issue-brief-example/assets/issue-template.md",
-      "week02-codex-skills/lab/practice/skill-example/issue-brief-example/references/writing-rules.md",
-      "week02-codex-skills/lab/practice/skill-example/issue-brief-example/SKILL.md",
-      "week02-codex-skills/lab/practice/skill-example/study-example.md",
-      "week02-codex-skills/lab/practice/task-contract-example.md"
+      "week02-codex-skills/examples/issue-brief-example/assets/issue-template.md",
+      "week02-codex-skills/examples/issue-brief-example/references/writing-rules.md",
+      "week02-codex-skills/examples/issue-brief-example/SKILL.md"
     ]
   },
-  "updated_at": "2026-09-06T14:57:07.669649+00:00",
-  "source_guide_sha256": "8e5c1a264fe7f42a6c6f0b1e281b087a6045a9880a51168a834e23c5143ddc3c",
+  "updated_at": "2026-09-06T18:01:32.910834+00:00",
+  "source_guide_sha256": "434054f78b3f7e0454c47e00e10088392fd555b92e5431ba83079b9448652126",
   "migrated_from_layout_version": 2,
   "layout_migrated_at": "2026-08-12T17:39:12.701181+00:00",
   "layout_migrations": [
@@ -50,6 +44,11 @@
       "from": 4,
       "to": 5,
       "completed_at": "2026-08-12T17:39:12.702003+00:00"
+    },
+    {
+      "from": 5,
+      "to": 6,
+      "completed_at": "2026-09-06T18:01:32.836552+00:00"
     }
   ],
   "layout_migrated_file_count": 325
