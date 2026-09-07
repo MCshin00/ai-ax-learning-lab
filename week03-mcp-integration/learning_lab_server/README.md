@@ -41,6 +41,66 @@ codex mcp add learning-catalog -- uv --directory "$catalog_project" run --locked
 
 새 Codex 작업에서 “learning-catalog의 get_product로 NOTE-01의 가격과 재고를 확인해 줘”를 직접 보냅니다. 답변 내용과 실제 도구 호출을 함께 확인합니다. 코드 파일을 읽어서 대답한 것은 MCP 호출 성공이 아닙니다. 실습용으로 새로 등록한 연결을 정리할 때만 `codex mcp remove learning-catalog`를 씁니다.
 
+## 예산·재고 조건으로 상품 찾기
+
+`get_product`는 상품 ID 한 건을 조회하고, `find_products`는 기존 상품 사전에서 조건에 맞는 후보를 찾습니다.
+
+| 입력 | 의미 |
+|---|---|
+| `max_price_krw` | 필수, 0 이상 정수. 해당 금액 이하인 상품을 포함합니다. |
+| `in_stock_only` | 선택, 기본값 `true`. `false`이면 품절 상품도 포함합니다. |
+
+반환값은 상품의 ID·이름·가격·재고 목록이며, MCP의 `structuredContent.result`에서 확인합니다. 조건에 맞는 상품이 없으면 성공한 빈 목록이고, 음수 예산이나 잘못된 입력 형식은 오류입니다. 상품을 주문하거나 재고를 바꾸지 않습니다.
+
+코드를 바꾸기 전에 연결한 Inspector가 있다면 Servers의 연결 스위치를 껐다 켜 새 서버 프로세스로 연결합니다. Tools에 `find_products`가 없으면 Inspector 실행을 종료하고 위 실행 명령으로 다시 시작합니다.
+
+**Tools → find_products → Max Price Krw에 `3000`, In Stock Only를 `true`로 설정 → Execute Tool** 순서로 호출합니다. 최초 자료에서는 `NOTE-01`만 반환되고 가격은 3000, 재고는 `true`여야 합니다. Inspector가 표시하는 필드 이름의 원래 인자는 위 표에서 확인할 수 있습니다.
+
+| 호출 인자 | 최초 자료의 예상 결과 |
+|---|---|
+| `{"max_price_krw":3000}` | 기본값 적용, `NOTE-01` |
+| `{"max_price_krw":2000,"in_stock_only":true}` | 빈 목록 |
+| `{"max_price_krw":2000,"in_stock_only":false}` | 품절인 `PEN-02` 포함 |
+| `{"max_price_krw":-1}` | 예산 입력 오류 |
+
+## 여러 상품의 구매 금액 검토하기
+
+`review_purchase`는 기존 `CATALOG`의 현재 단가로 상품별 소계와 예상 총액을 계산합니다. 주문이나 재고 변경은 수행하지 않습니다.
+
+| 입력 | 의미 |
+|---|---|
+| `items` | 필수, 비어 있지 않은 상품 목록. 각 항목은 `product_id`와 `quantity`를 받습니다. |
+| `items[].product_id` | 정확한 상품 ID 문자열. 하나라도 없는 ID이면 전체 요청이 오류가 됩니다. |
+| `items[].quantity` | 필수, 1 이상 정수. 문자열·실수·불리언을 수량으로 변환하지 않습니다. |
+| `budget_krw` | 필수, 0 이상 정수. 문자열·실수·불리언을 예산으로 변환하지 않습니다. |
+
+호출 예시:
+
+```json
+{
+  "items": [
+    {"product_id": "NOTE-01", "quantity": 2},
+    {"product_id": "PEN-02", "quantity": 1}
+  ],
+  "budget_krw": 8000
+}
+```
+
+반환 객체는 MCP의 `structuredContent`에서 확인합니다.
+
+| 결과 필드 | 의미와 위 입력의 예상값 |
+|---|---|
+| `items` | 입력 순서의 상품 ID·이름·단가(`price_krw`)·재고 여부(`in_stock`)·수량(`quantity`)·소계(`subtotal_krw`). 노트는 3000 × 2 = 6000원, 펜은 1500 × 1 = 1500원입니다. |
+| `budget_krw` | 전달한 예산 8000원 |
+| `total_krw` | 품절 상품을 포함한 예상 총액 7500원 |
+| `over_budget` | 총액이 예산보다 큰지 여부. 이 예시는 `false`이며, 같을 때도 `false`입니다. |
+| `over_budget_krw` | 초과한 금액. 초과하지 않으면 0원입니다. |
+| `out_of_stock_product_ids` | 품절 상품 ID 목록. 이 예시는 `["PEN-02"]`입니다. |
+
+같은 상품 ID를 여러 번 보내면 각 입력 줄을 유지하고 모두 합산합니다. 품절 ID 목록에는 같은 ID를 한 번만 표시합니다. 상품 항목에 단가 등 추가 필드를 보내면 입력 오류로 처리하며, 가격은 서버의 상품 사전에서 읽습니다. 빈 목록·잘못된 수량·예산·없는 ID는 `isError: true`로 끝나고 견적 객체를 반환하지 않습니다.
+
+Inspector의 서버를 재연결한 뒤 **Tools → review_purchase**에서 위 `items`와 `budget_krw`를 입력해 호출합니다. 정상 결과 다음에는 예산 7500원(초과 없음), 7499원(1원 초과), `UNKNOWN`이 섞인 목록(전체 오류), 수량 0(입력 오류)을 대조할 수 있습니다. `in_stock`은 재고 여부만 나타내므로 요청 수량만큼의 실제 재고를 보장하는 값은 아닙니다.
+
 ## 주요 파일
 
 - `src/learning_lab_mcp/server.py`: 상품 데이터와 Tool·Resource·Prompt, 서버 진입점.
