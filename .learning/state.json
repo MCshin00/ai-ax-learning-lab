@@ -1,10 +1,11 @@
 {
   "layout_version": 6,
   "created_at": "2026-07-25T10:42:29.915424+00:00",
-  "current_week": 2,
+  "current_week": 3,
   "applied_weeks": [
     1,
-    2
+    2,
+    3
   ],
   "references_revealed": [],
   "applied_files": {
@@ -23,9 +24,17 @@
       "week02-codex-skills/examples/issue-brief-example/assets/issue-template.md",
       "week02-codex-skills/examples/issue-brief-example/references/writing-rules.md",
       "week02-codex-skills/examples/issue-brief-example/SKILL.md"
+    ],
+    "3": [
+      "week03-mcp-integration/learning_lab_server/pyproject.toml",
+      "week03-mcp-integration/learning_lab_server/README.md",
+      "week03-mcp-integration/learning_lab_server/src/learning_lab_mcp/__init__.py",
+      "week03-mcp-integration/learning_lab_server/src/learning_lab_mcp/server.py",
+      "week03-mcp-integration/learning_lab_server/tests/test_server_contract.py",
+      "week03-mcp-integration/learning_lab_server/uv.lock"
     ]
   },
-  "updated_at": "2026-09-06T18:01:32.910834+00:00",
+  "updated_at": "2026-09-07T10:01:25.920359+00:00",
   "source_guide_sha256": "65def4b22622e62b34c11794db89e71817e6782b9048d9f7107d6de036852252",
   "migrated_from_layout_version": 2,
   "layout_migrated_at": "2026-08-12T17:39:12.701181+00:00",

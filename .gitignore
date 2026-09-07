@@ -39,5 +39,4 @@ build/
 
 /.learning/legacy-references/
 
-# AI AX Learning Lab에서 추가한 공통 제외 규칙
 # 학습 기록을 공개할지는 작성자가 결정합니다. 개인 기록은 .local/에 둡니다.

@@ -1,11 +1,11 @@
 # 현재 학습
 
-## 2주차 · Codex Skills
+## 3주차 · MCP 통합
 
-- 상세 학습 본문: [week02-codex-skills/README.md](week02-codex-skills/README.md)
-- 기본 작업 폴더(CWD): [`week02-codex-skills`](week02-codex-skills/)
+- 상세 학습 본문: [week03-mcp-integration/README.md](week03-mcp-integration/README.md)
+- 기본 작업 폴더(CWD): [`week03-mcp-integration/learning_lab_server`](week03-mcp-integration/learning_lab_server/)
 - 결과와 기록: 주차 README에서 지정한 파일 또는 기존 학습 노트
-- 개인 기록: `week02-codex-skills/.local/` (Git 제외)
+- 개인 기록: `week03-mcp-integration/.local/` (Git 제외)
 
 개념 설명·실습 순서·복사할 요청문은 주차 README에서 읽습니다. 이 문서는 현재 위치와 다음 명령만 안내합니다.
 
