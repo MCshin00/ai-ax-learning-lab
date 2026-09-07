@@ -4,29 +4,24 @@
 
 ## 1. Inspector로 실행
 
-IDE와 터미널의 작업 폴더는 생성된 학습 저장소의 `week03-mcp-integration/learning_lab_server/`입니다. Python 3.11+, uv, Inspector가 지원하는 Node가 필요합니다. 현재 공식 Inspector 최소 버전은 Node 22.19.0입니다.
+IDE와 터미널의 작업 폴더는 생성된 학습 저장소의 `week03-mcp-integration/learning_lab_server/`입니다. 현재 폴더에 `pyproject.toml`과 `uv.lock`이 있는지 확인합니다. Python 3.11+, uv, **Node.js 22.19.0 이상**이 필요합니다. `node --version`과 `uv --version`으로 먼저 확인하고, Node가 기준보다 낮으면 업데이트 후 새 터미널에서 다시 확인합니다.
 
-Windows PowerShell:
+Windows PowerShell·macOS·Linux·WSL 공통:
 
-```powershell
+```text
 uv sync --locked
-$CatalogProject = (Get-Location).Path
-npx @modelcontextprotocol/inspector uv --directory "$CatalogProject" run --locked ai-ax-learning-lab-mcp
+npx @modelcontextprotocol/inspector@2.5.0 uv run --locked ai-ax-learning-lab-mcp
 ```
 
-macOS·Linux·WSL:
+Inspector는 시작한 작업 폴더에서 서버를 실행합니다. 경로를 인자 문자열로 전달하지 않아 Windows의 백슬래시·공백이 잘못 해석되는 문제를 피합니다. `uv sync`가 성공한 뒤 Inspector를 시작하고, npm의 설치 질문이 나오면 패키지 이름·버전을 확인해 진행합니다. 브라우저를 사용하는 동안 터미널을 켜 둡니다.
 
-```bash
-uv sync --locked
-catalog_project="$(pwd)"
-npx @modelcontextprotocol/inspector uv --directory "$catalog_project" run --locked ai-ax-learning-lab-mcp
-```
+아래는 **Inspector 2.5.0**의 순서입니다. 출력된 로컬 URL을 열고 **Servers의 `uv` 연결 스위치 → Connected 확인 → Tools → get_product → Product Id에 `NOTE-01` 입력 → Execute Tool**로 진행합니다. Results에서 가격 3000·재고 true를 확인합니다. **Close results**로 입력 화면에 돌아와 `PEN-02`와 `UNKNOWN`도 호출합니다. 이 버전에는 별도로 누를 `List Tools` 버튼이 없습니다.
 
-Inspector가 출력한 로컬 URL을 브라우저에서 엽니다. URL의 세션 토큰은 공유 기록에 넣지 않습니다. stdio 서버를 연결하고 Tools에서 `get_product`를 선택해 `product_id`에 `NOTE-01`을 입력합니다. 이름·가격 3000·재고 true가 보이면 첫 호출 성공입니다. `PEN-02`는 재고 false, `UNKNOWN`은 오류가 예상됩니다.
+Tools가 안 보이면 서버 연결 상태와 Console 오류부터 확인합니다. v1 경고가 보이면 이전 실행을 `Ctrl+C`로 종료하고 Node 버전 확인 후 위 명령으로 다시 시작합니다. URL의 세션 토큰은 공유 기록에 넣지 않습니다. 환경 준비·화면별 조작·오류 대응·완료 기준은 [주차 README의 Day 1](../README.md#day-1--inspector에서-성공과-오류-보기)에 있습니다.
 
 ## 2. Codex에서 사용
 
-앱의 MCP 설정에서 같은 command·arguments로 등록할 수 있습니다. 등록 UI가 없으면 이 프로젝트의 터미널에서 다음을 실행합니다. 먼저 목록에서 `learning-catalog`가 이미 사용 중인지 확인하고 충돌하면 새 이름을 고릅니다.
+앱의 MCP 설정에서 command는 `uv`, arguments는 아래 등록 명령처럼 `--directory`와 프로젝트 절대 경로를 포함해 입력합니다. Codex는 다른 작업 폴더에서 시작할 수 있기 때문입니다. 등록 UI가 없으면 이 프로젝트의 터미널에서 다음을 실행합니다. 먼저 목록에서 `learning-catalog`가 이미 사용 중인지 확인하고 충돌하면 새 이름을 고릅니다.
 
 Windows PowerShell:
 

@@ -83,10 +83,10 @@ flowchart LR
 Day 1 명령에는 서로 다른 프로그램의 역할이 함께 들어 있습니다.
 
 - `uv sync --locked`: Python 프로젝트에 필요한 패키지를 `uv.lock`에 정해진 버전으로 준비합니다. `uv`는 Python 환경·패키지·실행을 관리하는 도구입니다.
-- `npx @modelcontextprotocol/inspector`: Node.js의 패키지 실행 도구 `npx`로 Inspector를 시작합니다. Node.js는 Inspector 실행에 쓰이고, 상품조회 코드는 Python으로 실행됩니다.
-- 뒤에 붙는 `uv --directory ... run --locked ai-ax-learning-lab-mcp`: Inspector에 전달하는 **서버 실행 명령**입니다. 지정한 프로젝트에서 상품조회 프로그램을 실행합니다.
+- `npx @modelcontextprotocol/inspector@2.5.0`: Node.js의 패키지 실행 도구 `npx`로 Inspector를 시작합니다. 안내와 화면을 맞추기 위해 확인한 버전을 지정합니다. Node.js는 Inspector 실행에 쓰이고, 상품조회 코드는 Python으로 실행됩니다.
+- 뒤에 붙는 `uv run --locked ai-ax-learning-lab-mcp`: Inspector에 전달하는 **서버 실행 명령**입니다. Inspector를 시작한 프로젝트 폴더에서 상품조회 프로그램을 실행합니다. 프로젝트 경로를 인자 문자열로 넘기지 않아 Windows의 경로 구분자와 공백이 다시 해석되는 문제를 피합니다.
 
-Day 2의 Codex에도 같은 서버 실행 명령을 등록합니다. Inspector가 실행한 프로세스를 그대로 공유하는 설정이 아니라, 같은 프로젝트의 프로그램을 각 클라이언트가 실행하는 방식입니다. 따라서 Inspector에서 성공해도 Codex의 실행 경로나 환경이 다르면 연결은 실패할 수 있습니다.
+Day 2의 Codex에도 같은 프로그램을 등록합니다. Codex는 다른 작업 폴더에서 시작할 수 있으므로 등록 인자에 `uv --directory <프로젝트 절대 경로> run --locked ...`를 사용합니다. Inspector가 실행한 프로세스를 그대로 공유하는 설정이 아니라, 같은 프로젝트의 프로그램을 각 클라이언트가 실행하는 방식입니다. 따라서 Inspector에서 성공해도 Codex의 실행 경로나 환경이 다르면 연결은 실패할 수 있습니다.
 
 ### 제공 프로젝트 구조: 실행 명령이 조회 함수에 닿는 경로
 
@@ -112,7 +112,7 @@ week03-mcp-integration/
 
 기본 실습은 위의 가상 상품조회 MCP로 진행합니다. 같은 입력으로 정상·오류를 재현하고, Day 3에서 Tool·Resource·Prompt를 비교할 수 있습니다. 이미 사용하는 MCP가 있다면 이후 자기 작업에 적용할 때 기능과 응답을 대조합니다.
 
-Codex 앱·IDE에서 `week03-mcp-integration/learning_lab_server/`를 열고 프로젝트 README의 환경 준비를 확인한 뒤 Day 1 명령을 실행합니다. 첫 실행의 목표는 **상품 한 건의 실제 도구 응답을 보고, 뒤이어 오류 응답과 구별하는 것**입니다. 설치가 막히면 오류를 도우미와 해결하고, 연결하지 못한 상태를 실행 완료로 기록하지 않습니다.
+Codex 앱·IDE에서 `week03-mcp-integration/learning_lab_server/`를 열고 아래 Day 1의 준비·실행 순서를 따릅니다. 첫 실행의 목표는 **상품 한 건의 실제 도구 응답을 보고, 뒤이어 오류 응답과 구별하는 것**입니다. 설치가 막히면 오류를 도우미와 해결하고, 연결하지 못한 상태를 실행 완료로 기록하지 않습니다.
 
 ## 이번 주의 도구와 결과
 
@@ -130,34 +130,61 @@ Codex 앱·IDE에서 `week03-mcp-integration/learning_lab_server/`를 열고 프
 
 ## Day 1 — Inspector에서 성공과 오류 보기
 
-작업 폴더는 `learning_lab_server/`입니다. IDE 통합 터미널에서 실행합니다.
+### 1. 작업 폴더와 실행 환경 확인
 
-Windows PowerShell:
+IDE에서 `week03-mcp-integration/learning_lab_server/`를 열고 통합 터미널도 이 폴더에서 시작합니다. **터미널의 현재 폴더에 `pyproject.toml`과 `uv.lock`이 있어야 합니다.** 학습 저장소 루트에서 시작했다면 아래 명령으로 이동합니다. 이미 작업 폴더 안이면 이동 명령은 생략합니다.
 
-```powershell
-uv sync --locked
-$CatalogProject = (Get-Location).Path
-npx @modelcontextprotocol/inspector uv --directory "$CatalogProject" run --locked ai-ax-learning-lab-mcp
+Windows PowerShell·macOS·Linux·WSL 공통:
+
+```text
+cd ./week03-mcp-integration/learning_lab_server
 ```
 
-macOS·Linux·WSL:
+Python 3.11 이상, uv, **Node.js 22.19.0 이상**이 필요합니다. 같은 터미널에서 다음 버전을 확인합니다.
 
-```bash
-uv sync --locked
-catalog_project="$(pwd)"
-npx @modelcontextprotocol/inspector uv --directory "$catalog_project" run --locked ai-ax-learning-lab-mcp
+```text
+node --version
+uv --version
 ```
 
-출력된 로컬 URL을 열고 stdio 연결을 시작합니다. 세션 토큰이 있는 URL은 공유 기록에 넣지 않습니다.
-`NOTE-01`, `PEN-02`, `UNKNOWN`을 차례로 호출합니다.
-앞의 두 개는 서로 다른 재고 상태이고 마지막은 알 수 없는 ID 오류입니다.
-“에러가 났다”보다 어느 입력에서 어떤 응답이 왔는지만 남기면 됩니다.
+Node가 `v22.17.1`처럼 기준보다 낮으면 먼저 [Node.js](https://nodejs.org/en/download)를 업데이트하고 새 터미널에서 버전을 다시 확인합니다. 명령을 찾을 수 없다면 [uv 설치 안내](https://docs.astral.sh/uv/getting-started/installation/)와 Node 설치를 확인합니다. **Node 버전을 확인한 뒤 다음 단계로 갑니다.** Inspector 버전만 바꾸어도 Node의 지원 조건이 충족되는 것은 아닙니다.
+
+### 2. Inspector 실행
+
+아래 명령도 같은 프로젝트 폴더에서 실행합니다. Windows PowerShell·macOS·Linux·WSL에서 동일합니다.
+
+```text
+uv sync --locked
+npx @modelcontextprotocol/inspector@2.5.0 uv run --locked ai-ax-learning-lab-mcp
+```
+
+`uv sync`가 오류 없이 끝난 뒤 Inspector 명령을 실행합니다. 첫 실행에서 npm이 표시한 패키지 이름·버전을 확인하고 설치 질문에 `y`로 답합니다. Inspector가 출력한 로컬 URL을 브라우저에서 열고, **실습하는 동안 이 터미널을 켜 둡니다.** 세션 토큰이 있는 URL은 공유 기록에 넣지 않습니다.
+
+아래 화면 안내는 Inspector **2.5.0** 기준입니다. `v1 is deprecated` 배너나 왼쪽의 Command·Arguments 입력창이 보이면 이전 Inspector 창입니다. 이전 실행 터미널에서 `Ctrl+C`로 종료하고, Node 버전을 확인한 뒤 위 명령을 다시 실행해 새 URL을 엽니다. [Inspector 버전 전환 안내](https://github.com/modelcontextprotocol/inspector/blob/main/docs/v1-to-v2-migration.md)
+
+### 3. 브라우저에서 연결하고 호출
+
+1. **Servers** 화면에서 `uv` 항목과 `uv run --locked ai-ax-learning-lab-mcp` 명령을 확인합니다. 이 항목 옆의 **연결 스위치**를 켭니다. `Read-only session` 안내는 실행할 서버 목록을 여기서 편집하지 않는다는 뜻이며, 연결이나 도구 호출을 막는 오류가 아닙니다.
+2. 상태가 **Connected**로 바뀌고 상단에 `learning-catalog`와 **Tools**가 나타나는지 봅니다. 브라우저가 열렸다는 사실만으로 서버가 연결된 것은 아닙니다.
+3. **Tools → get_product**를 선택합니다. 이 버전은 연결할 때 목록을 가져오므로 `List Tools` 버튼을 찾을 필요가 없습니다.
+4. **Product Id** 입력칸에 `NOTE-01`을 넣고 **Execute Tool**을 누릅니다. 이 입력칸이 코드의 `product_id` 인자에 해당합니다. **Results**에서 `price_krw: 3000`, `in_stock: true`를 확인합니다.
+5. 결과 영역의 닫기 버튼(**Close results**)으로 입력 화면에 돌아와 `PEN-02`, `UNKNOWN`으로 바꾸어 같은 방식으로 실행합니다.
+
+| 입력 | 제공된 서버에서 예상하는 응답 |
+|---|---|
+| `NOTE-01` | 연습용 노트, `price_krw: 3000`, `in_stock: true` |
+| `PEN-02` | 연습용 펜, `price_krw: 1500`, `in_stock: false` |
+| `UNKNOWN` | `Unknown product ID` 오류, 상품 가격은 반환하지 않음 |
+
+**Tools가 안 보이면 연결 상태부터 봅니다.** Servers에서 `Disconnected`이면 연결 스위치를 켜고, `Failed`이면 오른쪽 **Console**의 오류를 확인합니다. `os error 2`가 나오면 예전 `--directory` 경로가 남아 있는지와 실행한 터미널의 현재 폴더를 확인합니다. 위 명령을 작업 폴더에서 다시 실행하면 Windows 경로를 Arguments에 직접 붙여 넣을 필요가 없습니다. 오류가 계속되면 실행 명령·작업 폴더·Console 오류를 도우미에게 전달합니다.
+
+세 호출의 입력과 실제 응답을 `../mcp-use.md`에서 찾을 수 있게 기록합니다. 실습을 마치면 Inspector 실행 터미널에서 `Ctrl+C`로 종료합니다.
 
 **남길 결과·완료 판단:** 노트에서 세 ID의 실제 응답을 찾을 수 있게 합니다. 정상 두 상품의 가격·재고 차이와 `UNKNOWN`의 오류를 실제 응답으로 구별했으면 Day 1을 마칩니다.
 
 ## Day 2 — Codex에 연결해 같은 요청 보내기
 
-앱의 MCP 설정으로 같은 실행 명령을 등록합니다. 등록 UI가 없으면 서버 README의 `codex mcp add` 명령을 사용합니다.
+앱의 MCP 설정에서 command는 `uv`, arguments는 `--directory <프로젝트 절대 경로> run --locked ai-ax-learning-lab-mcp`로 등록합니다. Inspector와 달리 다른 작업 폴더에서 시작할 수 있으므로 절대 경로를 포함합니다. 등록 UI가 없으면 서버 README의 `codex mcp add` 명령을 사용합니다.
 등록 이름이 이미 사용 중인지 먼저 확인하고, 프로젝트의 절대 경로를 전달합니다.
 설정 위치·지원 표면은 [공식 MCP 안내](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)에서 확인합니다.
 
