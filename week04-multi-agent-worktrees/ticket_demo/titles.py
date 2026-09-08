@@ -1,3 +1,4 @@
 def normalize_title(title: str) -> str:
-    """Baseline: trim the ends; internal whitespace is preserved."""
-    return title.strip()
+    """Normalize whitespace and show a placeholder for whitespace-only titles."""
+    normalized = " ".join(title.split())
+    return normalized or "(제목 없음)"
