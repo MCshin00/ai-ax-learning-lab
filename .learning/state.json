@@ -1,11 +1,12 @@
 {
   "layout_version": 6,
   "created_at": "2026-07-25T10:42:29.915424+00:00",
-  "current_week": 3,
+  "current_week": 4,
   "applied_weeks": [
     1,
     2,
-    3
+    3,
+    4
   ],
   "references_revealed": [],
   "applied_files": {
@@ -32,9 +33,16 @@
       "week03-mcp-integration/learning_lab_server/src/learning_lab_mcp/server.py",
       "week03-mcp-integration/learning_lab_server/tests/test_server_contract.py",
       "week03-mcp-integration/learning_lab_server/uv.lock"
+    ],
+    "4": [
+      "week04-multi-agent-worktrees/ticket_demo/app.py",
+      "week04-multi-agent-worktrees/ticket_demo/priorities.py",
+      "week04-multi-agent-worktrees/ticket_demo/README.md",
+      "week04-multi-agent-worktrees/ticket_demo/tests/test_ticket.py",
+      "week04-multi-agent-worktrees/ticket_demo/titles.py"
     ]
   },
-  "updated_at": "2026-09-07T10:01:25.920359+00:00",
+  "updated_at": "2026-09-07T17:28:30.831626+00:00",
   "source_guide_sha256": "ba7024ed34434d6c95a93aaec6e272c36087cd5157663b80fda35fe1146376f7",
   "migrated_from_layout_version": 2,
   "layout_migrated_at": "2026-08-12T17:39:12.701181+00:00",
