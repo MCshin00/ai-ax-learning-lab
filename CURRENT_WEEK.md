@@ -1,11 +1,11 @@
 # 현재 학습
 
-## 4주차 · 작업 위임과 통합
+## 5주차 · 하네스 구성과 재사용
 
-- 상세 학습 본문: [week04-multi-agent-worktrees/README.md](week04-multi-agent-worktrees/README.md)
-- 기본 작업 폴더(CWD): [`week04-multi-agent-worktrees/ticket_demo`](week04-multi-agent-worktrees/ticket_demo/)
+- 상세 학습 본문: [week05-development-harness/README.md](week05-development-harness/README.md)
+- 기본 작업 폴더(CWD): [`week05-development-harness/quality_demo`](week05-development-harness/quality_demo/)
 - 결과와 기록: 주차 README에서 지정한 파일 또는 기존 학습 노트
-- 개인 기록: `week04-multi-agent-worktrees/.local/` (Git 제외)
+- 개인 기록: `week05-development-harness/.local/` (Git 제외)
 
 개념 설명·실습 순서·복사할 요청문은 주차 README에서 읽습니다. 이 문서는 현재 위치와 다음 명령만 안내합니다.
 

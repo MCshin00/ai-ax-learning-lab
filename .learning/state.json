@@ -1,12 +1,13 @@
 {
   "layout_version": 6,
   "created_at": "2026-07-25T10:42:29.915424+00:00",
-  "current_week": 4,
+  "current_week": 5,
   "applied_weeks": [
     1,
     2,
     3,
-    4
+    4,
+    5
   ],
   "references_revealed": [],
   "applied_files": {
@@ -40,10 +41,23 @@
       "week04-multi-agent-worktrees/ticket_demo/README.md",
       "week04-multi-agent-worktrees/ticket_demo/tests/test_ticket.py",
       "week04-multi-agent-worktrees/ticket_demo/titles.py"
+    ],
+    "5": [
+      "week05-development-harness/quality_demo/.codex/config.toml",
+      "week05-development-harness/quality_demo/.codex/hooks/post_tool_use_review.py",
+      "week05-development-harness/quality_demo/.codex/hooks/tests/test_post_tool_use_review.py",
+      "week05-development-harness/quality_demo/.codex/hooks.json",
+      "week05-development-harness/quality_demo/README.md",
+      "week05-development-harness/quality_demo/refund.py",
+      "week05-development-harness/quality_demo/tests/test_refund.py",
+      "week05-development-harness/quality_demo/AGENTS.md",
+      "week05-development-harness/quality_demo/data/batch-expected.json",
+      "week05-development-harness/quality_demo/data/batch-requests.json",
+      "week05-development-harness/quality_demo/data/refund-cases.json"
     ]
   },
-  "updated_at": "2026-09-07T17:28:30.831626+00:00",
-  "source_guide_sha256": "ef51cd4b9906906e4a2bcf8a1ec6ac1dbfcece5a007ece49aa5e8016a4147880",
+  "updated_at": "2026-09-09T02:49:25.673140+00:00",
+  "source_guide_sha256": "655a92eb94fdbc38ea93cc34ea7324ea19ce90d210456d459e1212d6fc073d29",
   "migrated_from_layout_version": 2,
   "layout_migrated_at": "2026-08-12T17:39:12.701181+00:00",
   "layout_migrations": [
