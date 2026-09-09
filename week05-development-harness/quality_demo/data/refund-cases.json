@@ -1,0 +1,10 @@
+[
+  { "id": "regular", "paid": 10000, "fee": 2000, "fee_waived": false, "expected": 8000 },
+  { "id": "waived", "paid": 10000, "fee": 2000, "fee_waived": true, "expected": 10000 },
+  { "id": "lower-bound", "paid": 1000, "fee": 2000, "fee_waived": false, "expected": 0 },
+  { "id": "negative-paid", "paid": -1, "fee": 0, "fee_waived": false, "expected": { "error": "금액은 0 이상의 정수여야 합니다." } },
+  { "id": "negative-fee-waived", "paid": 10000, "fee": -1, "fee_waived": true, "expected": { "error": "금액은 0 이상의 정수여야 합니다." } },
+  { "id": "text-amount", "paid": "10000", "fee": 2000, "fee_waived": false, "expected": { "error": "금액은 0 이상의 정수여야 합니다." } },
+  { "id": "boolean-amount", "paid": true, "fee": 0, "fee_waived": false, "expected": { "error": "금액은 0 이상의 정수여야 합니다." } },
+  { "id": "invalid-waiver", "paid": 10000, "fee": 2000, "fee_waived": "true", "expected": { "error": "fee_waived는 불리언이어야 합니다." } }
+]

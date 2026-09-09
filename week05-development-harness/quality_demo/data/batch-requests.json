@@ -1,0 +1,10 @@
+[
+  { "id": "regular", "paid": 10000, "fee": 2000, "fee_waived": false },
+  { "id": "negative-paid", "paid": -1, "fee": 0, "fee_waived": false },
+  { "id": "waived", "paid": 10000, "fee": 2000, "fee_waived": true },
+  { "id": "text-amount", "paid": "10000", "fee": 2000, "fee_waived": false },
+  { "id": "lower-bound", "paid": 1000, "fee": 2000, "fee_waived": false },
+  { "id": "boolean-amount", "paid": true, "fee": 0, "fee_waived": false },
+  { "id": "negative-fee-waived", "paid": 10000, "fee": -1, "fee_waived": true },
+  { "id": "invalid-waiver", "paid": 10000, "fee": 2000, "fee_waived": "true" }
+]

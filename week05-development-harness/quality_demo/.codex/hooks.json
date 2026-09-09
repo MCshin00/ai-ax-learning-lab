@@ -1,0 +1,19 @@
+{
+  "description": "Week 5: return failure context after command execution. Review and trust this definition, and confirm the matcher against the actual tool name.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 -X utf8 -B \".codex/hooks/post_tool_use_review.py\"",
+            "commandWindows": "python -X utf8 -B \".codex/hooks/post_tool_use_review.py\"",
+            "timeout": 30,
+            "statusMessage": "Reviewing command result"
+          }
+        ]
+      }
+    ]
+  }
+}

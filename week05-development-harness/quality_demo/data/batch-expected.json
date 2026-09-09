@@ -1,0 +1,10 @@
+[
+  { "id": "regular", "status": "ok", "refund": 8000 },
+  { "id": "negative-paid", "status": "error", "error": "금액은 0 이상의 정수여야 합니다." },
+  { "id": "waived", "status": "ok", "refund": 10000 },
+  { "id": "text-amount", "status": "error", "error": "금액은 0 이상의 정수여야 합니다." },
+  { "id": "lower-bound", "status": "ok", "refund": 0 },
+  { "id": "boolean-amount", "status": "error", "error": "금액은 0 이상의 정수여야 합니다." },
+  { "id": "negative-fee-waived", "status": "error", "error": "금액은 0 이상의 정수여야 합니다." },
+  { "id": "invalid-waiver", "status": "error", "error": "fee_waived는 불리언이어야 합니다." }
+]
