@@ -11,7 +11,7 @@ class CatalogTests(unittest.IsolatedAsyncioTestCase):
             notebook = await client.call_tool("get_product", {"product_id": "NOTE-01"})
             pen = await client.call_tool("get_product", {"product_id": "PEN-02"})
         self.assertFalse(notebook.is_error)
-        self.assertEqual(3000, notebook.structured_content["price_krw"])
+        self.assertEqual(3500, notebook.structured_content["price_krw"])
         self.assertFalse(pen.structured_content["in_stock"])
 
     async def test_unknown_id_is_error(self):
@@ -47,13 +47,15 @@ class CatalogTests(unittest.IsolatedAsyncioTestCase):
     async def test_find_products_filters_and_empty_results(self):
         products = {
             "NOTE-01": {"product_id": "NOTE-01", "name": "연습용 노트",
-                        "price_krw": 3000, "in_stock": True},
+                        "price_krw": 3500, "in_stock": True},
             "PEN-02": {"product_id": "PEN-02", "name": "연습용 펜",
                        "price_krw": 1500, "in_stock": False},
         }
         cases = [
-            ({"max_price_krw": 3000}, ["NOTE-01"]),
-            ({"max_price_krw": 3000, "in_stock_only": False}, ["NOTE-01", "PEN-02"]),
+            ({"max_price_krw": 3000}, []),
+            ({"max_price_krw": 3500}, ["NOTE-01"]),
+            ({"max_price_krw": 3000, "in_stock_only": False}, ["PEN-02"]),
+            ({"max_price_krw": 3500, "in_stock_only": False}, ["NOTE-01", "PEN-02"]),
             ({"max_price_krw": 2000, "in_stock_only": True}, []),
             ({"max_price_krw": 2000, "in_stock_only": False}, ["PEN-02"]),
             ({"max_price_krw": 1500, "in_stock_only": False}, ["PEN-02"]),
@@ -87,7 +89,7 @@ class CatalogTests(unittest.IsolatedAsyncioTestCase):
 
     def test_find_products_returns_copies_without_changing_catalog(self):
         before = {key: product.model_dump() for key, product in CATALOG.items()}
-        matches = find_products(3000)
+        matches = find_products(3500)
         self.assertIsNot(matches[0], CATALOG["NOTE-01"])
         matches[0].price_krw = 1
         matches[0].in_stock = False

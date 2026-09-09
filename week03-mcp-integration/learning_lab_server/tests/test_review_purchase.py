@@ -61,33 +61,33 @@ class PurchaseReviewTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.is_error)
         self.assertEqual({
             "items": [
-                {"product_id": "NOTE-01", "name": "연습용 노트", "price_krw": 3000,
-                 "in_stock": True, "quantity": 2, "subtotal_krw": 6000},
+                {"product_id": "NOTE-01", "name": "연습용 노트", "price_krw": 3500,
+                 "in_stock": True, "quantity": 2, "subtotal_krw": 7000},
                 {"product_id": "PEN-02", "name": "연습용 펜", "price_krw": 1500,
                  "in_stock": False, "quantity": 1, "subtotal_krw": 1500},
             ],
             "budget_krw": 8000,
-            "total_krw": 7500,
-            "over_budget": False,
-            "over_budget_krw": 0,
+            "total_krw": 8500,
+            "over_budget": True,
+            "over_budget_krw": 500,
             "out_of_stock_product_ids": ["PEN-02"],
         }, result.structured_content)
 
-    async def test_equal_lower_and_zero_budgets(self):
+    async def test_above_equal_lower_and_zero_budgets(self):
         async with Client(mcp, raise_exceptions=True) as client:
-            for budget, over_budget, excess in ((7500, False, 0), (7499, True, 1), (0, True, 7500)):
+            for budget, over_budget, excess in ((8501, False, 0), (8500, False, 0), (8499, True, 1), (0, True, 8500)):
                 with self.subTest(budget=budget):
                     result = await client.call_tool("review_purchase", {
                         "items": self.items, "budget_krw": budget,
                     })
                     self.assertFalse(result.is_error)
-                    self.assertEqual(7500, result.structured_content["total_krw"])
+                    self.assertEqual(8500, result.structured_content["total_krw"])
                     self.assertIs(over_budget, result.structured_content["over_budget"])
                     self.assertEqual(excess, result.structured_content["over_budget_krw"])
 
     async def test_other_quantities_and_stock_lists(self):
         cases = [
-            ([{"product_id": "NOTE-01", "quantity": 3}], [9000], 9000, []),
+            ([{"product_id": "NOTE-01", "quantity": 3}], [10500], 10500, []),
             ([{"product_id": "PEN-02", "quantity": 2},
               {"product_id": "PEN-02", "quantity": 1}], [3000, 1500], 4500, ["PEN-02"]),
         ]
