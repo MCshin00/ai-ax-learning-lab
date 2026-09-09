@@ -212,11 +212,12 @@ When not to use: ... deterministic code-native output instead of a generated bit
 
 #### 해설 — 스크립트가 반환하는 값이 완료 판정인 것은 아닙니다
 
-기존 `documents` Skill은 DOCX를 만든 뒤 `render_docx.py`로 페이지 이미지를 만들고, 모든 페이지를 확인하도록 안내합니다. 이 스크립트의 `rasterize()` 함수는 페이지 번호와 PNG 경로를 모아 정렬한 뒤 다음 값을 반환합니다.
+기존 `documents` Skill은 DOCX를 만든 뒤 `render_docx.py`로 페이지 이미지를 만들고, 모든 페이지를 확인하도록 안내합니다. 이 외부 도구의 `rasterize()`는 페이지 번호와 PNG 경로를 모아 순서대로 정리한 경로 목록을 반환합니다. 원문에서 확인한 입출력의 관계는 다음과 같습니다.
 
-```python
-pages.sort(key=lambda t: t[0])
-return [path for _, path in pages]
+```text
+입력: 문서와 출력 위치
+처리: 페이지를 이미지로 변환 → 페이지 순서로 정리
+반환: 페이지 이미지 경로 목록
 ```
 
 이 반환값은 페이지 이미지의 경로 목록입니다. 표가 잘렸는지, 제목과 본문이 겹쳤는지에 대한 판정은 들어 있지 않습니다. `SKILL.md`가 렌더링 뒤 별도로 “Inspect every page at 100% zoom”을 요구하는 이유를 여기서 읽을 수 있습니다. **코드가 검토할 화면을 만들고, 그 화면에서 품질을 판단하는 단계가 이어지는 구조**입니다. PNG가 있다는 이유만으로 전달 가능한 문서라고 판단하면 뒤의 검토가 빠집니다.

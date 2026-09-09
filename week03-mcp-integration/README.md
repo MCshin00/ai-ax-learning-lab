@@ -20,7 +20,7 @@ AI는 실제 코드와 대표 입력으로 추천 구성·이유·예상을 설�
 
 조회 함수만 존재한다고 AI 앱이 그 함수를 어떻게 부를지 저절로 알지는 못합니다. 프로그램은 기능의 이름·설명·입력 형식을 알려 주고, AI 앱은 그 형식으로 요청을 보내 결과를 받아야 합니다. MCP는 이 연결에 공통 약속을 제공합니다. 각 서버가 실제로 무엇을 조회하고 수정할 수 있는지는 서버의 구현과 접근 권한에 따라 달라집니다. [MCP 아키텍처](https://modelcontextprotocol.io/docs/2026-07-28/learn/architecture)
 
-2주차의 Skill은 반복 작업의 지침과 필요한 자료를 묶었습니다. MCP는 AI 앱에 다른 프로그램의 기능·자료를 연결합니다. 예를 들어 Skill에 “조회한 가격만 요약하라”는 규칙을 두고, MCP로 실제 가격을 가져와 함께 사용할 수 있습니다. Skill 파일만으로 상품조회 연결이 생기지는 않습니다. 이번 예제는 외부 쇼핑몰 API 대신 Python 코드 안의 가상 상품 사전 `CATALOG`를 조회하므로 계정과 API 키가 필요하지 않습니다.
+2주차의 Skill은 반복 작업의 지침과 필요한 자료를 묶었습니다. MCP는 AI 앱에 다른 프로그램의 기능·자료를 연결합니다. 예를 들어 Skill에 “조회한 가격만 요약하라”는 규칙을 두고, MCP로 실제 가격을 가져와 함께 사용할 수 있습니다. Skill 파일만으로 상품조회 연결이 생기지는 않습니다. 이번 예제는 외부 쇼핑몰 API 대신 서버 코드 안의 가상 상품 자료 `CATALOG`를 조회하므로 계정과 API 키가 필요하지 않습니다.
 
 ### Host·Client·Server: 누가 요청을 판단하고 실행하나요?
 
@@ -44,7 +44,7 @@ flowchart LR
 
 이 예제의 `get_product` 함수는 ID에 해당하는 값을 반환합니다. 자연어 질문을 이해하고 조회 여부를 판단하는 부분은 Codex 쪽에 있습니다. 따라서 서버가 정확한 값을 반환해도 모델이 답변에 없는 정보를 덧붙일 수 있습니다. **도구의 원응답과 최종 답변을 나누어 확인하는 이유**입니다.
 
-여기서 Server는 반드시 인터넷에 공개된 큰 컴퓨터를 뜻하지 않습니다. 이번에는 내 컴퓨터에서 실행하는 Python 프로그램이 서버 역할을 합니다. 같은 MCP 규격을 사용해 원격 서비스에 연결할 수도 있지만, 이번 첫 실습은 로컬 프로그램을 대상으로 합니다.
+여기서 Server는 반드시 인터넷에 공개된 큰 컴퓨터를 뜻하지 않습니다. 이번에는 내 컴퓨터에서 실행하는 로컬 프로그램이 서버 역할을 합니다. 같은 MCP 규격을 사용해 원격 서비스에 연결할 수도 있지만, 이번 첫 실습은 로컬 프로그램을 대상으로 합니다.
 
 ### Tool·Resource·Prompt: 서버가 제공하는 세 가지
 
@@ -86,33 +86,33 @@ flowchart LR
 
 **stdio**는 표준 입력·출력 스트림으로 로컬 프로세스와 메시지를 주고받는 연결 방식입니다. Inspector나 Codex에 “어떤 명령으로 서버를 시작할지”를 알려 주면, 해당 프로그램을 실행해 통신합니다. 원격 서버의 주소로 연결하는 **Streamable HTTP**와 달리 이번 설정에는 서버 실행 명령과 프로젝트 경로를 넣습니다. Inspector의 브라우저 화면을 여는 로컬 URL은 상품조회 MCP의 HTTP 서버 주소와는 역할이 다릅니다. [Codex의 MCP 연결 방식](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
 
-Day 1 명령에는 서로 다른 프로그램의 역할이 함께 들어 있습니다.
+Day 1에서는 빌드와 서버 실행을 구분합니다. IDE의 Gradle 창에서 `installDist`를 실행하면 코드와 의존성을 `build/install/learning-catalog/`에 준비합니다. Inspector의 `npx`는 점검 화면을 시작하고, 뒤의 `java -cp "build/install/learning-catalog/lib/*" lab.week03.CatalogServer`는 MCP 서버 프로세스를 시작합니다. Node.js는 Inspector에, JDK는 서버에 사용됩니다.
 
-- `uv sync --locked`: Python 프로젝트에 필요한 패키지를 `uv.lock`에 정해진 버전으로 준비합니다. `uv`는 Python 환경·패키지·실행을 관리하는 도구입니다.
-- `npx @modelcontextprotocol/inspector@2.5.0`: Node.js의 패키지 실행 도구 `npx`로 Inspector를 시작합니다. 안내와 화면을 맞추기 위해 확인한 버전을 지정합니다. Node.js는 Inspector 실행에 쓰이고, 상품조회 코드는 Python으로 실행됩니다.
-- 뒤에 붙는 `uv run --locked ai-ax-learning-lab-mcp`: Inspector에 전달하는 **서버 실행 명령**입니다. Inspector를 시작한 프로젝트 폴더에서 상품조회 프로그램을 실행합니다. 프로젝트 경로를 인자 문자열로 넘기지 않아 Windows의 경로 구분자와 공백이 다시 해석되는 문제를 피합니다.
+같은 공개 입력·결과를 제공하면 클라이언트는 서버 내부 언어를 몰라도 호출할 수 있습니다. 빌드 도구와 파일 이름은 그 역할을 구현한 이번 프로젝트의 예입니다. Gradle 로그를 프로토콜 메시지와 섞지 않도록 빌드를 먼저 완료하고 Inspector에는 Java 실행 명령을 전달합니다. 코드를 고치면 다시 빌드한 뒤 연결을 새로 시작합니다.
 
-Day 2의 Codex에도 같은 프로그램을 등록합니다. Codex는 다른 작업 폴더에서 시작할 수 있으므로 등록 인자에 `uv --directory <프로젝트 절대 경로> run --locked ...`를 사용합니다. Inspector가 실행한 프로세스를 그대로 공유하는 설정이 아니라, 같은 프로젝트의 프로그램을 각 클라이언트가 실행하는 방식입니다. 따라서 Inspector에서 성공해도 Codex의 실행 경로나 환경이 다르면 연결은 실패할 수 있습니다.
+Codex는 다른 작업 폴더에서 시작할 수 있으므로 로컬 연결 설정에는 빌드된 라이브러리의 실제 경로를 사용합니다. Inspector와 Codex가 같은 프로그램을 각각 시작하므로 한쪽의 연결 성공이 다른 쪽 연결까지 보장하지는 않습니다.
 
 ### 제공 프로젝트 구조: 실행 명령이 조회 함수에 닿는 경로
 
-이번에 여는 폴더의 주요 파일은 다음과 같습니다. 처음 호출하기 전에 각 파일이 무엇을 맡는지 확인합니다.
-
 ```text
 week03-mcp-integration/
-├─ README.md                            # 주차 학습 안내
-├─ mcp-use.md                           # 실습하면서 이어 쓸 기록
-└─ learning_lab_server/                 # 이번 작업 폴더
-   ├─ README.md                         # 환경 준비·Inspector·Codex 연결 명령
-   ├─ pyproject.toml                    # Python 의존성·서버 실행 진입점
-   ├─ uv.lock                           # 패키지 버전 고정
-   ├─ src/learning_lab_mcp/server.py     # 상품 사전·조회 함수·Resource·Prompt
-   └─ tests/test_server_contract.py     # 예제 유지보수용 검사
+├─ README.md                              # 주차 학습 안내
+├─ mcp-use.md                             # 실습하면서 이어 쓸 기록
+└─ learning_lab_server/
+   ├─ README.md                           # 실행·연결·검사 명령
+   ├─ build.gradle · settings.gradle      # 실행 진입점·의존성·빌드 설정
+   ├─ gradlew · gradlew.bat · gradle/      # Gradle Wrapper
+   ├─ src/main/java/lab/week03/
+   │  ├─ CatalogService.java              # 상품 자료와 업무 함수
+   │  ├─ CatalogServer.java               # MCP 등록·입력 계약·응답 변환
+   │  └─ Json.java                        # JSON 변환·외부 입력 확인
+   └─ src/test/java/lab/week03/
+      └─ CatalogContractTest.java         # 실제 stdio 계약 검사
 ```
 
-`mcp-use.md`는 기록할 때 만듭니다. 실행 명령의 `ai-ax-learning-lab-mcp`는 `pyproject.toml`에서 `learning_lab_mcp.server:main`에 연결됩니다. `server.py`의 `main()`이 `mcp.run()`을 호출하면 서버가 시작되고, 등록한 `get_product` 등의 기능을 요청받아 처리할 수 있습니다. **MCP SDK**는 이 연결을 구현하는 라이브러리이며, 제공 코드가 기능을 등록하고 실행할 수 있게 돕습니다. 학습자가 통신 규격을 직접 구현할 필요는 없습니다.
+`mcp-use.md`는 기록할 때 만듭니다. `build.gradle`의 실행 진입점은 `lab.week03.CatalogServer`입니다. `CatalogServer.main()`이 SDK의 `StdioServerTransportProvider`를 만들고 `McpServer.sync(...)`에 기능을 등록하면 표준 입출력 요청을 처리합니다. **MCP SDK**는 도구 발견·호출·응답의 통신을 구현합니다. 학습자가 통신 규격을 재구현할 필요는 없습니다.
 
-입구는 실행 설정, 실제 상품값의 위치는 `CATALOG`, 값을 꺼내는 곳은 `get_product`입니다. Day 1에서는 이 구성을 알고 호출해 보고, Day 3에서는 실제 함수와 반환값을 읽은 뒤 자기 조회의 입력·동작·결과를 정해 구현합니다.
+`CatalogService`의 `CATALOG`는 실제 상품값, `getProduct()`는 ID 검사와 상품 반환을 맡습니다. `CatalogServer`의 `get_product`는 클라이언트에 공개한 도구 이름입니다. 내부 메서드 이름과 외부 호출 이름은 연결돼 있지만 서로 다른 인터페이스입니다. Day 1에서는 호출하고, Day 3에서는 이 연결을 읽어 자기 조회의 입력·동작·결과를 구성합니다.
 
 ## 실습 대상과 준비
 
@@ -138,7 +138,7 @@ Codex 앱·IDE에서 `week03-mcp-integration/learning_lab_server/`를 열고 아
 
 ### 1. 작업 폴더와 실행 환경 확인
 
-IDE에서 `week03-mcp-integration/learning_lab_server/`를 열고 통합 터미널도 이 폴더에서 시작합니다. **터미널의 현재 폴더에 `pyproject.toml`과 `uv.lock`이 있어야 합니다.** 학습 저장소 루트에서 시작했다면 아래 명령으로 이동합니다. 이미 작업 폴더 안이면 이동 명령은 생략합니다.
+IDE에서 `week03-mcp-integration/learning_lab_server/`를 열고 통합 터미널도 이 폴더에서 시작합니다. **터미널의 현재 폴더에 `build.gradle`과 `gradlew.bat`이 있어야 합니다.** 학습 저장소 루트에서 시작했다면 아래 명령으로 이동합니다. 이미 작업 폴더 안이면 이동 명령은 생략합니다.
 
 Windows PowerShell·macOS·Linux·WSL 공통:
 
@@ -146,31 +146,38 @@ Windows PowerShell·macOS·Linux·WSL 공통:
 cd ./week03-mcp-integration/learning_lab_server
 ```
 
-Python 3.11 이상, uv, **Node.js 22.19.0 이상**이 필요합니다. 같은 터미널에서 다음 버전을 확인합니다.
+JDK 17 이상과 **Node.js 22.19.0 이상**이 필요합니다. IDE의 프로젝트 SDK와 터미널이 같은 JDK를 사용하는지 확인합니다.
 
 ```text
+java -version
 node --version
-uv --version
 ```
 
-Node가 `v22.17.1`처럼 기준보다 낮으면 먼저 [Node.js](https://nodejs.org/en/download)를 업데이트하고 새 터미널에서 버전을 다시 확인합니다. 명령을 찾을 수 없다면 [uv 설치 안내](https://docs.astral.sh/uv/getting-started/installation/)와 Node 설치를 확인합니다. **Node 버전을 확인한 뒤 다음 단계로 갑니다.** Inspector 버전만 바꾸어도 Node의 지원 조건이 충족되는 것은 아닙니다.
+Node가 기준보다 낮으면 [Node.js 설치](https://nodejs.org/en/download)를 확인하고 새 터미널에서 버전을 다시 확인합니다. JDK가 없다면 IDE의 JDK 다운로드 기능을 사용할 수 있습니다. Gradle은 프로젝트에 포함된 Wrapper로 실행합니다.
 
 ### 2. Inspector 실행
 
-아래 명령도 같은 프로젝트 폴더에서 실행합니다. Windows PowerShell·macOS·Linux·WSL에서 동일합니다.
+IDE의 Gradle 창에서 `installDist`를 실행해도 됩니다. 터미널에서는 같은 프로젝트 폴더에서 다음을 사용합니다.
 
-```text
-uv sync --locked
-npx @modelcontextprotocol/inspector@2.5.0 uv run --locked ai-ax-learning-lab-mcp
+Windows PowerShell:
+
+```powershell
+.\gradlew.bat installDist
+npx @modelcontextprotocol/inspector@2.5.0 java -cp "build/install/learning-catalog/lib/*" lab.week03.CatalogServer
 ```
 
-`uv sync`가 오류 없이 끝난 뒤 Inspector 명령을 실행합니다. 첫 실행에서 npm이 표시한 패키지 이름·버전을 확인하고 설치 질문에 `y`로 답합니다. Inspector가 출력한 로컬 URL을 브라우저에서 열고, **실습하는 동안 이 터미널을 켜 둡니다.** 세션 토큰이 있는 URL은 공유 기록에 넣지 않습니다.
+macOS·Linux·WSL:
 
-아래 화면 안내는 Inspector **2.5.0** 기준입니다. `v1 is deprecated` 배너나 왼쪽의 Command·Arguments 입력창이 보이면 이전 Inspector 창입니다. 이전 실행 터미널에서 `Ctrl+C`로 종료하고, Node 버전을 확인한 뒤 위 명령을 다시 실행해 새 URL을 엽니다. [Inspector 버전 전환 안내](https://github.com/modelcontextprotocol/inspector/blob/main/docs/v1-to-v2-migration.md)
+```bash
+bash ./gradlew installDist
+npx @modelcontextprotocol/inspector@2.5.0 java -cp "build/install/learning-catalog/lib/*" lab.week03.CatalogServer
+```
+
+빌드가 오류 없이 끝난 뒤 Inspector를 시작합니다. 첫 npm 실행의 설치 질문에서는 패키지 이름·버전을 확인합니다. 출력된 로컬 URL을 열고 실습하는 동안 터미널을 켜 둡니다. 세션 토큰이 있는 URL은 공유 기록에 넣지 않습니다. 아래 화면 안내는 Inspector **2.5.0** 기준입니다.
 
 ### 3. 브라우저에서 연결하고 호출
 
-1. **Servers** 화면에서 `uv` 항목과 `uv run --locked ai-ax-learning-lab-mcp` 명령을 확인합니다. 이 항목 옆의 **연결 스위치**를 켭니다. `Read-only session` 안내는 실행할 서버 목록을 여기서 편집하지 않는다는 뜻이며, 연결이나 도구 호출을 막는 오류가 아닙니다.
+1. **Servers** 화면에서 `java` 항목과 `lab.week03.CatalogServer` 실행 명령을 확인합니다. 이 항목 옆의 **연결 스위치**를 켭니다. `Read-only session` 안내는 실행할 서버 목록을 여기서 편집하지 않는다는 뜻이며, 연결이나 도구 호출을 막는 오류가 아닙니다.
 2. 상태가 **Connected**로 바뀌고 상단에 `learning-catalog`와 **Tools**가 나타나는지 봅니다. 브라우저가 열렸다는 사실만으로 서버가 연결된 것은 아닙니다.
 3. **Tools → get_product**를 선택합니다. 이 버전은 연결할 때 목록을 가져오므로 `List Tools` 버튼을 찾을 필요가 없습니다.
 4. **Product Id** 입력칸에 `NOTE-01`을 넣고 **Execute Tool**을 누릅니다. 이 입력칸이 코드의 `product_id` 인자에 해당합니다. **Results**에서 `price_krw: 3000`, `in_stock: true`를 확인합니다.
@@ -182,7 +189,7 @@ npx @modelcontextprotocol/inspector@2.5.0 uv run --locked ai-ax-learning-lab-mcp
 | `PEN-02` | 연습용 펜, `price_krw: 1500`, `in_stock: false` |
 | `UNKNOWN` | `Unknown product ID` 오류, 상품 가격은 반환하지 않음 |
 
-**Tools가 안 보이면 연결 상태부터 봅니다.** Servers에서 `Disconnected`이면 연결 스위치를 켜고, `Failed`이면 오른쪽 **Console**의 오류를 확인합니다. `os error 2`가 나오면 예전 `--directory` 경로가 남아 있는지와 실행한 터미널의 현재 폴더를 확인합니다. 위 명령을 작업 폴더에서 다시 실행하면 Windows 경로를 Arguments에 직접 붙여 넣을 필요가 없습니다. 오류가 계속되면 실행 명령·작업 폴더·Console 오류를 도우미에게 전달합니다.
+**Tools가 안 보이면 연결 상태부터 봅니다.** Servers에서 `Disconnected`이면 연결 스위치를 켜고, `Failed`이면 오른쪽 **Console**의 오류를 확인합니다. 실행 파일을 찾지 못하면 `java -version`, 현재 폴더, `build/install/learning-catalog/lib/`의 빌드 결과를 확인합니다. `ClassNotFoundException`이면 `installDist` 완료와 클래스패스를 확인합니다. 오류가 계속되면 실행 명령·작업 폴더·Console 오류를 도우미에게 전달합니다.
 
 세 호출의 입력과 실제 응답을 `../mcp-use.md`에서 찾을 수 있게 기록합니다. 실습을 마치면 Inspector 실행 터미널에서 `Ctrl+C`로 종료합니다.
 
@@ -190,8 +197,8 @@ npx @modelcontextprotocol/inspector@2.5.0 uv run --locked ai-ax-learning-lab-mcp
 
 ## Day 2 — Codex에 연결해 같은 요청 보내기
 
-앱의 MCP 설정에서 command는 `uv`, arguments는 `--directory <프로젝트 절대 경로> run --locked ai-ax-learning-lab-mcp`로 등록합니다. Inspector와 달리 다른 작업 폴더에서 시작할 수 있으므로 절대 경로를 포함합니다. 등록 UI가 없으면 서버 README의 `codex mcp add` 명령을 사용합니다.
-등록 이름이 이미 사용 중인지 먼저 확인하고, 프로젝트의 절대 경로를 전달합니다.
+앱의 MCP 설정에서 command는 `java`, arguments는 `-cp`, `<프로젝트>/build/install/learning-catalog/lib/*`, `lab.week03.CatalogServer`로 입력합니다. 실제 경로는 로컬 연결 설정에만 넣습니다. 등록 UI가 없으면 프로젝트 README의 Windows PowerShell·macOS·Linux·WSL별 `codex mcp add` 명령을 사용합니다. 같은 이름이 이미 등록돼 있으면 기존 연결을 확인하고 이 프로젝트에 맞게 갱신합니다.
+
 설정 위치·지원 표면은 [공식 MCP 안내](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)에서 확인합니다.
 
 새 Codex 작업에서 다음 요청을 직접 보냅니다.
@@ -216,36 +223,43 @@ learning-catalog의 get_product 도구로 NOTE-01과 PEN-02의 가격과 재고�
 
 **오늘은 대표 호출이 실제 함수에 도달하는 경로를 읽고, 같은 연결에 자기 조회 기능을 구성합니다.** 예산과 재고 조건으로 상품 후보를 찾는 요구에서, 어떤 입력을 받고 어느 처리를 서버가 맡아 어떤 결과를 반환할지 AI의 설명을 듣고 선택합니다. 아래 해설 뒤의 **「자기 요구를 조회 기능으로 만들기」**에서 구현·Inspector 호출로 이어갑니다. Day 4는 기존 사례의 동작 확인, Day 5는 구매 검토·새 초안 저장으로의 확장입니다.
 
-현재 프로젝트에서 실행 설정과 `src/learning_lab_mcp/server.py`를 함께 봅니다.
+현재 프로젝트의 `build.gradle`, `src/main/java/lab/week03/CatalogServer.java`, `CatalogService.java`를 함께 봅니다.
 해설은 제공 코드에서 읽을 수 있는 동작입니다. Inspector 응답과 Codex 답변에서 같은 근거를 찾으며 읽습니다.
 
 ### 해설 — 등록한 함수가 모델이 쓰는 Tool로 이어지는 경로
 
-다음은 제공 `server.py`의 등록과 함수 원문입니다. 이 함수는 상품 ID 하나를 받으며, 자연어 질문에서 어떤 ID를 찾을지는 Codex가 판단합니다.
+공개 호출 계약과 업무 처리를 연결한 실제 코드를 봅니다. 다음은 `CatalogServer.catalogTools()`의 등록에서 핵심 부분을 발췌한 것입니다.
 
-```python
-@mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False,
-                                    idempotentHint=True, openWorldHint=False),
-          structured_output=True)
-def get_product(product_id: str) -> Product:
-    """Look up a fictional product by exact ID: NOTE-01 or PEN-02. No purchase occurs."""
-    if product_id not in CATALOG:
-        raise ValueError("Unknown product ID. Available: NOTE-01, PEN-02.")
-    return CATALOG[product_id].model_copy()
+```java
+schema(Map.of("product_id", STRING), "product_id")
+// STRING은 {"type":"string"}이며 product_id를 필수 입력으로 등록합니다.
 ```
 
-`@mcp.tool`은 이 함수를 서버가 제공하는 도구로 등록합니다. SDK는 이름·설명과 `product_id: str` 같은 타입 정보를 도구 정의에 사용합니다. Client는 그 정의에서 `product_id`라는 문자열 인자를 확인하고, 호출할 때 도구 이름과 값을 보냅니다. SDK의 호출 처리를 거쳐 함수에 전달된 ID는 `CATALOG`에서 확인됩니다. `Product`는 반환할 상품 필드를 정합니다. 등록과 입력 스키마는 함수를 호출할 약속이고, ID 존재 여부를 정하는 코드는 함수 안에 있습니다.
+도구 이름 `get_product`와 입력 스키마를 SDK에 등록하고, 호출 처리에서는 `Json.string(input, "product_id")`로 형식을 확인한 뒤 `catalog.getProduct(...)`에 전달합니다. 계약에 타입을 적어 두는 것과 실제 입력을 거부하는 것은 별도 책임입니다. 공개 스키마는 클라이언트에 형식을 알려 주고 입력 검사는 서버 실행 경계에서 이를 지킵니다.
+
+`CatalogService.java`의 업무 함수는 다음과 같습니다.
+
+```java
+public Product getProduct(String productId) {
+    Product product = CATALOG.get(productId);
+    if (product == null) throw new IllegalArgumentException(
+        "Unknown product ID. Available: NOTE-01, PEN-02.");
+    return product;
+}
+```
+
+문자열 형식이 맞아도 존재하지 않는 ID일 수 있습니다. 입력 형식 검사를 통과한 뒤 `CATALOG`에 실제 상품이 있는지 확인하는 이유입니다. `Product`는 반환할 ID·이름·가격·재고 필드를 정합니다. 성공 결과는 `CatalogServer.result()`에서 텍스트와 `structuredContent`로 연결하고, 예상된 입력·업무 오류는 등록 처리에서 `isError: true`로 돌려줍니다. JSON-RPC 메시지 전송과 연결은 SDK가 맡습니다.
 
 ```text
-server.py에서 get_product 등록 → Client가 도구 정의·입력 스키마 확인
-→ 도구 이름과 {"product_id": "NOTE-01"}로 호출
-→ SDK가 get_product에 인자 전달 → CATALOG의 상품 확인·반환
-→ Client가 결과 수신 → Codex의 모델이 상품값을 사용해 답변
+CatalogServer에서 get_product와 입력 스키마 등록
+→ Client가 도구 정의를 발견하고 {"product_id":"NOTE-01"}로 호출
+→ SDK 호출 처리 → 입력 형식 확인 → CatalogService.getProduct()
+→ 실제 상품 또는 업무 오류 → MCP 결과 → Codex의 답변
 ```
 
-Inspector에서는 사람이 도구와 인자를 고르고 반환값을 직접 봅니다. Codex에서는 모델이 요청에 맞는 도구·인자를 고르고, 받은 상품값을 답변으로 설명합니다. 같은 업무 함수를 이 호출 약속에 연결해 두면 각 클라이언트가 상품 사전의 Python 구조를 직접 알아야 할 필요가 줄어듭니다. 서버 내부의 자료·계산과 AI 앱에 공개할 도구의 입력·결과를 구분하는 이유입니다.
+Inspector에서는 사람이 도구와 인자를 고르고 반환값을 직접 봅니다. Codex에서는 모델이 요청에 맞는 도구·인자를 고르고, 받은 상품값을 답변으로 설명합니다. 같은 업무 함수를 이 호출 약속에 연결해 두면 각 클라이언트가 서버 내부 상품 자료 구조를 직접 알아야 할 필요가 줄어듭니다. 서버 내부의 자료·계산과 AI 앱에 공개할 도구의 입력·결과를 구분하는 이유입니다.
 
-`{"product_id": "NOTE-01"}`은 사전에 존재하므로 `Product`의 복사본을 반환합니다. 아래 상품값으로 답변을 뒷받침할 수 있는 범위를 먼저 봅니다. 가격과 재고는 있지만 배송일은 없습니다. `UNKNOWN`은 함수의 오류 경로로 들어가 상품값을 반환하지 않습니다. 아래는 제공 코드에서 예상되는 데이터이며 통신 메시지 전체나 실제 실행 기록은 아닙니다.
+`{"product_id": "NOTE-01"}`은 사전에 존재하므로 수정할 수 없는 상품 결과를 반환합니다. 아래 상품값으로 답변을 뒷받침할 수 있는 범위를 먼저 봅니다. 가격과 재고는 있지만 배송일은 없습니다. `UNKNOWN`은 함수의 오류 경로로 들어가 상품값을 반환하지 않습니다. 아래는 제공 코드에서 예상되는 데이터이며 통신 메시지 전체나 실제 실행 기록은 아닙니다.
 
 ```json
 {
@@ -260,17 +274,17 @@ Codex의 실제 답변에서 가격·재고가 어느 반환 필드에 연결되
 
 이 차이가 Inspector를 먼저 쓰는 이유입니다. 같은 서버 코드·데이터에 같은 ID를 보내면 같은 상품값을 받으므로, Inspector의 원응답을 자연어 답변과 대조할 기준으로 삼을 수 있습니다. 둘 다 실패하면 실행 명령·연결·입력을 보고, 원응답은 맞는데 답변이 틀리면 실제 호출 여부와 모델의 설명을 봅니다. 다만 Inspector에서 성공했다는 사실만으로 Codex의 별도 연결까지 성공했다고 볼 수는 없습니다.
 
-도입에서 본 연결 경로를 이제 실제 설정과 코드에 대조합니다. `pyproject.toml`의 실행 진입점에서 `main()`의 `mcp.run()`으로 이어지는 위치를 찾고, 등록된 조회 함수가 위 상품 필드를 반환하는지 확인합니다. 연결 설정은 어떤 프로그램을 실행할지 정하고, Python 함수는 받은 요청을 처리한다는 역할 차이를 실제 파일에서 확인할 수 있습니다.
+도입에서 본 연결 경로를 이제 실제 설정과 코드에 대조합니다. `build.gradle`의 실행 진입점에서 `CatalogServer.main()`과 SDK 서버 생성으로 이어지는 위치를 찾고, 등록된 조회 함수가 위 상품 필드를 반환하는지 확인합니다. 연결 설정은 어떤 프로그램을 실행할지 정하고, 업무 함수는 받은 요청을 처리한다는 역할 차이를 실제 파일에서 확인할 수 있습니다.
 
 ### 해설 — Prompt 안에 함수 이름이 있어도 조회한 것은 아닙니다
 
-같은 파일의 `explain_product`는 ID가 존재하는지 확인한 뒤 다음 줄을 반환합니다.
+`CatalogService.explainProduct()`는 ID가 존재하는지 확인한 뒤 요청 문구를 반환하며, `CatalogServer`가 이를 `explain_product` Prompt로 등록합니다.
 
-```python
-return f"get_product로 {product_id}를 조회하고 가격과 재고를 설명하세요. 주문하지 마세요."
+```java
+return "get_product로 " + productId + "를 조회하고 가격과 재고를 설명하세요. 주문하지 마세요.";
 ```
 
-`get_product`는 따옴표 안의 글자입니다. 위의 조회 함수처럼 `CATALOG[product_id]`에서 상품을 꺼내지 않고, 조회를 요청할 문장을 만듭니다. `NOTE-01`을 넣으면 가격 3000이 아니라 “get_product로 NOTE-01를 조회하고…”라는 문장이 나옵니다. **Prompt를 가져오기까지 성공한 상태와 Tool을 실행하기까지 성공한 상태가 다르다**는 것을 두 반환문에서 확인할 수 있습니다.
+`get_product`는 따옴표 안의 글자입니다. ID 존재 여부 확인은 내부 검사를 재사용하지만, 반환하는 것은 상품 데이터가 아니라 조회를 요청할 문장입니다. 내부 확인과 공개 Tool 호출은 다릅니다. `NOTE-01`을 넣으면 가격 3000이 아니라 “get_product로 NOTE-01를 조회하고…”라는 문장이 나옵니다. **Prompt를 가져오기까지 성공한 상태와 Tool을 실행하기까지 성공한 상태가 다르다**는 것을 두 반환문에서 확인할 수 있습니다.
 
 | 요청한 것 | 제공 코드의 결과 | 그 결과만으로 알 수 없는 것 |
 |---|---|---|
@@ -282,7 +296,7 @@ return f"get_product로 {product_id}를 조회하고 가격과 재고를 설명�
 
 가격을 3500원으로 바꾸는 상황도 대조해 봅시다. `CATALOG`의 가격을 바꾸면 조회 데이터가 달라집니다. Prompt에 “3500원이라고 답해”만 넣으면 조회값은 여전히 3000원인데 답변 지침과 충돌합니다. 데이터와 요청 문구를 나눠 두면 사실이 바뀐 곳과 설명 방식을 바꿀 곳을 구별할 수 있습니다. `Product`는 반환할 필드를 정하고 `CATALOG`는 그 필드에 넣을 값을 가지므로 새 필드 추가와 기존 가격 변경도 수정 범위가 다릅니다.
 
-또한 Tool 등록에는 `readOnlyHint=True`가 있지만, 이 표시만으로 접근 권한을 판단하지 않습니다. 이 예제가 조회 전용임을 설명할 직접 근거는 `get_product`가 고정 사전을 복사해 반환하고 외부 쓰기를 수행하지 않는다는 코드입니다. 이 작은 서버에서 확인한 범위를 모든 MCP 서버의 성질로 확대할 수는 없습니다.
+또한 Tool 등록에는 `readOnlyHint: true`가 있지만, 이 표시만으로 접근 권한을 판단하지 않습니다. 이 예제가 조회 전용임을 설명할 직접 근거는 `get_product`가 고정 자료에서 상품을 반환하고 외부 쓰기를 수행하지 않는다는 코드입니다. 이 작은 서버에서 확인한 범위를 모든 MCP 서버의 성질로 확대할 수는 없습니다.
 
 Inspector에서 Resource와 Prompt를 열어 반환값을 위 표와 대조하고, Codex의 실제 Tool 응답에서 가격·재고가 답변의 어느 문장으로 이어졌는지 찾습니다. 지원하지 않는 기능은 그 표면의 한계로 남깁니다. 이 분석은 같은 노트에 이어지는 자기 조회 기능의 설계·구현에서 수정할 역할을 찾는 데 사용합니다.
 
@@ -303,9 +317,9 @@ Inspector에서 Resource와 Prompt를 열어 반환값을 위 표와 대조하�
 
 적용할 다른 작업이 있다면 지정한 작업 목록 파일에서 미완료 항목을 조회하는 기능 등으로 바꿀 수 있습니다. 그때도 사용할 자료와 접근 범위, 정상·빈 결과·잘못된 입력의 동작을 정해 실제 MCP 기능으로 구현합니다. AI가 제안한 요구와 구현을 검토하는 방식으로 진행해도 됩니다. 상품 이름·가격 같은 자료 값만 바꾸는 것으로 기능 제작을 대신하지 않습니다.
 
-SDK는 함수 설명과 타입에서 도구 정의를 만들지만, `int`라는 타입만으로 예산이 0 이상이라는 업무 규칙까지 정해지지는 않습니다. 선택한 입력 범위를 스키마 제약이나 함수의 검사로 표현하고, Inspector에서 보이는 입력 형식과 실제 거부 동작을 대조합니다. 예측한 도구 실패를 모델이 읽을 수 있게 전달하는 방법은 사용 중인 SDK의 `ToolError` 안내를 참고합니다. [SDK 도구 정의·입력 제약](https://py.sdk.modelcontextprotocol.io/servers/tools/), [도구 오류 처리](https://py.sdk.modelcontextprotocol.io/servers/handling-errors/)
+도구 입력 계약은 클라이언트와 서버가 주고받을 값의 의미를 정합니다. 금액이 정수라는 형식만으로 예산이 0 이상이라는 업무 규칙까지 정해지지는 않습니다. 선택한 범위를 JSON Schema와 서버 입력 검사에 표현하고, 형식이 맞는 값에 대해서도 업무 함수가 필요한 조건을 지키는지 확인합니다. 예상된 거부는 `isError`와 설명으로 전달합니다. 공개 계약·실제 검사·업무 처리를 나누는 원리는 언어가 달라도 같습니다. [공식 MCP Java SDK 도구 등록](https://java.sdk.modelcontextprotocol.io/latest/server/)
 
-구현한 기능에 필요한 검사는 기존 `tests/` 방식으로 추가하고 실행합니다. AI에게 테스트 작성과 실행을 맡겨도 됩니다. 서버를 다시 시작·재연결한 뒤 Inspector의 **Tools**에서 실제 등록된 도구를 선택하고 정상 사례를 호출합니다. 입력칸과 결과가 코드의 인자·반환값에 어떻게 대응하는지 확인하고, 기존 상품 조회도 유지되는지 봅니다. 테스트 통과만으로 Inspector 호출까지 성공했다고 판단하지 않습니다.
+구현한 기능에 필요한 검사는 기존 `src/test/java/` 방식으로 추가하고 실행합니다. AI에게 테스트 작성과 실행을 맡겨도 됩니다. 서버를 다시 시작·재연결한 뒤 Inspector의 **Tools**에서 실제 등록된 도구를 선택하고 정상 사례를 호출합니다. 입력칸과 결과가 코드의 인자·반환값에 어떻게 대응하는지 확인하고, 기존 상품 조회도 유지되는지 봅니다. 테스트 통과만으로 Inspector 호출까지 성공했다고 판단하지 않습니다.
 
 실행 뒤에는 AI와 새 도구의 등록·스키마·호출 함수·반환값을 같은 입력으로 따라갑니다. 예산·재고 조건이 스키마나 함수의 어느 부분에서 적용됐고, Client가 어떤 결과를 받았는지 해석합니다. 그 관계와 선택 이유를 기존 `../mcp-use.md`의 코드·결과 근거에 연결합니다. 다른 기능이나 별도 서버를 만들었다면 자신의 실제 이름과 경로로 읽습니다.
 
@@ -334,11 +348,11 @@ Inspector에서 실제 도구를 호출해 예상과 대조합니다. **빈 목�
 
 기대와 다르면 처음 어긋난 부분이 입력 제약·업무 함수·반환 형태·연결 설정 중 어디인지 찾고, AI와 고친 뒤 같은 사례를 재호출합니다. **모두 맞으면 코드나 조건을 바꾸지 않고 Day 4를 마칩니다.** 수정할 문제를 만들거나 기본값을 바꿀 필요가 없습니다. 새로운 업무 요구에 따른 기능 확장은 Day 5에서 진행합니다.
 
-서버가 시작되지 않으면 실행 명령·작업 폴더·의존성을, 새 코드가 보이지 않으면 재연결과 새 호출 여부를 확인합니다. 입력 오류를 해결하려고 접근 범위를 넓히지 않습니다. 관련 테스트에서 새 기능과 기존 조회를 확인합니다. 빠진 사례가 있으면 AI와 보완하고 실행하며, 이미 같은 코드·자료로 실행한 결과가 있다면 그대로 사용합니다. 변경했다면 영향을 받는 검사를 다시 실행합니다. 현재 작업 폴더에서는 다음 명령을 사용합니다. Windows PowerShell·macOS·Linux·WSL 공통입니다.
+서버가 시작되지 않으면 실행 명령·작업 폴더·의존성을, 새 코드가 보이지 않으면 재연결과 새 호출 여부를 확인합니다. 입력 오류를 해결하려고 접근 범위를 넓히지 않습니다. 관련 테스트에서 새 기능과 기존 조회를 확인합니다. 빠진 사례가 있으면 AI와 보완하고 실행하며, 이미 같은 코드·자료로 실행한 결과가 있다면 그대로 사용합니다. 변경했다면 영향을 받는 검사를 다시 실행합니다. IDE의 Gradle `test` 또는 프로젝트 폴더의 다음 명령을 사용합니다.
 
-```text
-uv run --locked python -B -m unittest discover -s tests -v
-```
+Windows PowerShell: `.\gradlew.bat test`
+
+macOS·Linux·WSL: `bash ./gradlew test`
 
 **남길 결과·완료 판단:** 기존 사례의 실제 결과를 요구와 대조하고, 빈 목록과 입력 오류가 각각 어떤 업무 상태를 알리는지 코드·응답으로 연결합니다. 필요한 검사와 해석을 마치면 수정 없이 Day 4를 마칠 수 있습니다. 문제가 있어 고쳤다면 원인·변경·재확인 결과를 기존 노트에 덧붙입니다. 로컬 테스트만 했다면 Inspector 호출은 미확인으로 남깁니다.
 
@@ -383,7 +397,7 @@ AI에게 **기존 Tool 확장과 새 Tool 분리 중 추천하는 구성**을 �
 
 ### 4. 자료가 바뀌어도 같은 설계를 재사용하기
 
-**조회·계산 규칙은 유지한 채 원자료를 바꾸고 같은 요청을 다시 사용합니다.** 기본 과제에서는 `src/learning_lab_mcp/server.py`의 `CATALOG`에서 노트 가격을 3000원에서 3500원으로 바꿉니다. Codex에 해당 값의 수정을 맡겨도 됩니다.
+**조회·계산 규칙은 유지한 채 원자료를 바꾸고 같은 요청을 다시 사용합니다.** 기본 과제에서는 `src/main/java/lab/week03/CatalogService.java`의 `CATALOG`에서 노트 가격을 3000원에서 3500원으로 바꿉니다. Codex에 해당 값의 수정을 맡겨도 됩니다.
 
 | 확인할 것 | 변경 전 | 가격만 변경한 뒤의 예상 |
 |---|---|---|
@@ -447,7 +461,7 @@ MCP는 도구를 발견하고 호출·응답하는 약속을 제공합니다. �
 | `../outside` 같은 초안 식별자나 잘못된 수량 | 저장 전에 거부하고 저장 루트 밖의 파일 생성 없음 |
 | 기존 테스트의 임시 폴더에서 저장 실패를 재현 | 성공으로 보고하지 않고 기존 초안 보존, 불완전 파일을 정상 결과로 사용하지 않음 |
 
-정상 저장·재요청·충돌은 실제 MCP 호출과 파일 내용으로 확인합니다. 미승인 사례는 선택한 승인 경로에서 확인합니다. Host 승인 경로라면 Codex에서 미리보기→사람 확인→저장을 실행하고, Inspector 경로라면 직접 저장을 실행하며 Codex가 저장 도구를 사용할 수 없는지도 확인합니다. 저장 중 실패처럼 안전한 재현이 필요한 사례는 기존 `tests/`의 임시 폴더와 필요한 실패 대역으로 확인하고 실제 Host 실행과 구별합니다. 오류를 보려고 개인 파일의 권한을 바꾸거나 기존 학습 자료를 삭제하지 않습니다.
+정상 저장·재요청·충돌은 실제 MCP 호출과 파일 내용으로 확인합니다. 미승인 사례는 선택한 승인 경로에서 확인합니다. Host 승인 경로라면 Codex에서 미리보기→사람 확인→저장을 실행하고, Inspector 경로라면 직접 저장을 실행하며 Codex가 저장 도구를 사용할 수 없는지도 확인합니다. 저장 중 실패처럼 안전한 재현이 필요한 사례는 기존 `src/test/java/`의 임시 폴더와 필요한 실패 대역으로 확인하고 실제 Host 실행과 구별합니다. 오류를 보려고 개인 파일의 권한을 바꾸거나 기존 학습 자료를 삭제하지 않습니다.
 
 **남길 결과·완료 판단:** 기존 조회·계산, 바뀐 자료, 승인한 새 초안과 필수 보존 사례를 실제로 확인합니다. 정상 저장 한 건에서 도구의 입출력·기존 계산·사람 확인·저장 정책이 연결되는 경로를 해석하고, 재요청·충돌·실패의 결과가 선택한 업무 정책에 맞는지 대조하면 Day 5를 마칩니다. 그 설명과 코드·결과를 기존 `mcp-use.md`에 연결합니다. Inspector 저장을 선택했다면 Host를 통한 쓰기 승인·실행은 미확인으로 구분하며, AI의 구현·검사 성공만으로 학습자의 이해를 확인했다고 기록하지 않습니다.
 
@@ -494,13 +508,13 @@ AI에게 현재 저장 정책의 어느 부분이 이 요구와 맞지 않는지
 
 AI와 현재 코드의 실제 위치를 따라가고, 정상 편집 결과에서 수량·금액과 메모가 왜 각각 바뀌거나 보존됐는지 해석합니다. 기존에 이 사례를 실행한 학습자는 코드·결과를 다시 읽으면 되며, 이 해설을 위해 같은 작업을 반복하지 않습니다. 사후에 이해한 역할 분리와 당시 선택한 이유는 구분합니다.
 
-재요청·중단·복구는 같은 편집 정책이 유지되는지 확인하는 후속 사례로 묶습니다. 선택한 기능에서 미리보기 뒤 변경된 초안의 보존, 재시작 뒤 재요청, 저장 중단과 재시도, 이후 수정이 있는 초안의 취소를 기존 검사와 연습 자료로 확인합니다. 버전 정보, 트랜잭션, 파일 교체와 `fsync` 같은 구현 수단은 실제로 채택한 코드의 동작을 이해하는 데 필요한 만큼 설명합니다. 파일 교체 하나가 성공해도 버전 확인부터 반영까지 다른 쓰기가 끼어드는 문제까지 해결된 것은 아닙니다. 동시 요청을 실제로 지원할 때는 그 범위에 맞는 잠금·저장 수단을 사용합니다.
+재요청·중단·복구는 같은 편집 정책이 유지되는지 확인하는 후속 사례로 묶습니다. 선택한 기능에서 미리보기 뒤 변경된 초안의 보존, 재시작 뒤 재요청, 저장 중단과 재시도, 이후 수정이 있는 초안의 취소를 기존 검사와 연습 자료로 확인합니다. 버전 정보, 트랜잭션, 파일 교체와 저장 동기화 같은 구현 수단은 실제로 채택한 코드의 동작을 이해하는 데 필요한 만큼 설명합니다. 파일 교체 하나가 성공해도 버전 확인부터 반영까지 다른 쓰기가 끼어드는 문제까지 해결된 것은 아닙니다. 동시 요청을 실제로 지원할 때는 그 범위에 맞는 잠금·저장 수단을 사용합니다.
 
 기존 `mcp-use.md`에는 요구가 달라져 새 정책이 필요해진 이유, 선택한 도구·입출력·변경 범위와 정상 편집 결과를 연결합니다. 재요청·중단·복구의 확인은 그 정책에 대응하는 근거로 이어 두고, 실행하지 않은 연결·동시성은 미확인으로 구분합니다. 별도 서버·분산 저장이나 새 기록 양식을 만들 필요는 없습니다.
 
 ## 이 주차의 파일
 
-`learning_lab_server/`는 상품조회 MCP 프로젝트입니다. `src/learning_lab_mcp/server.py`에 상품 데이터와 Tool·Resource·Prompt가 있고, `pyproject.toml`은 서버 진입점·의존성을, `uv.lock`은 설치 버전을 정합니다. `tests/`에는 제공 조회의 검사가 있으며, 자기 기능에 필요한 사례도 이 방식으로 보완합니다.
+`learning_lab_server/`는 상품조회 MCP 프로젝트입니다. `src/main/java/lab/week03/CatalogService.java`는 자료와 업무 처리, `CatalogServer.java`는 기능 등록·입력 계약·응답과 실행을 맡습니다. `Json.java`는 입력 확인과 JSON 변환, `build.gradle`은 진입점·의존성·테스트 설정을 담습니다. `gradlew`·`gradlew.bat`·`gradle/wrapper/`는 같은 Gradle을 사용하게 합니다. `src/test/java/`에는 실제 stdio 연결 검사가 있으며 자기 기능의 경계·실패 사례도 여기에 보완합니다.
 
 Day 5의 `.local/drafts/`는 사람이 확인한 연습 초안을 남기는 주차 안의 저장 루트입니다. 저장 기능에서 필요할 때 만들고 Git 공개에서 제외합니다. 저장·검사 코드를 별도 파일로 나눴다면 그 역할과 서버에서 연결하는 위치를 실제 프로젝트 README에 짧게 설명합니다. 제공 파일에 완성된 저장 구현이 들어 있는 것은 아닙니다.
 

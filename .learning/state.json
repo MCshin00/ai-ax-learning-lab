@@ -56,8 +56,8 @@
       "week05-development-harness/quality_demo/data/refund-cases.json"
     ]
   },
-  "updated_at": "2026-09-09T13:27:13.687440+00:00",
-  "source_guide_sha256": "685d43ea3861ca74c88208104053e945a1d43f2c266ed2153925391ba1cf5222",
+  "updated_at": "2026-09-09T17:14:59.468786+00:00",
+  "source_guide_sha256": "8bde862e016c501863594fafe6b403426ea1ceeb71429ba28476b7dd6d2d604a",
   "migrated_from_layout_version": 2,
   "layout_migrated_at": "2026-08-12T17:39:12.701181+00:00",
   "layout_migrations": [

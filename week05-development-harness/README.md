@@ -25,7 +25,7 @@
 
 **에이전트 하네스(agent harness)** 는 모델에 작업 맥락을 전달하고, 모델이 요청한 도구를 실행하며, 그 결과를 다시 전달해 작업을 이어 가도록 조율하는 시스템입니다. 모델은 다음 응답이나 도구 호출을 생성하고, 하네스는 그 호출이 실제 파일 읽기·편집·명령 실행으로 이어지는 과정을 담당합니다. Codex를 사용하면 이 실행 시스템을 이미 이용하고 있는 것입니다. [Codex 에이전트 루프 해설](https://openai.com/index/unrolling-the-codex-agent-loop/)
 
-예를 들어 “수수료 면제 기능을 추가해 주세요”라는 요청을 처리하려면 현재 계산식과 요구를 읽고, 코드를 수정하고, Python으로 검사한 결과를 받아야 합니다. 같은 모델이라도 잘못된 폴더에서 검사하거나 필요한 업무 규칙을 받지 못하면 올바른 결과를 내기 어렵습니다. 하네스를 프로젝트에 맞게 구성하는 이유는 이런 **작업의 조건과 결과를 돌려주는 경로**를 갖추기 위해서입니다.
+예를 들어 “수수료 면제 기능을 추가해 주세요”라는 요청을 처리하려면 현재 계산식과 요구를 읽고, 코드를 수정하고, 정해 둔 명령으로 검사한 결과를 받아야 합니다. 같은 모델이라도 잘못된 폴더에서 검사하거나 필요한 업무 규칙을 받지 못하면 올바른 결과를 내기 어렵습니다. 하네스를 프로젝트에 맞게 구성하는 이유는 이런 **작업의 조건과 결과를 돌려주는 경로**를 갖추기 위해서입니다.
 
 이번 주에 구성할 것은 Codex가 사용할 프로젝트 지침, 참고할 자료, 실행 위치와 검사 방법, 실패 피드백입니다. 이것들은 하네스의 일부를 설정하는 수단입니다. 지침 파일 하나나 Hook 하나가 하네스 전체를 뜻하지는 않습니다.
 
@@ -55,9 +55,9 @@
 |---|---|---|
 | 업무 요구와 입력 자료 | 무엇을 구현하고 어떤 결과를 낼지 정함 | 프로젝트 `README.md`, `data/` |
 | 프로젝트 운영 지침 | 자료 확인·검사·실패 대응·완료 보고의 방식을 전달 | 프로젝트 `AGENTS.md` |
-| 작업 폴더와 실행 환경 | 어느 파일을 읽고 어떤 프로그램으로 실행할지 정함 | `quality_demo/`, Python, Codex의 현재 권한 설정 |
-| 기능 검사 | 구현 결과를 업무 요구에서 정한 기대값과 대조 | `tests/`, 두 요구의 입력·기대 결과 |
-| 이벤트와 피드백 | 특정 실행 결과에 맞춰 다음 판단에 필요한 맥락을 전달 | `.codex/hooks.json`, 연결된 Python 스크립트 |
+| 작업 폴더와 실행 환경 | 어느 파일을 읽고 어떤 프로그램으로 실행할지 정함 | `quality_demo/`, JDK·Gradle, Codex의 현재 권한 설정 |
+| 기능 검사 | 구현 결과를 업무 요구에서 정한 기대값과 대조 | `src/test/java/lab/week05/`, 두 요구의 입력·기대 결과 |
+| 이벤트와 피드백 | 특정 실행 결과에 맞춰 다음 판단에 필요한 맥락을 전달 | `.codex/hooks.json`, 연결된 Java 소스 파일 |
 | 실행 루프 | 도구 요청·실행·결과 전달을 반복 | Codex가 제공하는 실행 기능 |
 
 `README.md`의 “면제라면 결제액 전부를 반환한다”는 업무 규칙과 `AGENTS.md`의 “수정 후 검사를 실행한다”는 운영 규칙은 역할이 다릅니다. 전자는 어떤 코드가 맞는지 정하고, 후자는 그 코드를 만드는 과정을 안내합니다. 둘 중 하나만 있다고 다른 역할까지 자동으로 채워지는 것은 아닙니다.
@@ -72,7 +72,7 @@ Day 5에서 새 작업을 여는 이유도 여기에 있습니다. 첫 작업의
 
 ### 실행 환경·권한과 지침: 요청과 실제 허용 범위 구분하기
 
-**작업 폴더(CWD)**는 상대 경로와 명령 실행의 기준입니다. `tests/` 안에서 다시 `tests/`를 찾으면 검사 위치가 어긋날 수 있습니다. Python을 실행할 수 있는지, 의존성이 준비됐는지도 작업 환경의 일부입니다. 제공 프로젝트는 Python 표준 라이브러리만 사용합니다.
+**작업 폴더(CWD)**는 상대 경로와 명령 실행의 기준입니다. 프로젝트 밖에서 Wrapper를 찾거나 다른 프로젝트의 검사를 실행하면 확인 대상이 달라집니다. JDK와 의존성이 준비됐는지도 작업 환경의 일부입니다. 이 프로젝트에서는 Gradle이 빌드·JUnit 검사를 연결하고 Gson이 JSON을 읽습니다.
 
 지침에 수정 범위를 적으면 모델에게 그 범위를 전달할 수 있습니다. 실제 파일·네트워크 접근을 제한하는 것은 샌드박스와 권한 설정입니다. 승인 정책은 어떤 행동에 승인이 필요한지 정합니다. 작업 폴더를 바꾸는 것만으로 접근 권한의 경계가 그 폴더로 좁아지는 것도 아닙니다. 이번에는 **프로젝트 안의 편집·로컬 검사를 허용하고 경계 밖의 행동은 승인 대상으로 두는 권한 설정**을 실제로 선택·확인합니다. [실행 권한과 샌드박스](https://learn.chatgpt.com/docs/sandboxing)
 
@@ -92,7 +92,7 @@ Day 5에서 새 작업을 여는 이유도 여기에 있습니다. 첫 작업의
 
 ### 검사와 피드백: 무엇이 틀렸고 다음에 무엇을 할지
 
-**테스트**는 입력에 대한 실제 결과를 기대값과 비교합니다. 기존 `refund_amount(1000, 2000)`의 기대값은 환불액 하한 규칙에 따라 0입니다. 구현이 -1000을 반환한다고 기대값을 -1000으로 바꾸면 요구를 확인하는 기능이 사라집니다. 기존에 맞던 동작이 변경 뒤 깨지는 것을 **회귀(regression)**라고 합니다.
+**테스트**는 입력에 대한 실제 결과를 기대값과 비교합니다. 기존 `refundAmount(1000, 2000)`의 기대값은 환불액 하한 규칙에 따라 0입니다. 구현이 -1000을 반환한다고 기대값을 -1000으로 바꾸면 요구를 확인하는 기능이 사라집니다. 기존에 맞던 동작이 변경 뒤 깨지는 것을 **회귀(regression)**라고 합니다.
 
 **종료 코드**는 명령의 성공·실패를 알리는 정수이고, 상세 출력은 실패 이유를 설명합니다. 일반적으로 0은 성공, 0이 아닌 값은 실패를 뜻합니다. 그러나 테스트를 하나도 발견하지 못한 실행이 0으로 끝날 수도 있습니다. 완료 보고에서는 실행한 명령뿐 아니라 **어떤 검사가 실제로 실행됐는지**도 확인합니다.
 
@@ -115,14 +115,14 @@ Day 5에서 새 작업을 여는 이유도 여기에 있습니다. 첫 작업의
 
 ## 준비와 제공 자료
 
-Codex 앱·IDE에서 `week05-development-harness/quality_demo/`를 엽니다. Python 3.10 이상을 사용합니다. IDE의 테스트 실행 기능을 사용해도 되며, 터미널은 같은 폴더에서 시작합니다.
+Codex 앱·IDE에서 `week05-development-harness/quality_demo/`를 엽니다. JDK 17 이상으로 Gradle 프로젝트를 엽니다. 최초 Wrapper 실행에는 도구와 JUnit·Gson 다운로드가 필요합니다. IDE의 테스트 실행 기능을 사용해도 되며, 터미널은 같은 폴더에서 시작합니다.
 
 ```text
 quality_demo/
 ├─ README.md                  # 기본 동작과 구현할 요구 A·B
 ├─ AGENTS.md                  # 검토·조정해서 사용할 운영 지침 초안
-├─ refund.py                  # 실행 가능한 기존 환불 계산
-├─ tests/test_refund.py        # 기존 동작을 확인하는 세 테스트
+├─ src/main/java/lab/week05/Refund.java  # 실행 가능한 기존 환불 계산
+├─ src/test/java/lab/week05/RefundTest.java        # 기존 동작을 확인하는 세 테스트
 ├─ data/
 │  ├─ refund-cases.json        # 요구 A의 입력과 기대 결과
 │  ├─ batch-requests.json      # 요구 B에서 처리할 요청들
@@ -131,8 +131,8 @@ quality_demo/
    ├─ config.toml             # 예제 Hook 기능 설정
    ├─ hooks.json              # 이벤트·대상 도구·실행 명령
    └─ hooks/
-      ├─ post_tool_use_review.py
-      └─ tests/               # Hook 코드 자체의 검사
+      ├─ PostToolUseReview.java
+      └─ tests/               # 독립 hookTest로 실행하는 Hook 검사
 ```
 
 첫 실행 명령은 다음과 같습니다.
@@ -140,15 +140,15 @@ quality_demo/
 Windows PowerShell:
 
 ```powershell
-python -X utf8 -B refund.py
-python -X utf8 -B -m unittest discover -s tests -v
+.\gradlew.bat -q run
+.\gradlew.bat test
 ```
 
 macOS·Linux·WSL:
 
 ```bash
-python3 -X utf8 -B refund.py
-python3 -X utf8 -B -m unittest discover -s tests -v
+./gradlew -q run
+./gradlew test
 ```
 
 기본 출력은 8000이며 세 테스트가 통과합니다. **요구 A·B는 아직 구현되지 않은 후속 작업**입니다. 기대 결과 파일이 있다고 이미 그 기능을 사용할 수 있는 것은 아닙니다. 각 Day에서 해당 요구만 구현합니다.
@@ -157,19 +157,22 @@ python3 -X utf8 -B -m unittest discover -s tests -v
 
 ## Day 1 — 실행해 보고 하네스가 맡은 일 찾기
 
+**Day 1에서 사용하는 하네스는 Codex가 제공하는 내장 하네스입니다.** 모델에 지침과 도구 결과를 전달하고 파일 읽기·명령 실행·권한 확인을 연결하는 실행 기능은 Codex 쪽에 있습니다. `quality_demo/`의 `AGENTS.md`는 작업 방법을 안내하고, `src/main/java/lab/week05/Refund.java`와 `src/test/java/lab/week05/`는 이 하네스로 읽고 실행할 대상입니다. 오늘은 이미 제공된 실행 경로를 확인하고, 이후 Day에서 프로젝트에 맞는 지침·검사·피드백을 구성합니다.
+
 Codex에 기본 코드와 검사를 실행하도록 요청합니다. 아직 요구 A·B는 구현하지 않습니다. 실행 결과에서 **현재 작업 폴더, 읽은 프로젝트 지침과 요구, 실제 실행 명령, 테스트 이름과 결과**를 확인합니다. AI가 설명한 흐름을 실제 도구 실행과 대조합니다.
 
-`refund.py`와 `tests/test_refund.py`를 열어 다음 두 처리를 찾습니다.
+`Refund.java`와 `src/test/java/lab/week05/RefundTest.java`를 열어 다음 두 처리를 찾습니다.
 
-```python
-if paid < 0 or fee < 0:
-    raise ValueError("금액과 수수료는 0 이상이어야 합니다.")
-return max(0, paid - fee)
+```java
+if (paid < 0 || fee < 0) {
+    throw new IllegalArgumentException(AMOUNT_ERROR);
+}
+return Math.max(0L, paid - fee);
 ```
 
 음수 입력은 거부하고, 유효한 두 금액의 차이가 음수이면 환불액을 0으로 만듭니다. 입력 거부와 결과의 하한은 다른 규칙입니다. 기본 테스트가 두 규칙을 어떻게 나누어 검사하는지 봅니다.
 
-이제 실제 실행 한 번을 따라갑니다. 업무 규칙은 README, 계산은 함수, 기대값 비교는 테스트가 맡습니다. Codex는 파일을 읽고 명령을 실행한 결과를 모델에 전달합니다. 모델은 그 결과를 받아 보고하거나 다음 행동을 선택합니다. **Python 테스트가 모델을 호출하는 것도, 모델이 계산 규칙을 자동으로 검증하는 것도 아닙니다.**
+이제 실제 실행 한 번을 따라갑니다. 업무 규칙은 README, 계산은 함수, 기대값 비교는 테스트가 맡습니다. Codex는 파일을 읽고 명령을 실행한 결과를 모델에 전달합니다. 모델은 그 결과를 받아 보고하거나 다음 행동을 선택합니다. **검사 프로그램은 정한 입력과 기대값을 비교하고, 모델은 도구가 반환한 검사 결과를 해석합니다.**
 
 **남길 결과·완료 판단:** 기본 실행과 세 테스트를 확인하고, 실제 파일 읽기→검사 명령→결과→보고를 노트에 연결합니다. 모델·하네스·업무 코드·검사가 맡은 일을 이번 실행을 근거로 설명할 수 있으면 Day 1을 마칩니다.
 
@@ -187,38 +190,40 @@ return max(0, paid - fee)
 
 프로젝트 README의 **요구 A**를 구현하도록 Codex에 맡깁니다. 요청 문장은 직접 쓰거나 AI와 만들 수 있습니다. 요구 B까지 미리 구현하지 않습니다.
 
-- `refund_amount(paid, fee, *, fee_waived=False)`로 확장합니다. 기존 두 인자 호출도 유지합니다.
+- 계산은 `Refund.refundAmount(paid, fee, feeWaived)`로 확장하고 기존 두 인자 호출도 유지합니다. 외부 입력은 `RefundInput`에서 JSON으로 읽고 금액·면제 여부의 형식을 검증한 뒤 계산에 전달합니다.
 - 면제이면 결제액을 전부 반환합니다. 면제여도 유효하지 않은 금액은 먼저 거부합니다.
 - 금액은 0 이상의 정수이며 불리언은 금액으로 받지 않습니다. `fee_waived`는 불리언만 받습니다.
 - 기본 환불·하한·음수 거부를 유지하고 `data/refund-cases.json`의 입력·기대 결과를 검사합니다. 상세 오류 계약은 프로젝트 README에 있습니다.
 
+핵심은 입력을 거부하는 위치와 계산 규칙을 적용하는 위치의 책임입니다. 외부 JSON의 `true`나 `"1000"`은 금액이 아니므로 입력 경계가 거부하고, 유효한 정수로 받은 음수 금액은 계산에서도 거부합니다. 형식이 맞는다는 사실이 업무상 유효하다는 뜻은 아닙니다. 이 구분은 다른 언어와 입력 채널에서도 유지됩니다.
+
 이 조건들을 기존 테스트에 연결하는 코드는 AI가 작성할 수 있습니다. 새 테스트를 요구와 대조하고 기존 세 테스트도 유지합니다. 예를 들어 면제 분기를 입력 검사보다 앞에 놓으면 `paid=-1`이 그대로 반환될 수 있습니다. 면제된 정상 사례만 확인하면 이 결함을 놓칩니다. 실패가 나오면 구현과 검사를 읽고 요구에 맞게 고친 뒤 재실행합니다.
 
-명령 실패 때도 업무 코드부터 고치지는 않습니다. 예를 들어 `python -B -m unittest discover -s __missing_tests_for_week05__ -v`가 없는 폴더를 가리키면 환불 기대값을 비교하기 전에 실패합니다. 이때 바꿀 것은 검사 위치나 명령이며, 환불액이 아닙니다. 실제 실패가 있었다면 출력에서 멈춘 단계를 찾고 올바른 검사로 재확인합니다. 실패가 없었다면 이 예시를 읽고, Day 4의 Hook 연결 확인에서 한 번만 실행합니다.
+명령 실패 때도 업무 코드부터 고치지는 않습니다. 예를 들어 `.\gradlew.bat __missing_task_for_week05__`가 존재하지 않는 Gradle 작업을 지정하면 환불 기대값을 비교하기 전에 실패합니다. 이때 바꿀 것은 실행 작업 이름이나 명령이며, 환불액이 아닙니다. 실제 실패가 있었다면 출력에서 멈춘 단계를 찾고 올바른 검사로 재확인합니다. 실패가 없었다면 이 예시를 읽고, Day 4의 Hook 연결 확인에서 한 번만 실행합니다.
 
 **남길 결과·완료 판단:** 사용할 운영 지침과 실제 적용 위치, 선택한 권한 범위, 요구 A의 구현·테스트·실제 결과를 남깁니다. 권한 설정에서 허용한 편집·검사가 실행됐고, 면제·비면제·잘못된 입력과 기존 동작을 확인했으면 Day 2를 마칩니다. 지침에 적은 범위와 실제 권한 설정을 구분하며, 초안의 존재만으로 완료하지 않습니다.
 
 ## Day 3 — 배치 기능을 만들고 결과 완전성 구분하기
 
-Day 2의 A와 검사를 유지하고, 프로젝트 README의 **요구 B**를 AI와 구현합니다. `batch_refund.py`는 JSON 파일 경로를 받아 A의 함수를 재사용합니다. 입력 순서와 `id`를 유지하며, 잘못된 행도 오류 결과를 남기고 다음 행을 처리해야 합니다. 한 행의 오류와 파일을 읽지 못한 실행 실패를 구분합니다. 상세 출력 형식은 기존 README와 `data/batch-expected.json`을 사용합니다.
+Day 2의 A와 검사를 유지하고, 프로젝트 README의 **요구 B**를 AI와 구현합니다. `src/main/java/lab/week05/BatchRefund.java`는 JSON 파일 경로를 받아 A의 입력 경계와 계산을 재사용합니다. 프로젝트 README처럼 `build.gradle`에 `batch` 실행 작업도 추가합니다. 입력 순서와 `id`를 유지하며, 잘못된 행도 오류 결과를 남기고 다음 행을 처리해야 합니다. 한 행의 오류와 파일을 읽지 못한 실행 실패를 구분합니다. 상세 출력 형식은 기존 README와 `data/batch-expected.json`을 사용합니다.
 
 구현한 뒤 같은 폴더에서 실행합니다. IDE로 검사를 실행해도 실제 배치 입력과 출력은 함께 확인합니다.
 
 Windows PowerShell:
 
 ```powershell
-python -X utf8 -B batch_refund.py data/batch-requests.json
-python -X utf8 -B -m unittest discover -s tests -v
+.\gradlew.bat -q batch --args="data/batch-requests.json"
+.\gradlew.bat test
 ```
 
 macOS·Linux·WSL:
 
 ```bash
-python3 -X utf8 -B batch_refund.py data/batch-requests.json
-python3 -X utf8 -B -m unittest discover -s tests -v
+./gradlew -q batch --args="data/batch-requests.json"
+./gradlew test
 ```
 
-AI와 기존 `tests/`에 B의 검사를 추가합니다. 실제 출력 JSON을 파싱해 기대값과 대조하며 공백·객체 키 순서를 맞추는 데 시간을 쓰지 않습니다. 빈 배열, 잘못된 JSON·최상위 형식, 없는 파일도 README의 동작대로 확인합니다. 금액이 잘못된 행의 `status: "error"`는 요구한 처리 결과입니다. 전체 처리를 끝냈다면 오류 행이 섞여도 배치의 종료 코드는 0입니다.
+AI와 기존 `src/test/java/lab/week05/`에 B의 검사를 추가합니다. 실제 출력 JSON을 파싱해 기대값과 대조하며 공백·객체 키 순서를 맞추는 데 시간을 쓰지 않습니다. 빈 배열, 잘못된 JSON·최상위 형식, 없는 파일도 README의 동작대로 확인합니다. 금액이 잘못된 행의 `status: "error"`는 요구한 처리 결과입니다. 전체 처리를 끝냈다면 오류 행이 섞여도 배치의 종료 코드는 0입니다.
 
 ### 해설: 종료 코드가 알려 주지 않는 것
 
@@ -240,11 +245,12 @@ AI와 기존 `tests/`에 B의 검사를 추가합니다. 실제 출력 JSON을 �
 
 위 출력에는 두 요청의 결과가 모두 있습니다. 반면 종료 코드가 0이고 출력이 `[{"id":"regular","status":"ok","refund":8000}]`뿐이라면, 두 번째 요청이 거부됐는지 아직 처리되지 않았는지 알 수 없습니다. “모든 반환 행이 성공”이라는 사실은 “모든 요청을 처리”했다는 뜻이 아닙니다. 반대로 오류 행이 하나라도 있다는 이유로 전체 배치를 미완료로 처리하면 올바른 결과도 거부하게 됩니다.
 
-현재 `.codex/hooks/post_tool_use_review.py`의 `hook_output()`에는 다음 분기가 있습니다.
+현재 `.codex/hooks/PostToolUseReview.java`의 `hookOutput()`에는 다음 분기가 있습니다.
 
-```python
-if exit_code == 0:
-    return {}
+```java
+if (Integer.valueOf(0).equals(exitCode)) {
+    return new JsonObject();
+}
 ```
 
 따라서 이 Hook은 정상 종료한 프로그램의 행 누락을 발견하지 못합니다. 설명 문구를 강하게 바꾸어도 프로그램 결과를 요구와 비교하는 검사가 저절로 생기지는 않습니다. 기능 검사는 실제 결과를 판단하고, 지침·Hook은 그 판정을 다음 행동에 연결하는 역할을 맡을 수 있습니다.
@@ -263,11 +269,11 @@ if exit_code == 0:
 
 ### 참고 구성의 역할과 한계 확인하기
 
-제공 `.codex/hooks.json`은 `PostToolUse` 이벤트를 Python 스크립트로 전달합니다. 설정은 언제 실행할지, 스크립트는 받은 결과를 어떻게 읽을지 정합니다. 다음은 제공 구성의 경로입니다.
+제공 `.codex/hooks.json`은 `PostToolUse` 이벤트를 Java 소스 파일로 전달합니다. 설정은 언제 실행할지, 스크립트는 받은 결과를 어떻게 읽을지 정합니다. 다음은 제공 구성의 경로입니다.
 
 ```text
 Codex의 명령 실행 → 명령 결과와 종료 코드 → PostToolUse
-  → hooks.json의 matcher → post_tool_use_review.py
+  → hooks.json의 matcher → PostToolUseReview.java
       ├─ systemMessage: 사용자에게 경고 표시
       ├─ additionalContext: 모델의 다음 판단에 맥락 전달
       └─ 최소 이벤트 정보: ../.local/raw/hook-events.jsonl
@@ -275,22 +281,24 @@ Codex의 명령 실행 → 명령 결과와 종료 코드 → PostToolUse
 
 명령이 종료 코드 1로 실패했어도 이를 읽어 피드백을 만든 Hook은 0으로 끝날 수 있습니다. 각각 다른 프로그램의 결과입니다. 제공 Hook은 검사를 직접 실행하거나 코드를 복구하거나 작업 완료를 강제로 막지 않습니다. **경고가 표시된 것, 모델이 맥락을 받은 것, 다음 행동이 적절했던 것은 별도로 확인합니다.** [공식 PostToolUse 안내](https://learn.chatgpt.com/docs/hooks#posttooluse)
 
+먼저 IDE의 `prepareHook`와 `hookTest`, 또는 Windows `.\gradlew.bat prepareHook hookTest` / macOS·Linux·WSL `./gradlew prepareHook hookTest`를 실행합니다. `prepareHook`는 Gson을 `.local/hook-runtime/`에 준비합니다. Hook 이벤트는 `java --class-path ".local/hook-runtime/*" ".codex/hooks/PostToolUseReview.java"`로 소스 파일만 실행하므로 업무 코드의 컴파일 실패에도 피드백을 만들 수 있습니다. 이벤트 안에서 Gradle이나 업무 검사를 다시 호출하지 않습니다. 이 보조 검사는 payload→피드백 코드만 확인하며 Host 연결을 증명하지 않습니다.
+
 Codex의 Hook 목록에서 제공 정의·실행 명령을 검토하고 신뢰한 뒤 활성화합니다. CLI에서는 `/hooks`를 사용할 수 있습니다. `commandWindows`는 Windows 명령, `command`는 macOS·Linux 명령입니다. 일괄 신뢰 우회 옵션은 사용하지 않습니다. 연결과 정의를 바꿨다면 다시 검토합니다. [Hook 연결 안내](https://learn.chatgpt.com/docs/hooks)
 
-Day 2에서 읽은 없는 검사 폴더 명령을 Codex 도구로 한 번 실행하고, 이어 올바른 검사를 실행하게 합니다. 실제 기능 실패를 이미 사용했다면 그 사례의 실행 근거를 재사용해도 됩니다. 정상·실패 이벤트, 경고·추가 맥락, 뒤따른 원인 확인과 재검사를 대조합니다.
+Day 2에서 읽은 존재하지 않는 작업을 지정하는 명령을 Codex 도구로 한 번 실행하고, 이어 올바른 검사를 실행하게 합니다. 실제 기능 실패를 이미 사용했다면 그 사례의 실행 근거를 재사용해도 됩니다. 정상·실패 이벤트, 경고·추가 맥락, 뒤따른 원인 확인과 재검사를 대조합니다.
 
 Windows PowerShell:
 
 ```powershell
-python -X utf8 -B -m unittest discover -s __missing_tests_for_week05__ -v
-python -X utf8 -B -m unittest discover -s tests -v
+.\gradlew.bat __missing_task_for_week05__
+.\gradlew.bat test
 ```
 
 macOS·Linux·WSL:
 
 ```bash
-python3 -X utf8 -B -m unittest discover -s __missing_tests_for_week05__ -v
-python3 -X utf8 -B -m unittest discover -s tests -v
+./gradlew __missing_task_for_week05__
+./gradlew test
 ```
 
 잘못된 명령은 의도적 실패용이며 운영 지침의 정상 검사 명령으로 저장하지 않습니다. 실제 도구 이름·종료 코드 위치가 다르면 관찰한 이벤트에 맞춰 matcher·파서를 조정합니다. 사람이 터미널에서 직접 명령을 실행한 결과는 Codex Hook 연결의 증거가 아닙니다. 연결 후에도 중복 피드백만 제공한다면 예제 Hook은 비활성화할 수 있습니다. 사용할 수 없는 환경에서는 Hook 연결을 미확인으로 남기고 프로젝트 검사와 지침의 설계·적용을 계속합니다.
