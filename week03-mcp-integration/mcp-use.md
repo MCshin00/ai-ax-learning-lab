@@ -96,59 +96,50 @@ Error executing tool get_product: Unknown product ID. Available: NOTE-01, PEN-02
 ## Day 3 — 실행 구조와 Tool·Resource·Prompt 비교
 
 - 기록일: 2026-09-07
-- 관련 코드: [실행 설정](learning_lab_server/pyproject.toml), [서버 코드](learning_lab_server/src/learning_lab_mcp/server.py), [실행 안내](learning_lab_server/README.md).
+- 현재 코드: [실행 설정](learning_lab_server/build.gradle), [MCP 등록](learning_lab_server/src/main/java/lab/week03/CatalogServer.java), [업무 처리](learning_lab_server/src/main/java/lab/week03/CatalogService.java), [실행 안내](learning_lab_server/README.md).
 
 ### 1. 실행 명령에서 상품 응답까지
 
-서버 실행 명령은 `uv run --locked ai-ax-learning-lab-mcp`다. Codex의 등록 안내에는 실행 위치가 달라도 프로젝트를 찾도록 `uv --directory <프로젝트 절대 경로> run --locked ai-ax-learning-lab-mcp`를 사용한다. 아래는 파일에서 확인한 경로다.
+연결 설정은 프로그램을 실행하고, 서버의 공개 입력 계약은 요청을 업무 함수에 연결한다. 업무 함수의 결과를 MCP 응답으로 전달하면 모델은 그 근거로 답변한다. 이 역할 구분은 실습 언어가 바뀌어도 유지된다.
+
+현재 Java 구현에서는 IDE의 Gradle `installDist`로 실행 파일과 의존성을 준비하고 다음 서버를 시작한다.
 
 ```text
-uv가 지정한 프로젝트에서 서버 명령 실행
-→ pyproject.toml의 실행 진입점
-→ learning_lab_mcp.server 모듈 로드
-→ MCPServer 객체 생성과 Tool·Resource·Prompt 등록
-→ main()에서 mcp.run() 실행
-→ SDK가 요청 종류·이름에 맞는 등록 함수를 실행
-→ 함수 반환값을 MCP 응답으로 전달
-→ Codex가 응답을 근거로 최종 답변 작성
+java -cp "build/install/learning-catalog/lib/*" lab.week03.CatalogServer
+→ CatalogServer.main()
+→ 공식 SDK의 stdio 전송과 Tool·Resource·Prompt 등록
+→ 도구 이름과 입력 JSON을 서버 호출 처리에 전달
+→ 외부 입력 검사 → CatalogService의 상품 조회·업무 계산
+→ CatalogServer의 MCP 결과 변환 → Client → 모델 답변
 ```
 
-`pyproject.toml`의 실행 진입점은 명령 이름을 Python 모듈의 함수에 연결한다.
+`CatalogServer.catalogTools()`의 `get_product` 등록은 필수 문자열 `product_id`와 조회 함수를 연결한다. 형식이 맞는 ID여도 자료에 존재하는지는 별도로 확인해야 한다.
 
-```toml
-[project.scripts]
-ai-ax-learning-lab-mcp = "learning_lab_mcp.server:main"
+```java
+public Product getProduct(String id) {
+    Product product = catalog.get(id);
+    if (product == null) throw new IllegalArgumentException(
+        "Unknown product ID. Available: NOTE-01, PEN-02.");
+    return product;
+}
 ```
 
-`server.py`의 `MCPServer("learning-catalog", ...)` 객체에 `@mcp.tool`, `@mcp.resource`, `@mcp.prompt`가 기능을 등록한다. `main()`은 서버 실행을 SDK에 맡긴다.
+`NOTE-01`은 실제 상품을 반환하고 `UNKNOWN`은 업무 오류가 된다. 정상 결과의 텍스트와 `structuredContent`, 예상된 오류의 `isError`는 등록 계층에서 연결하고 JSON-RPC 통신은 SDK에 맡긴다. 품절 상품도 조회 자체가 성공했다면 정상 응답이다.
 
-```python
-def main() -> None:
-    mcp.run()
-```
+| 현재 코드 | 역할 |
+|---|---|
+| `CatalogService.Product` | 반환할 ID·이름·가격·재고 필드 |
+| `catalog` | 현재 자료: 노트 3500원·재고 있음, 펜 1500원·재고 없음 |
+| `getProduct()` | 상품 존재 검사와 반환 |
+| `catalogHelp()` | 자료·동작 범위 안내 |
+| `explainProduct()` | 상품 조회를 요청하는 문구 |
+| `CatalogServer` | 공개 입력 계약·호출 등록·응답 변환 |
 
-`get_product`는 입력 ID를 검사하고 상품을 반환한다.
-
-```python
-def get_product(product_id: str) -> Product:
-    if product_id not in CATALOG:
-        raise ValueError("Unknown product ID. Available: NOTE-01, PEN-02.")
-    return CATALOG[product_id].model_copy()
-```
-
-`NOTE-01`은 사전에 있으므로 `Product`의 복사본을 반환한다. `UNKNOWN`은 사전에 없어 오류가 발생한다. 이 함수는 `content`, `structuredContent`, `isError`를 직접 조립하지 않는다. 함수 등록과 반환값·오류의 MCP 응답 처리는 SDK가 맡는 부분이며, Day 1~2에서 실제 데이터 응답과 오류 응답을 확인했다.
-
-| 코드 위치 | 맡는 역할 | 코드에서 확인한 내용 |
-|---|---|---|
-| `Product` | 상품 결과의 필드와 타입 | ID·이름은 문자열, 가격은 정수, 재고 여부는 불리언 |
-| `CATALOG` | 조회 대상 값 | 노트 3000원·재고 있음, 펜 1500원·재고 없음 |
-| `get_product` | ID 검사와 상품 조회 | 없으면 오류, 있으면 상품 모델 복사본 반환 |
-| `catalog_help` | 조회 범위에 관한 안내 제공 | `catalog://help`에 등록된 고정 문자열 |
-| `explain_product` | 재사용할 요청 문구 생성 | ID를 확인하고 조회를 지시하는 문자열 반환 |
+Day 1~2의 3000원은 당시 자료의 실제 결과이며, 현재 3500원은 Day 5의 자료 변경을 반영한 값이다.
 
 ### 2. Tool·Resource·Prompt의 역할과 실제 결과
 
-세 기능은 MCP 서버가 AI 앱에 제공하는 서로 다른 인터페이스다. 이번 서버에서 모두 Python 함수로 작성되어 있어도, 등록 방식과 요청·응답의 의미가 다르다.
+세 기능은 MCP 서버가 AI 앱에 제공하는 서로 다른 인터페이스다. 이번 서버에서 같은 서버 안에 구현되어 있어도, 등록 방식과 요청·응답의 의미가 다르다.
 
 여기서 **앱은 사용자가 대화하는 Codex 프로그램**을 뜻한다. 모델과 앱은 역할이 다르다. 아래 그림에서는 다음 이름으로 구분한다.
 
@@ -156,21 +147,21 @@ def get_product(product_id: str) -> Product:
 |---|---|
 | Codex 앱 · Host | 사용자 입력과 대화를 관리하고, 모델에 입력을 보내며, MCP 서버와 요청·응답을 주고받는다. 모델의 답변을 화면에 표시한다. |
 | GPT 모델 | 전달받은 질문·자료를 읽고, 답변이나 필요한 Tool 호출 요청을 생성한다. |
-| MCP 서버 · Python | `get_product`를 실행하거나 `catalog://help`의 자료, `explain_product`의 요청 메시지를 반환한다. |
+| MCP 서버 | `get_product`를 실행하거나 `catalog://help`의 자료, `explain_product`의 요청 메시지를 반환한다. |
 | Inspector | 사람이 MCP 서버의 기능을 직접 요청하고 응답을 확인하는 테스트 도구다. |
 
 #### Tool — 이름과 인자로 요청하는 실행 기능
 
 Tool은 서버가 수행할 동작을 이름·설명·입력 스키마와 함께 공개한 것이다. 모델이 상황에 맞는 도구와 인자를 선택하면 Host의 MCP Client가 `tools/call`을 보내고, 서버가 기능을 실행해 결과를 돌려준다. 조회·계산뿐 아니라 서버가 구현한 파일 수정이나 주문도 Tool로 제공할 수 있다. [Tool 명세](https://modelcontextprotocol.io/specification/2026-07-28/server/tools)
 
-이번 `get_product`는 조회 전용 Tool이다. `{"product_id":"NOTE-01"}`을 받으면 `CATALOG`에서 해당 상품을 찾아 `Product`를 반환한다. 모델이 상품값을 만들어 내는 것이 아니라 Python 함수가 반환한 값을 답변의 근거로 사용한다. Tool이라는 이름이 쓰기 권한이나 정확한 답변 자체를 보장하지는 않는다.
+이번 `get_product`는 조회 전용 Tool이다. `{"product_id":"NOTE-01"}`을 받으면 `CATALOG`에서 해당 상품을 찾아 `Product`를 반환한다. 모델이 상품값을 만들어 내는 것이 아니라 업무 함수가 반환한 값을 답변의 근거로 사용한다. Tool이라는 이름이 쓰기 권한이나 정확한 답변 자체를 보장하지는 않는다.
 
 ```mermaid
 sequenceDiagram
     actor U as 사용자
     participant A as Codex 앱 · Host
     participant M as GPT 모델
-    participant S as MCP 서버 · Python
+    participant S as MCP 서버
 
     U->>A: NOTE-01 가격·재고 확인 요청
     A->>M: 사용자 요청과 도구 정보 전달
@@ -258,8 +249,8 @@ Tool 응답의 `price_krw: 3000`은 Day 2 답변의 “3,000원”을, `in_stock
 
 특히 `explain_product`의 반환문은 다음과 같다.
 
-```python
-return f"get_product로 {product_id}를 조회하고 가격과 재고를 설명하세요. 주문하지 마세요."
+```java
+return "get_product로 " + id + "를 조회하고 가격과 재고를 설명하세요. 주문하지 마세요.";
 ```
 
 따옴표 안의 `get_product`는 함수 호출이 아니라 문장에 들어갈 글자다. 함수 본문에는 `get_product(...)` 호출이나 상품 가격을 꺼내는 처리가 없다. 따라서 **Prompt를 가져온 것만으로 상품 조회가 실행된 것은 아니다.** 이번 Prompt 응답도 상품 객체 대신 사용자 역할의 메시지를 담았다. 그 문구를 AI가 받아 실제 조회를 수행하는 것은 별도의 Tool 호출 단계다.
@@ -269,14 +260,13 @@ return f"get_product로 {product_id}를 조회하고 가격과 재고를 설명�
 - 실행 설정은 어떤 프로그램을 시작할지, `get_product`는 받은 ID를 어떻게 처리할지를 맡는다. 그래서 연결 경로 문제와 조회 입력 문제를 서로 다른 위치에서 살펴볼 수 있다.
 - `Product`는 결과의 형태, `CATALOG`는 실제 값을 맡는다. 배송일처럼 새 필드를 추가하는 일과 기존 가격을 고치는 일의 수정 범위가 다르다. 현재 반환 필드만으로 배송일이나 재고 수량을 설명할 수는 없다.
 - 데이터와 요청 문구가 나뉘어 있어 사실의 변경과 설명 방식의 변경을 구별할 수 있다. 예를 들어 `CATALOG`의 노트 가격만 3500원으로 바꾸고 서버를 새로 실행하면 Tool 결과의 가격이 달라질 것으로 예상한다. 가격을 포함하지 않는 Resource·Prompt의 문자열은 그대로일 것이다. 이는 코드에 근거한 예상이며 이번에는 가격을 수정하거나 이 변경을 실행하지 않았다.
-- `model_copy()`는 저장된 상품 모델 자체 대신 복사본을 반환한다. 현재처럼 단순한 필드로 된 모델에서는 반환 객체의 변경과 사전의 원본을 분리하는 효과를 해석할 수 있다. 작성자가 이 방식을 선택한 의도까지 확인한 것은 아니다.
-- 조회 전용이라는 판단의 직접 근거는 고정 사전을 읽어 복사본을 반환하고 주문·파일 쓰기·외부 서비스 작업을 하지 않는 구현이다. `readOnlyHint=True`라는 표시만으로 모든 서버의 권한이나 동작을 판단하지 않는다.
+- 반환된 결과의 변경이 원자료에 영향을 주지 않도록 분리해야 한다. 현재 상품 결과는 수정할 수 없고 조회 목록도 수정할 수 없으며, 편집·저장 미리보기는 내부 스냅샷과 별도로 반환된다. 이는 공유 상태의 뜻하지 않은 변경을 막는 원리다.
 
 ## Day 3–4 — 예산·재고 조회 구현과 검증
 
 - 기록일: 2026-09-08
 - 선택한 요구: 기존 `CATALOG`에서 예산 이하의 상품 후보를 찾는다. `max_price_krw`는 필수인 0 이상 정수, `in_stock_only`는 기본값 `true`다. 결과는 상품 목록이며, 해당 상품이 없으면 빈 목록, 음수 예산이나 잘못된 형식은 입력 오류로 처리한다. 주문·재고 변경은 허용하지 않는다.
-- 변경 파일: [서버 코드](learning_lab_server/src/learning_lab_mcp/server.py), [기능 테스트](learning_lab_server/tests/test_server_contract.py), [프로젝트 사용 안내](learning_lab_server/README.md).
+- 변경 파일: [서버 코드](learning_lab_server/src/main/java/lab/week03/CatalogService.java), [기능 테스트](learning_lab_server/src/test/java/lab/week03/PurchaseContractTest.java), [프로젝트 사용 안내](learning_lab_server/README.md).
 
 ### 사용한 요청
 
@@ -298,32 +288,27 @@ in_stock_only는 기본값 true로 해주세요.
 
 | 요청에 담긴 요구 | 만들어진 구조와 처리 위치 | 실제 검증에서 확인한 동작 |
 |---|---|---|
-| 기존 `CATALOG`에서 예산 이하인 상품 찾기 | `server.py`의 새 `find_products`가 `CATALOG.values()`를 읽고 `product.price_krw <= max_price_krw`로 후보를 고른다. | Inspector에서 예산 3000에 가격 3000인 노트가 포함됐다. 테스트에서도 1500원 경계의 펜 포함과 1499원에서 제외를 확인했다. |
-| 예산은 0 이상 정수, 음수는 입력 오류 | `max_price_krw`에 `Annotated[int, Field(ge=0, strict=True)]`를 사용해 SDK가 MCP 호출 인자를 검사하게 했다. | 테스트에서 예산 0은 정상 빈 목록이었고, Inspector의 -1 호출은 `isError: true`와 예산 검증 오류를 반환했다. |
-| `in_stock_only` 기본값은 `true` | 선택 인자의 기본값을 `True`로 두고 `(not in_stock_only or product.in_stock)`를 가격 조건과 함께 적용했다. | Inspector에서 재고 인자를 생략한 예산 3000 호출은 노트만 반환했다. 예산 2000에서 `true`는 빈 목록, `false`는 품절인 펜을 반환했다. |
-| 상품 목록 반환, 해당 상품이 없으면 빈 목록 | 함수 반환형은 `list[Product]`이고 조건을 통과한 상품만 목록에 넣는다. SDK가 이 목록을 `structuredContent.result`로 감싼다. | Inspector에서 해당 상품이 없을 때 `result: []`, `isError: false`를 확인했다. 빈 결과를 입력 오류와 구분했다. |
-| 조회만 수행하고 기존 `get_product` 보존 | 기존 함수는 유지하고 같은 서버에 새 Tool을 등록했다. 반환에는 `model_copy()`를 사용했으며 주문·재고 수정 동작을 추가하지 않았다. | 반환 객체를 수정해도 `CATALOG`는 그대로였다. 기존 상품 조회 결과도 유지됐다. |
+| 기존 `CATALOG`에서 예산 이하인 상품 찾기 | `CatalogService.findProducts()`가 상품 자료를 읽고 가격 상한과 재고 조건으로 후보를 고른다. | Inspector에서 예산 3000에 가격 3000인 노트가 포함됐다. 테스트에서도 1500원 경계의 펜 포함과 1499원에서 제외를 확인했다. |
+| 예산은 0 이상 정수, 음수는 입력 오류 | 공개 스키마에 정수·최솟값을 표시하고, 호출 경계의 입력 검사와 업무 함수의 범위 검사로 조건을 지킨다. | 테스트에서 예산 0은 정상 빈 목록이었고, Inspector의 -1 호출은 `isError: true`와 예산 검증 오류를 반환했다. |
+| `in_stock_only` 기본값은 `true` | 선택 인자의 기본값을 `true`로 두고 `(!inStockOnly || p.in_stock())`를 가격 조건과 함께 적용했다. | Inspector에서 재고 인자를 생략한 예산 3000 호출은 노트만 반환했다. 예산 2000에서 `true`는 빈 목록, `false`는 품절인 펜을 반환했다. |
+| 상품 목록 반환, 해당 상품이 없으면 빈 목록 | 조건을 통과한 상품만 목록에 넣고 등록 계층이 `structuredContent.result`에 연결한다. | Inspector에서 해당 상품이 없을 때 `result: []`, `isError: false`를 확인했다. 빈 결과를 입력 오류와 구분했다. |
+| 조회만 수행하고 기존 `get_product` 보존 | 기존 함수는 유지하고 같은 서버에 새 Tool을 등록했다. 현재 반환값은 수정할 수 없는 결과이며, 조회가 원자료를 변경하지 않게 구성한다. | 반환 객체를 수정해도 `CATALOG`는 그대로였다. 기존 상품 조회 결과도 유지됐다. |
 
 ### 필터 구조
 
 `get_product`는 알고 있는 ID 한 건을 찾고, `find_products`는 예산·재고 조건으로 후보를 찾는다. 두 Tool은 같은 `CATALOG`와 `Product`를 사용한다.
 
-입력의 `Annotated[int, Field(ge=0, strict=True)]`에서 `ge=0`은 음수를 거부하고, `strict=True`는 문자열·실수·불리언을 예산 정수로 자동 변환하지 않도록 한다. 재고 조건도 불리언만 허용하며 생략하면 `True`가 적용된다. SDK가 입력 스키마를 만들고 MCP 호출의 인자를 검사하므로 함수 본문은 상품 필터에 집중한다. 이 제약은 MCP 요청 경로의 검증이며, Python 함수를 직접 호출할 때 타입 주석만으로 검증이 실행되는 것은 아니다. [SDK 입력 제약](https://py.sdk.modelcontextprotocol.io/servers/tools/#richer-schemas-with-field)
+외부 입력의 형식과 업무 조건을 나누어 확인한다. 예산은 0 이상 정수, 재고 조건은 불리언이며 생략 시 재고 있는 상품만 찾는다. 문자열·실수·불리언을 금액으로 자동 변환하면 잘못된 입력이 정상 조회로 바뀔 수 있으므로 실행 경계에서 거부한다.
 
-필터와 반환 부분:
+현재 `InspectorServer`의 입력 스키마가 이 계약을 공개하고 `DraftStore.integer()`와 입력 검사가 실제 값을 확인한다. `CatalogService.findProducts()`는 금액 경계와 재고 조건에 맞는 후보를 고른다. 타입 선언이나 화면의 입력 제한만으로 서버 검증을 대신하지 않는다.
 
-```python
-return [
-    product.model_copy()
-    for product in CATALOG.values()
-    if product.price_krw <= max_price_krw
-    and (not in_stock_only or product.in_stock)
-]
+```java
+return catalog.values().stream()
+    .filter(p -> p.price_krw() <= maximum && (!inStockOnly || p.in_stock()))
+    .toList();
 ```
 
-`<=`이므로 예산과 가격이 같아도 포함한다. 재고 조건이 `True`이면 재고가 있는 상품만 통과하고, `False`이면 재고 여부에 관계없이 가격 조건으로 고른다. 후보를 고르는 판단은 서버 함수가 수행한다. 반환 목록은 상품 사전의 순서를 유지하며, 각 상품은 복사본이므로 반환 객체를 고쳐도 사전 원본이 바뀌지 않는다.
-
-반환형은 `list[Product]`다. 실제 MCP 응답에서는 SDK가 목록을 `structuredContent.result`에 넣었다. 빈 결과는 `content: []`, `structuredContent: {"result": []}`, `isError: false`였고, 음수 예산의 오류와 구분됐다. [SDK 목록 반환 설명](https://py.sdk.modelcontextprotocol.io/servers/structured-output/#lists)
+`<=`는 예산과 같은 가격도 포함하고, 재고 조건을 끄면 품절 상품도 후보가 된다. 후보가 없다는 정상 결과와 받아들일 수 없는 입력은 다른 상태다. [공식 MCP Java SDK](https://java.sdk.modelcontextprotocol.io/latest/server/)
 
 ### Day 4 검증 — 입력에 따른 결과
 
@@ -389,7 +374,7 @@ Codex는 `learning-catalog.find_products`를 다음 인자로 한 번 호출했�
 - 기록일: 2026-09-08
 - 요청 범위: 기존 서버와 `CATALOG`에 `review_purchase(items, budget_krw)`를 추가한다. 상품 ID·수량 목록과 예산을 받아 상품별 단가·수량·소계, 총액, 예산 초과 여부·초과액, 품절 상품 목록을 반환한다. 품절도 금액에 포함하고, 없는 ID가 하나라도 있으면 전체 오류로 처리한다. 빈 목록·잘못된 수량·예산도 오류다. 주문·재고 변경은 하지 않는다.
 - 사용 자료: 노트 3000원·펜 1500원. 상품 가격은 변경하지 않는다.
-- 변경 위치: [서버 코드](learning_lab_server/src/learning_lab_mcp/server.py), [새 구매 검토 테스트](learning_lab_server/tests/test_review_purchase.py), [사용 안내](learning_lab_server/README.md).
+- 변경 위치: [서버 코드](learning_lab_server/src/main/java/lab/week03/CatalogService.java), [새 구매 검토 테스트](learning_lab_server/src/test/java/lab/week03/PurchaseContractTest.java), [사용 안내](learning_lab_server/README.md).
 
 #### 구현을 요청한 프롬프트
 
@@ -423,11 +408,11 @@ review_purchase Tool을 만들어 주세요.
 
 단건 조회, 후보 검색, 수량을 반영한 금액 검토는 필요한 입력과 결과가 달라 별도 Tool로 나뉜다. `review_purchase`는 선택한 상품과 수량의 금액을 계산하고, 통신과 응답 포장은 MCP SDK가 맡는다.
 
-- `PurchaseItem`: 상품 ID와 수량 입력을 묶는다. `quantity`의 `Field(ge=1, strict=True)`는 1 이상 정수만 받는다. 항목의 추가 필드를 거부하므로 호출자가 단가를 전달해 계산에 끼워 넣을 수 없다.
-- `items`의 `min_length=1`과 `budget_krw`의 `Field(ge=0, strict=True)`: 빈 목록과 음수 예산을 거부한다. 수량·예산의 문자열, 실수, 불리언도 자동 변환하지 않는다. 이 검사는 MCP 요청을 받을 때 SDK가 수행하며 Python 타입 주석만으로 일반 함수 직접 호출까지 검증하는 것은 아니다.
+- `PurchaseItem`: 상품 ID와 수량 입력을 묶는다. 수량 입력은 1 이상 정수만 받는다. 항목의 추가 필드를 거부하므로 호출자가 단가를 전달해 계산에 끼워 넣을 수 없다.
+- 공개 입력 계약과 실행 검사: 빈 목록·음수 예산·양수가 아닌 수량을 거부하고 문자열·실수·불리언을 수량이나 금액으로 자동 변환하지 않는다. 외부 형식은 입력 경계에서, 상품 존재·전체 견적 거부·금액 계산은 업무 함수에서 확인한다.
 - `PurchaseLine(Product)`: 기존 상품 결과의 ID·이름·단가(`price_krw`)·재고 필드를 재사용하고 수량과 `subtotal_krw`를 더한다. `CATALOG`의 객체를 수정하지 않고 새 결과 객체를 만든다.
 - `review_purchase`: 계산 전에 전체 입력에서 모르는 ID를 찾는다. 하나라도 있으면 `ValueError`를 발생시키고 SDK가 `isError: true`로 전달한다. 상품별 소계나 합계가 담긴 `structuredContent`는 반환하지 않는다.
-- 금액 계산: 서버가 `product.price_krw * item.quantity`로 소계를 계산해 더한다. `total_krw > budget_krw`일 때만 초과이고, 초과액은 `max(total_krw - budget_krw, 0)`이다. 품절 여부는 합계에서 제외하는 조건으로 사용하지 않는다.
+- 금액 계산: 서버가 상품 단가 × 수량로 소계를 계산해 더한다. `total_krw > budget_krw`일 때만 초과이고, 초과액은 `max(total_krw - budget_krw, 0)`이다. 품절 여부는 합계에서 제외하는 조건으로 사용하지 않는다.
 - `PurchaseReview`: 상품별 결과, 예산, 총액, 초과 여부·초과액, 품절 ID 목록을 한 객체로 반환한다. 같은 상품을 여러 줄에 보내면 각 줄을 유지해 합산하고, 품절 ID는 입력 순서로 한 번씩 표시한다. 결과는 `structuredContent`의 최상위 필드에 있으며 `find_products`의 목록 결과처럼 `result`로 감싸지 않는다.
 
 #### 정상 입력과 응답
@@ -527,7 +512,7 @@ Error executing tool review_purchase: Unknown product ID(s): UNKNOWN. No purchas
 ### 4. 가격 변경 후 같은 구매 검토 요청 재사용
 
 - 기록일: 2026-09-09
-- 대상: [서버의 상품 자료](learning_lab_server/src/learning_lab_mcp/server.py)의 `CATALOG`와 `learning-catalog.review_purchase`의 실제 Codex 호출.
+- 대상: [서버의 상품 자료](learning_lab_server/src/main/java/lab/week03/CatalogService.java)의 `CATALOG`와 `learning-catalog.review_purchase`의 실제 Codex 호출.
 - 변경: `NOTE-01` 단가를 3000원에서 3500원으로 조정했다. 입력은 앞 단계와 같은 노트 두 개·펜 한 개, 예산 8000원이다.
 
 #### 자료 변경과 예상
@@ -587,7 +572,7 @@ Error executing tool review_purchase: Unknown product ID(s): UNKNOWN. No purchas
 
 #### 관련 테스트와 사용 안내 갱신
 
-[조회 테스트](learning_lab_server/tests/test_server_contract.py)와 [구매 검토 테스트](learning_lab_server/tests/test_review_purchase.py)의 기대값을 새 단가에 맞췄다. [프로젝트 사용 안내](learning_lab_server/README.md)의 호출 예시도 현재 가격과 예상 금액으로 갱신했다.
+[조회 테스트](learning_lab_server/src/test/java/lab/week03/PurchaseContractTest.java)와 [구매 검토 테스트](learning_lab_server/src/test/java/lab/week03/PurchaseContractTest.java)의 기대값을 새 단가에 맞췄다. [프로젝트 사용 안내](learning_lab_server/README.md)의 호출 예시도 현재 가격과 예상 금액으로 갱신했다.
 
 - 후보 검색: 예산 3000원·기본 재고 조건에서는 빈 목록, 3500원에서는 노트 한 건이다. 품절 포함 조건에서는 3000원에 펜만, 3500원에 노트와 펜이 반환된다.
 - 구매 검토: 총액 8500원 기준으로 예산 8501원과 8500원은 초과 없음, 8499원은 1원 초과, 0원은 8500원 초과다. 노트 세 개의 총액은 10500원이며 펜의 중복 입력 계산도 확인했다.
@@ -595,9 +580,9 @@ Error executing tool review_purchase: Unknown product ID(s): UNKNOWN. No purchas
 
 프로젝트 폴더에서 실행한 명령:
 
-```text
-uv run --locked python -B -m unittest discover -s tests -v
-```
+Windows PowerShell: `.\gradlew.bat test`
+
+macOS·Linux·WSL: `bash ./gradlew test`
 
 결과는 **14개 테스트 통과(`OK`)**였다. 이 테스트는 SDK의 메모리 연결을 확인하고, 위의 재연결 후 도구 원응답은 Codex의 실제 MCP 호출에서 얻었다. 변경 전후에 같은 입력을 사용했으며 새 자료가 계산과 답변에 반영되는 것을 확인했다.
 
@@ -611,29 +596,28 @@ uv run --locked python -B -m unittest discover -s tests -v
 
 | 요구 | 구현 위치와 처리 |
 |---|---|
-| 기존 조회·계산을 재사용 | [server.py](learning_lab_server/src/learning_lab_mcp/server.py)의 `create_catalog_server()`가 기존 Tool 세 개와 Resource·Prompt를 등록한다. 계산 함수의 상품 조회·소계·합계 규칙은 같은 코드다. |
-| Inspector에서 저장 기능 사용 | [inspector.py](learning_lab_server/src/learning_lab_mcp/inspector.py)의 `create_inspector_server()`가 공통 서버를 만들고 미리보기·저장 도구를 추가한다. |
-| 상품·수량·예산 검증 | `preview_purchase_draft()`의 입력 스키마가 목록·수량·예산을 검사하고 기존 `review_purchase()`가 상품 ID와 금액을 처리한다. |
-| 미리본 내용과 저장 내용 연결 | [drafts.py](learning_lab_server/src/learning_lab_mcp/drafts.py)의 `DraftStore.preview()`가 견적을 JSON 바이트로 확정해 서버 메모리에 보관한다. `save()`는 그 바이트를 사용한다. |
+| 기존 조회·계산을 재사용 | [CatalogServer.java](learning_lab_server/src/main/java/lab/week03/CatalogServer.java)의 `catalogTools()`와 `create()`가 Tool 세 개와 Resource·Prompt를 등록한다. 계산 함수의 상품 조회·소계·합계 규칙은 같은 코드다. |
+| Inspector에서 저장 기능 사용 | [InspectorServer.java](learning_lab_server/src/main/java/lab/week03/InspectorServer.java)의 `InspectorServer.create()`가 공통 서버를 만들고 미리보기·저장 도구를 추가한다. |
+| 상품·수량·예산 검증 | 미리보기 도구의 입력 계약과 실행 검사가 목록·수량·예산을 확인하고 `CatalogService.reviewPurchase()`가 상품 ID와 계산을 처리한다. |
+| 미리본 내용과 저장 내용 연결 | [DraftStore.java](learning_lab_server/src/main/java/lab/week03/DraftStore.java)의 `DraftStore.preview()`가 견적을 JSON 바이트로 확정해 서버 메모리에 보관한다. `save()`는 그 바이트를 사용한다. |
 | 같은 요청·다른 미리보기 구분 | `request_id`는 업무 요청을, `preview_id`는 그 요청의 특정 미리보기를 식별한다. 같은 요청의 새 미리보기가 생기면 이전 미리보기 ID는 무효화된다. |
-| 저장 위치 제한 | `_destination()`이 요청 ID를 검사하고 고정 루트 안의 파일명을 만든다. `_check_root()`와 `_checked_stat()`이 경로의 링크·junction 등을 검사한다. |
-| 중복·기존 파일 충돌 처리 | `_existing()`이 기존 파일의 실제 바이트와 저장할 바이트를 비교한다. 같으면 기존 결과를 반환하고 다르면 `DRAFT_CONFLICT`로 처리한다. |
-| 완성본만 새 파일로 확정 | `_publish()`가 임시 파일을 쓰고 동기화한 뒤 `os.link()`로 사용되지 않은 최종 파일명에 연결한다. 기존 파일을 대체하지 않는다. |
+| 저장 위치 제한 | `destination()`이 요청 ID를 검사하고 고정 루트 안의 파일명을 만든다. `checkRoot()`와 `checked()`이 경로의 링크·junction 등을 검사한다. |
+| 중복·기존 파일 충돌 처리 | `existing()`이 기존 파일의 실제 바이트와 저장할 바이트를 비교한다. 같으면 기존 결과를 반환하고 다르면 `DRAFT_CONFLICT`로 처리한다. |
+| 완성본만 새 파일로 확정 | `save()`가 임시 파일을 쓰고 동기화한 뒤 `publish()`에서 `Files.createLink()`로 사용되지 않은 최종 파일명에 연결한다. 기존 파일을 대체하지 않는다. |
 
-기존 계산을 다른 파일에 복사하는 대신 서버 등록 부분을 함수로 분리했다. 기본 진입점은 `create_catalog_server()`의 결과를 실행하고, Inspector용 진입점은 여기에 두 도구를 추가한다. 따라서 상품값·계산 규칙의 수정 위치는 기존 서버 코드이며, 파일 저장 규칙의 수정 위치는 `drafts.py`다.
+기존 계산을 다른 파일에 복사하는 대신 서버 등록 부분을 함수로 분리했다. 기본 진입점은 등록한 도구를 실행하고, Inspector용 진입점은 여기에 두 도구를 추가한다. 따라서 상품값·계산 규칙의 수정 위치는 기존 서버 코드이며, 파일 저장 규칙의 수정 위치는 `DraftStore.java`다.
 
 #### 미리보기 입력이 확정된 견적으로 이어지는 과정
 
-실제 `preview_purchase_draft()`의 핵심 연결은 다음과 같다.
+미리보기 도구가 기존 계산과 저장소를 연결하는 핵심은 다음과 같다.
 
-```python
-quote = review_purchase(items, budget_krw)
-return store.preview(request_id, quote)
+```java
+return store.preview(requestId, catalog.reviewPurchase(items, budget));
 ```
 
 `items`의 상품·수량과 `budget_krw`는 기존 계산 함수로 전달된다. 노트 두 개·펜 한 개, 예산 8000원에서는 총액 8500원·500원 초과·품절 `PEN-02`가 나온다. 없는 상품이 섞이면 기존 함수가 전체 오류를 반환하므로 저장 가능한 미리보기도 생기지 않는다.
 
-`DraftStore.preview()`는 요청 ID, 견적, 계산의 완전 여부와 가격 정책을 JSON 바이트로 만든다. 내부 `_Snapshot.payload`는 변경할 수 없는 바이트이며, 응답의 `quote`는 별도의 복사본이다. 반환된 미리보기 객체를 고치거나 원자료의 단가를 바꾸더라도 보관된 스냅샷은 달라지지 않는다.
+`DraftStore.preview()`는 요청 ID, 견적, 계산의 완전 여부와 가격 정책을 JSON 바이트로 만든다. 내부 `Snapshot.payload`는 외부에 노출하지 않는 확정된 바이트이며, 응답의 `quote`는 별도의 복사본이다. 반환된 미리보기 객체를 고치거나 원자료의 단가를 바꾸더라도 보관된 스냅샷은 달라지지 않는다.
 
 미리보기 응답에는 `preview_id`, `request_id`, 실제 저장 예정 `path`, `pricing_policy: "preview_snapshot"`, `estimate_complete: true`, `quote`가 들어간다. 미리보기는 초안 파일과 저장 폴더를 만들지 않는다.
 
@@ -649,8 +633,8 @@ return store.preview(request_id, quote)
 
 | 실행 방식 | 명령의 서버 부분 | 제공 도구 |
 |---|---|---|
-| 기존 Codex 연결 | `uv run --locked ai-ax-learning-lab-mcp` | `get_product`, `find_products`, `review_purchase` |
-| 저장 실습용 Inspector | `uv run --locked python -B -m learning_lab_mcp.inspector` | 기존 세 도구와 `preview_purchase_draft`, `save_purchase_draft` |
+| 기존 Codex 연결 | `java -cp "build/install/learning-catalog/lib/*" lab.week03.CatalogServer` | `get_product`, `find_products`, `review_purchase` |
+| 저장 실습용 Inspector | `java -cp "build/install/learning-catalog/lib/*" lab.week03.InspectorServer` | 기존 세 도구와 `preview_purchase_draft`, `save_purchase_draft` |
 
 기본 진입점의 실제 stdio 테스트에서는 세 도구만 목록에 나타났고 저장 도구 이름을 직접 호출해도 오류였다. 이는 이 실행 구성에서 저장 도구가 제공되지 않는다는 근거이며, 사람이 Inspector에서 내용을 확인했다는 근거와는 구분한다.
 
@@ -671,15 +655,15 @@ JSON의 키 순서와 들여쓰기를 고정해 UTF-8 바이트를 만든다. �
 
 기본 저장 루트는 코드 위치를 기준으로 계산한 주차 폴더의 `.local/drafts/`다. MCP 호출에서 저장 루트나 임의 경로를 받지 않는다. 요청 ID는 영문 소문자·숫자·하이픈·밑줄의 제한된 이름이며, `../outside`, 경로 구분자, Windows 예약 장치 이름 등을 거부한다. 기존 `.gitignore`의 `.local/` 규칙이 초안에 적용된다.
 
-한 서버 프로세스 안의 미리보기·저장 처리는 `RLock`으로 직렬화한다. 저장할 때는 다음 순서로 처리한다.
+한 서버 프로세스 안의 미리보기·저장 처리는 공유 잠금으로 직렬화한다. 저장할 때는 다음 순서로 처리한다.
 
 ```text
 미리보기 조회 → 저장 경로 검사 → 기존 파일 내용 대조
-→ 임시 파일 작성·flush·fsync → 최종 파일명에 os.link
+→ 완성된 임시 파일 작성·저장 동기화 → 사용되지 않은 최종 파일명에 게시
 → 임시 파일 정리 → 저장 결과 반환
 ```
 
-`os.link()`는 완성된 파일 내용을 새 이름에 연결하는 표준 파일 기능이다. 최종 경로가 이미 존재하면 덮어쓰지 않고 실패한다. 최초 검사 뒤 파일이 생긴 경우에도 다시 실제 내용을 대조하므로 다른 파일을 대체하지 않는다. 파일시스템이 하드링크를 지원하지 않으면 안전하지 않은 대체 방식으로 진행하지 않고 저장 실패를 반환한다.
+`Files.createLink()`는 완성된 파일 내용을 새 이름에 연결하는 표준 파일 기능이다. 최종 경로가 이미 존재하면 덮어쓰지 않고 실패한다. 최초 검사 뒤 파일이 생긴 경우에도 다시 실제 내용을 대조하므로 다른 파일을 대체하지 않는다. 파일시스템이 하드링크를 지원하지 않으면 안전하지 않은 대체 방식으로 진행하지 않고 저장 실패를 반환한다.
 
 쓰기·동기화·게시 실패에서 `SAVE_FAILED`를 반환하고 기존 초안을 보존했다. 임시 파일은 `.pending-*.tmp` 이름을 사용하며 정상 초안으로 읽지 않는다. 최종 초안 게시 후 임시 파일 정리만 실패하면 `saved`와 `cleanup_pending: true`를 반환해 저장 결과와 정리 상태를 구분한다.
 
@@ -687,13 +671,13 @@ JSON의 키 순서와 들여쓰기를 고정해 UTF-8 바이트를 만든다. �
 
 프로젝트 폴더에서 실행한 명령:
 
-```text
-uv run --locked python -B -m unittest discover -s tests -v
-```
+Windows PowerShell: `.\gradlew.bat test`
+
+macOS·Linux·WSL: `bash ./gradlew test`
 
 결과: **31개 중 30개 통과, 1개 건너뜀**. 건너뛴 검사는 실제 심볼릭 링크 생성이며 Windows의 링크 생성 권한 부족(`WinError 1314`) 때문이었다. 이를 링크를 통한 경로 우회까지 실제 검증한 것으로 기록하지 않는다.
 
-[저장 기능 테스트](learning_lab_server/tests/test_purchase_drafts.py)는 임시 폴더에서 다음 결과를 확인했다.
+[저장 기능 테스트](learning_lab_server/src/test/java/lab/week03/DraftStoreTest.java)는 임시 폴더에서 다음 결과를 확인했다.
 
 | 확인 범위 | 실제 결과 |
 |---|---|
@@ -758,7 +742,7 @@ stdio 저장 검사는 테스트용 임시 루트를 주입한 Inspector 서버�
 
 #### 기본 생성 규칙을 약화시키지 않고 편집을 추가한 이유
 
-기본 `DraftStore.save()`의 기존 파일 보존 규칙을 단순 덮어쓰기로 바꾸면, 기본 실습에서 확인한 재요청·충돌의 의미가 달라진다. 따라서 기존 생성 코드를 재사용하면서 [changes.py](learning_lab_server/src/learning_lab_mcp/changes.py)의 `DraftChanges`가 기존 파일의 편집·복구·취소를 맡도록 구성했다. [inspector.py](learning_lab_server/src/learning_lab_mcp/inspector.py)는 MCP 입력을 받고 기존 `review_purchase()`의 계산 결과를 편집 저장소로 전달한다.
+기본 `DraftStore.save()`의 기존 파일 보존 규칙을 단순 덮어쓰기로 바꾸면, 기본 실습에서 확인한 재요청·충돌의 의미가 달라진다. 따라서 기존 생성 코드를 재사용하면서 [DraftChanges.java](learning_lab_server/src/main/java/lab/week03/DraftChanges.java)의 `DraftChanges`가 기존 파일의 편집·복구·취소를 맡도록 구성했다. [InspectorServer.java](learning_lab_server/src/main/java/lab/week03/InspectorServer.java)는 MCP 입력을 받고 기존 `reviewPurchase()`의 계산 결과를 편집 저장소로 전달한다.
 
 | 실제로 생길 수 있는 문제 | 선택한 구현과 의도 |
 |---|---|
@@ -775,23 +759,19 @@ stdio 저장 검사는 테스트용 임시 루트를 주입한 Inspector 서버�
 
 대표 입력은 초안 `purchase-change-001`, 편집 요청 `edit-001`, 노트 두 개·펜 한 개, 예산 8000원이다. 현재 초안의 5000원 견적을 읽고 기존 계산 함수로 8500원 견적을 만든다.
 
-```python
-# Inspector 입력 → 기존 계산 → 파일 편집 미리보기
-return changes.preview_edit(
-    draft_id, operation_id, review_purchase(items, budget_krw)
-)
+```java
+return changes.previewEdit(draftId, operationId, catalog.reviewPurchase(items, budget));
 
-# DraftChanges.preview_edit()에서 기존 문서를 보존하며 바꾸는 부분
-after = dict(before)
-after["quote"] = quote.model_dump(mode="json")
-after["revision"] = operation_id
+// 기존 문서에서 바꿀 업무 필드만 갱신한다.
+before.put("quote", quote(quote));
+before.put("revision", operationId);
 ```
 
 응답의 `before`와 `after`는 메모까지 포함한 전체 문서다. 저장에서는 응답 객체를 다시 받아 쓰지 않고 내부 `Change.after`에 보관한 확정된 JSON 바이트를 사용한다. 응답 객체나 상품 단가가 이후 바뀌어도 읽었던 견적이 바뀌지 않도록 한 구성이다. 새로운 가격을 반영하려면 새 미리보기를 만들어 읽는다.
 
 변경 전 파일은 바이트 그대로 보관한다. 취소할 때 견적을 재계산하거나 JSON을 다시 조립하면 메모·필드 순서·들여쓰기까지 달라질 수 있으므로, 직전 파일을 정확히 복원하는 데 이 바이트를 사용한다.
 
-`preview_draft_edit`와 `preview_draft_undo`는 초안·이력 파일을 만들거나 수정하지 않는다. 실제 적용은 내용을 확인한 뒤 Inspector에서 `apply_draft_change`를 직접 호출하는 경로다. 미리보기 ID를 사람의 승인 증거로 간주하지 않는다. 기본 Codex 진입점에는 기존 조회·계산 도구 세 개만 제공한다. 기존 파일을 바꾸는 적용·재개 도구에는 `readOnlyHint=False`, `destructiveHint=True`를 선언해 도구 정보도 실제 동작에 맞췄다.
+`preview_draft_edit`와 `preview_draft_undo`는 초안·이력 파일을 만들거나 수정하지 않는다. 실제 적용은 내용을 확인한 뒤 Inspector에서 `apply_draft_change`를 직접 호출하는 경로다. 미리보기 ID를 사람의 승인 증거로 간주하지 않는다. 기본 Codex 진입점에는 기존 조회·계산 도구 세 개만 제공한다. 기존 파일을 바꾸는 적용·재개 도구에는 `readOnlyHint: false`, `destructiveHint: true`를 선언해 도구 정보도 실제 동작에 맞췄다.
 
 #### 초안·요청·미리보기 식별자를 나눈 이유
 
@@ -803,37 +783,37 @@ after["revision"] = operation_id
 | 문서의 `revision` | 적용한 편집 요청 ID | 같은 금액인 편집도 서로 다른 변경으로 식별 |
 | 응답의 `base_version` | 원본 내용에서 계산한 값 | 미리보기 원본을 식별하는 참고 정보 |
 
-`base_version`은 원본 바이트의 SHA-256 값이지만, 실제 충돌 검사는 이것 하나로 끝내지 않는다. `FileVersion`의 전체 바이트·수정 시각·파일 식별 정보와 SQLite의 마지막 적용 순서를 함께 사용한다. 학습자가 해시를 계산하거나 제출하는 절차는 없다.
+`base_version`은 원본 바이트의 SHA-256 값이지만, 실제 충돌 검사는 이것 하나로 끝내지 않는다. `파일 버전`의 전체 바이트·수정 시각·파일 식별 정보와 SQLite의 마지막 적용 순서를 함께 사용한다. 학습자가 해시를 계산하거나 제출하는 절차는 없다.
 
 같은 `operation_id`의 기록이 있으면 초안 ID·변경 종류·확정된 견적을 대조한다. 다른 예산이나 다른 초안에 그 ID를 재사용하면 `OPERATION_CONFLICT`다. 같은 초안의 새 편집·취소 미리보기는 이전 미리보기 ID를 무효화하지만, 이미 적용을 요청해 영속 기록된 작업은 요청 ID로 상태를 확인하고 재개할 수 있다.
 
 #### 파일 교체와 완료 기록 사이의 틈을 처리한 이유
 
-표준 라이브러리 `sqlite3`를 사용해 `.local/drafts/.history/changes.sqlite3`에 요청별 변경 전·후 내용과 처리 상태를 저장한다. SQLite는 별도 DB 서버 없이 트랜잭션을 제공하므로, 이력을 임의의 여러 JSON 파일에 나눠 저장하는 코드를 추가할 필요가 없다. [Python sqlite3 설명](https://docs.python.org/3/library/sqlite3.html)
+요청별 변경 전·후 내용과 상태를 SQLite에 기록한다. 현재 Java 구현은 JDBC로 `.local/drafts-java/.history/changes.sqlite3`에 연결한다. SQLite는 별도 서버 없이 트랜잭션을 제공하므로 요청 기록의 원자적 확정과 중단 복구를 기존 저장 도구에 맡길 수 있다. [SQLite 트랜잭션](https://www.sqlite.org/lang_transaction.html)
 
 다만 **SQLite의 트랜잭션이 초안 JSON의 파일 교체까지 한 번에 묶어 주지는 않는다.** 이 차이 때문에 적용을 다음 순서로 구성했다.
 
 ```text
 원본 버전 확인
 → SQLite에 변경 전·후 바이트와 prepared 상태 커밋
-→ 임시 파일 작성·flush·fsync
+→ 완성된 임시 파일 작성·저장 동기화
 → 게시할 임시 파일의 수정 시각·식별 정보 커밋
 → 잠금 재획득과 원본 버전·마지막 적용 순서 재확인
-→ os.replace로 초안 파일 교체
+→ 확인한 초안 파일의 원자적 교체
 → SQLite에 applied와 반영된 파일 정보 커밋
 ```
 
 첫 커밋은 어떤 변경을 적용하려고 했는지를 파일 교체 전에 남긴다. 임시 파일의 식별 정보를 남기는 커밋은 아래의 복구 중 외부 재저장을 구별하는 데 필요하다. 마지막 커밋은 실제 반영 결과를 기록한다. SQLite의 `synchronous=FULL`을 사용하며, DB 자체의 중단 복구는 SQLite에 맡긴다. [SQLite 커밋과 복구 설명](https://www.sqlite.org/atomiccommit.html)
 
-기본 생성은 기존 파일을 건드리지 않는 `os.link()`가 맞았지만, 편집은 확인한 기존 파일을 교체해야 하므로 `os.replace()`를 사용한다. 바꾸려는 동작이 달라 표준 파일 기능의 선택도 달라졌다. 임시 파일의 작성과 동기화가 끝난 뒤 원본 버전을 다시 비교하는 이유는, 느린 파일 쓰기 동안 바뀐 내용을 가능한 한 교체 직전에 발견하기 위해서다.
+기본 생성은 사용되지 않은 이름에만 게시하고, 편집은 확인한 기존 버전을 교체한다. 현재 구현에서는 각각 `Files.createLink()`와 `Files.move(..., ATOMIC_MOVE, REPLACE_EXISTING)`로 그 조건을 구현한다. 바꾸려는 동작이 달라 표준 파일 기능의 선택도 달라졌다. 임시 파일의 작성과 동기화가 끝난 뒤 원본 버전을 다시 비교하는 이유는, 느린 파일 쓰기 동안 바뀐 내용을 가능한 한 교체 직전에 발견하기 위해서다.
 
-한 서버의 생성·편집은 같은 `RLock`을 사용하고, 이력의 검사·갱신 구간은 `BEGIN IMMEDIATE`로 묶었다. 외부 편집기는 이 잠금을 따르지 않으므로, 실제 실습은 외부 편집기의 저장이 끝난 뒤 적용·재개하는 조건이다. 동시에 실행되는 외부 편집기의 파일 교체와 검사까지 하나의 원자적 작업으로 보장한 것은 아니다.
+한 서버의 생성·편집은 같은 요청 직렬화 잠금을 사용하고, 이력의 검사·갱신 구간은 `BEGIN IMMEDIATE`로 묶었다. 외부 편집기는 이 잠금을 따르지 않으므로, 실제 실습은 외부 편집기의 저장이 끝난 뒤 적용·재개하는 조건이다. 동시에 실행되는 외부 편집기의 파일 교체와 검사까지 하나의 원자적 작업으로 보장한 것은 아니다.
 
 #### 복구에서 내용만 비교하면 놓치는 변경
 
 JSON 교체 직후 완료 기록 전에 프로세스가 중단됐다고 가정한다. 그 사이 외부 편집기에서 내용을 바꿨다가 원래 바이트와 같은 내용으로 다시 저장하면, 내용 비교만으로는 외부 저장을 구별할 수 없다. 이 상태를 해당 작업의 정상 게시 결과로 채택하면 이후 취소까지 허용해 버릴 수 있다.
 
-그래서 `_replace()`는 완성된 임시 파일의 수정 시각·파일 식별 정보를 SQLite에 먼저 확정한다. 같은 파일시스템에서 교체할 때 이어지는 이 정보와 변경 후 바이트를 복구 과정에서 함께 확인한다. 실제 회귀 검사에서는 교체 직후 오류 → 외부 변경 후 같은 내용 재저장 → 재시작을 재현했다. 수정 시각이 달라진 파일은 `RECOVERY_CONFLICT`로 보존됐고 그 작업의 취소도 허용되지 않았다.
+그래서 `replace()`는 완성된 임시 파일의 수정 시각·파일 식별 정보를 SQLite에 먼저 확정한다. 같은 파일시스템에서 교체할 때 이어지는 이 정보와 변경 후 바이트를 복구 과정에서 함께 확인한다. 실제 회귀 검사에서는 교체 직후 오류 → 외부 변경 후 같은 내용 재저장 → 재시작을 재현했다. 수정 시각이 달라진 파일은 `RECOVERY_CONFLICT`로 보존됐고 그 작업의 취소도 허용되지 않았다.
 
 #### 재시작 후 실제 파일로 완료 여부를 판단하는 방법
 
@@ -853,17 +833,17 @@ DB의 완료 기록 직전에 프로세스가 종료된 경우 SQLite 자체의 
 
 #### 취소를 마지막 편집 한 건으로 제한한 이유
 
-취소는 초안 삭제가 아니라 대상 편집의 **직전 파일 복원**이다. `preview_draft_undo()`는 대상이 가장 최근에 적용된 편집인지, 현재 파일의 바이트·수정 시각·식별 정보가 그 편집의 적용 결과인지 확인한다.
+취소는 초안 삭제가 아니라 대상 편집의 **직전 파일 복원**이다. `preview_draft_undo`는 대상이 가장 최근에 적용된 편집인지, 현재 파일의 바이트·수정 시각·식별 정보가 그 편집의 적용 결과인지 확인한다.
 
 예를 들어 편집 A 뒤 편집 B가 있었다면 A 취소는 거부한다. B를 취소해 파일 내용이 A의 결과와 같아져도, 마지막 적용 이력은 B의 취소이므로 A를 다시 취소할 수 없다. 금액이나 현재 파일 내용만 비교하면 놓치는 이후 변경 이력을 보존하기 위한 선택이다.
 
-정상 취소도 별도 `operation_id`와 미리보기를 사용하고 동일한 준비·적용·복구 흐름을 지난다. 취소 재요청이나 취소 중 중단도 편집과 같은 방식으로 처리한다. `get_draft_history()`에서 편집과 취소의 기록 순서를 확인할 수 있다.
+정상 취소도 별도 `operation_id`와 미리보기를 사용하고 동일한 준비·적용·복구 흐름을 지난다. 취소 재요청이나 취소 중 중단도 편집과 같은 방식으로 처리한다. `get_draft_history`에서 편집과 취소의 기록 순서를 확인할 수 있다.
 
 #### 자동 검사·stdio 실행 결과
 
-명령은 프로젝트 폴더에서 `uv run --locked python -B -m unittest discover -s tests -v`다. 결과는 **54개 중 53개 통과, 1개 건너뜀**이었다. 기존 실제 심볼릭 링크 생성 검사는 Windows 권한 부족(`WinError 1314`)으로 건너뛰었다. 심화의 경로 거부 검사는 대역을 통한 검사도 포함하며, 이를 실제 링크 생성 검증과 동일하게 취급하지 않는다.
+당시 구현의 자동 검사 결과는 **54개 중 53개 통과, 1개 건너뜀**이었다. 실제 심볼릭 링크 생성은 Windows 권한 부족으로 건너뛰었다.
 
-[심화 테스트](learning_lab_server/tests/test_draft_changes.py)는 임시 초안으로 다음을 확인했다.
+[심화 테스트](learning_lab_server/src/test/java/lab/week03/DraftChangesTest.java)는 임시 초안으로 다음을 확인했다.
 
 | 검증 대상 | 실제 결과 |
 |---|---|
@@ -877,7 +857,7 @@ DB의 완료 기록 직전에 프로세스가 종료된 경우 SQLite 자체의 
 | 중단 후 외부 재저장 | 내용이 달라졌거나 같은 바이트로 다시 저장돼도 파일 버전이 다르면 충돌·보존 |
 | 기본 기능 | 조회·계산·새 초안 생성과 기존 보존 검사 통과 |
 
-별도 Python 프로세스에서는 적용 준비 후, 임시 파일 20바이트 작성 후, 게시 식별 정보 커밋 직전·직후, JSON 교체 후, 완료 상태의 DB 커밋 직전에 각각 `os._exit`로 프로세스를 종료했다. 여섯 중단 지점 모두 새 저장소 인스턴스의 재개로 8500원 편집이 확정됐다. 교체 후 중단된 두 경우에는 파일 수정 시각이 바뀌지 않아 재개가 파일을 다시 쓰지 않았음을 확인했다. 불완전한 임시 파일은 정상 초안으로 사용되지 않았고 재개 후 정리됐다. 취소도 JSON 교체 직전·직후에 프로세스를 종료한 두 경우를 확인했으며, 재개 후 원래 5000원 초안의 바이트가 정확히 복원됐다.
+당시 별도 프로세스에서는 적용 준비 후, 임시 파일 20바이트 작성 후, 게시 식별 정보 커밋 직전·직후, JSON 교체 후, 완료 상태의 DB 커밋 직전에 각각 프로세스를 즉시 종료했다. 여섯 중단 지점 모두 새 저장소 인스턴스의 재개로 8500원 편집이 확정됐다. 교체 후 중단된 두 경우에는 파일 수정 시각이 바뀌지 않아 재개가 파일을 다시 쓰지 않았음을 확인했다. 불완전한 임시 파일은 정상 초안으로 사용되지 않았고 재개 후 정리됐다. 취소도 JSON 교체 직전·직후에 프로세스를 종료한 두 경우를 확인했으며, 재개 후 원래 5000원 초안의 바이트가 정확히 복원됐다.
 
 실제 stdio 서버도 한 번 종료한 뒤 새 프로세스로 연결했다. 편집 적용 → 재시작 후 상태 조회 → 재요청 → 취소 미리보기·적용 → 이력 두 건 확인까지 통과했다. 기존 Codex용 서버에는 조회·계산 세 도구만 있고 심화 쓰기 도구는 호출할 수 없는 경계도 검사했다.
 
