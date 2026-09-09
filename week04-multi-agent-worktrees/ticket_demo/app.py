@@ -3,7 +3,10 @@ from titles import normalize_title
 
 
 def render_ticket(title: str, priority: str) -> str:
-    return f"[{priority_label(priority)}] {normalize_title(title)}"
+    display_title = normalize_title(title)
+    if priority == "P0" and not title.strip():
+        display_title = "담당자 확인 필요"
+    return f"[{priority_label(priority)}] {display_title}"
 
 
 if __name__ == "__main__":
