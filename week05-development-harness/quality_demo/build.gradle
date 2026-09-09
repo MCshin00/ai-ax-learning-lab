@@ -1,0 +1,46 @@
+plugins { id 'application' }
+repositories { mavenCentral() }
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release.set(17)
+}
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    testLogging { events 'passed', 'skipped', 'failed'; exceptionFormat = 'full' }
+}
+tasks.withType(JavaExec).configureEach {
+    defaultCharacterEncoding = 'UTF-8'
+    jvmArgs '-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8'
+}
+application { mainClass = 'lab.week05.Refund' }
+
+configurations { hookLibraries }
+dependencies {
+    implementation 'com.google.code.gson:gson:2.13.2'
+    hookLibraries 'com.google.code.gson:gson:2.13.2'
+}
+sourceSets {
+    hook {
+        java.srcDirs = ['.codex/hooks']
+        java.exclude 'tests/**'
+        compileClasspath = configurations.hookLibraries
+        runtimeClasspath = output + compileClasspath
+    }
+    hookTest {
+        java.srcDirs = ['.codex/hooks/tests']
+        compileClasspath = sourceSets.hook.output + configurations.testCompileClasspath + configurations.hookLibraries
+        runtimeClasspath = output + sourceSets.hook.output + configurations.testRuntimeClasspath + configurations.hookLibraries
+    }
+}
+tasks.register('hookTest', Test) {
+    testClassesDirs = sourceSets.hookTest.output.classesDirs
+    classpath = sourceSets.hookTest.runtimeClasspath
+}
+tasks.register('prepareHook', Copy) {
+    from configurations.hookLibraries
+    into '.local/hook-runtime'
+}
