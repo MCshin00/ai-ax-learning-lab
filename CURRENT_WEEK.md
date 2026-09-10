@@ -1,6 +1,6 @@
 # 현재 학습
 
-## 5주차 · 하네스 운영 제어와 재사용
+## 5주차 · 개발 하네스 v1
 
 - 상세 학습 본문: [week05-development-harness/README.md](week05-development-harness/README.md)
 - 기본 작업 폴더(CWD): [`week05-development-harness/quality_demo`](week05-development-harness/quality_demo/)

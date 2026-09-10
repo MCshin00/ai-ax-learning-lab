@@ -1,64 +1,50 @@
 package lab.week05;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import java.io.IOException;
+import com.google.gson.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
-import java.nio.file.Path;
+import java.nio.file.*;
+import java.util.HashSet;
 
+/** 행별 입력 오류도 처리 결과로 남긴다. 파일·전체 형식 오류와 구분한다. */
 public final class BatchRefund {
     private BatchRefund() {}
-
-    public static void main(String[] args) {
-        if (args.length != 1) {
-            fail("사용법: BatchRefund <JSON 파일 경로>");
-            return;
+    public static JsonArray process(JsonElement input) {
+        if (!input.isJsonArray()) throw new IllegalArgumentException("입력은 요청 배열이어야 합니다.");
+        var ids = new HashSet<String>();
+        for (JsonElement value : input.getAsJsonArray()) {
+            if (!value.isJsonObject() || !value.getAsJsonObject().has("id")) {
+                throw new IllegalArgumentException("각 요청에는 고유한 문자열 id가 필요합니다.");
+            }
+            var id = value.getAsJsonObject().get("id");
+            if (!id.isJsonPrimitive() || !id.getAsJsonPrimitive().isString() || !ids.add(id.getAsString())) {
+                throw new IllegalArgumentException("각 요청에는 고유한 문자열 id가 필요합니다.");
+            }
         }
-
-        JsonElement document;
-        try {
-            String raw = Files.readString(Path.of(args[0]), StandardCharsets.UTF_8);
-            document = RefundInput.JSON.fromJson(raw, JsonElement.class);
-        } catch (IOException | InvalidPathException failure) {
-            fail("파일을 읽을 수 없습니다: " + failure.getMessage());
-            return;
-        } catch (JsonParseException failure) {
-            fail("올바른 JSON이 아닙니다: " + failure.getMessage());
-            return;
-        }
-        if (document == null || !document.isJsonArray()) {
-            fail("최상위 JSON 값은 배열이어야 합니다.");
-            return;
-        }
-
-        JsonArray results = refundRequests(document.getAsJsonArray());
-        System.out.println(RefundInput.JSON.toJson(results));
-    }
-
-    private static JsonArray refundRequests(JsonArray requests) {
         JsonArray results = new JsonArray();
-        for (JsonElement request : requests) {
+        for (JsonElement value : input.getAsJsonArray()) {
+            var row = value.getAsJsonObject();
             JsonObject result = new JsonObject();
-            result.add("id", request.getAsJsonObject().get("id"));
+            result.add("id", row.get("id").deepCopy());
             try {
-                long refund = RefundInput.refundFromJson(request);
+                long refund = RefundInput.calculate(row);
                 result.addProperty("status", "ok");
                 result.addProperty("refund", refund);
-            } catch (IllegalArgumentException invalidInput) {
+            } catch (IllegalArgumentException error) {
                 result.addProperty("status", "error");
-                result.addProperty("error", invalidInput.getMessage());
+                result.addProperty("error", error.getMessage());
             }
             results.add(result);
         }
         return results;
     }
-
-    private static void fail(String message) {
-        System.err.println(message);
-        System.exit(1);
+    public static void main(String[] args) {
+        try {
+            if (args.length != 1) throw new IllegalArgumentException("요청 JSON 파일을 지정하세요.");
+            var input = JsonParser.parseString(Files.readString(Path.of(args[0]), StandardCharsets.UTF_8));
+            System.out.println(process(input));
+        } catch (Exception error) {
+            System.err.println(error.getMessage());
+            System.exit(1);
+        }
     }
 }

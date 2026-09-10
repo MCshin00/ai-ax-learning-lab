@@ -9,5 +9,6 @@ public final class Refund {
         if (paid < 0 || fee < 0) { throw new IllegalArgumentException(AMOUNT_ERROR); }
         return feeWaived ? paid : Math.max(0L, paid - fee);
     }
+
     public static void main(String[] args) { System.out.println(refundAmount(10000, 2000)); }
 }

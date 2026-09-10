@@ -22,10 +22,14 @@ tasks.register('batch', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'lab.week05.BatchRefund'
 }
-
-tasks.register('checkBatch', JavaExec) {
-    classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'lab.week05.BatchResultCheck'
+// 실행 제어가 Gradle 밖에서 돌아야 검사 명령을 독립적으로 호출할 수 있다.
+tasks.register('referenceEngineJar', Jar) {
+    archiveFileName = 'reference-engine.jar'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest { attributes 'Main-Class': 'lab.week05.example.EngineCli' }
+    from sourceSets.main.output
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude 'META-INF/*.SF', 'META-INF/*.RSA', 'META-INF/*.DSA'
 }
 
 configurations { hookLibraries }

@@ -1,0 +1,17 @@
+{
+  "goal": "제공 환불 배치를 실행하고 모든 요청에 같은 id·순서의 처리 결과가 있는지 확인하세요. 실제 결함이 있으면 필요한 코드만 수정하고 기존 검사를 사용하세요. 변경·실제 결과·남은 문제를 짧게 보고하세요.",
+  "workspace": ".",
+  "context_files": ["AGENTS.md", "harness/contract.md"],
+  "repair_limit": 1,
+  "timeout_seconds": 600,
+  "commands": {
+    "windows": {
+      "execute": ["cmd", "/d", "/c", "codex.cmd", "-a", "never", "exec", "--sandbox", "workspace-write", "--json", "--ephemeral", "--skip-git-repo-check", "-o", ".local/reference-engine/agent-message.txt", "-"],
+      "verify": ["cmd", "/d", "/c", "gradlew.bat", "--no-daemon", "test"]
+    },
+    "posix": {
+      "execute": ["codex", "-a", "never", "exec", "--sandbox", "workspace-write", "--json", "--ephemeral", "--skip-git-repo-check", "-o", ".local/reference-engine/agent-message.txt", "-"],
+      "verify": ["sh", "gradlew", "--no-daemon", "test"]
+    }
+  }
+}
