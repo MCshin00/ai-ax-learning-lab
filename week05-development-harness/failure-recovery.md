@@ -210,3 +210,7 @@ flowchart TD
 코드는 이벤트 JSON의 `tool_response.exit_code`를 읽는다. 0이면 `{}`, 실패 코드이면 `systemMessage`에 경고와 `hookSpecificOutput.additionalContext`에 원인 확인·재검사 안내를 만든다. 종료 코드를 읽지 못하면 실행 결과 확인을 안내한다. 다음 명령은 이 피드백을 받은 모델이 선택한다.
 
 Hook 코드 검사와 예시 입력에 대한 피드백 생성은 확인했으며, Host가 실제 명령 뒤에 Hook을 자동 실행하는 연결은 미확인이다. Day 4·5에서 실제 사용한 경로는 `checkBatch`의 도구 출력과 프로젝트 지침이다. 이 경로에서 완료 보류와 재검사는 확인됐으며, 모든 완료 보고를 강제로 차단하는 장치로 구현한 것은 아니다. Hook의 실행 준비와 세부 입출력은 [실습 README의 Hook 설명](quality_demo/README.md#hook-명령-결과를-다음-판단에-연결하기)에 있다.
+
+---
+
+새로 시작한 Day 1 이후의 학습은 [개발 하네스 학습 기록](harness-learning.md)에 정리합니다.
