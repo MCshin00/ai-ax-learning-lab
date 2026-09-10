@@ -1,0 +1,26 @@
+{
+  "workspace": "..",
+  "task": "harness/task.md",
+  "context": [
+    "AGENTS.md",
+    "harness/contract.md"
+  ],
+  "verify": {
+    "windows": [
+      "cmd",
+      "/d",
+      "/c",
+      "gradlew.bat",
+      "--no-daemon",
+      "test"
+    ],
+    "posix": [
+      "sh",
+      "gradlew",
+      "--no-daemon",
+      "test"
+    ]
+  },
+  "maxRepairs": 1,
+  "timeoutSeconds": 600
+}

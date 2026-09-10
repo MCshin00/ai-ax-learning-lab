@@ -58,3 +58,22 @@ tasks.register('prepareHook', Copy) {
     from configurations.hookLibraries
     into '.local/hook-runtime'
 }
+
+// 자체 하네스를 Gradle 밖에서 시작해 검사 프로세스와 분리한다.
+tasks.register('developmentHarnessJar', Jar) {
+    archiveFileName = 'development-harness.jar'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest { attributes 'Main-Class': 'lab.week05.harness.HarnessCli' }
+    from sourceSets.main.output
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude 'META-INF/*.SF', 'META-INF/*.RSA', 'META-INF/*.DSA'
+}
+
+// 하네스는 이번 검사만의 JUnit 결과로 실행 실패와 테스트 실패를 구분한다.
+tasks.named('test') {
+    inputs.files(fileTree('data') { include '*.json' })
+    def harnessReports = providers.gradleProperty('harnessReportDir')
+    if (harnessReports.isPresent()) {
+        reports.junitXml.outputLocation = file(harnessReports.get())
+    }
+}
