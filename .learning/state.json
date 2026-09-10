@@ -1,13 +1,14 @@
 {
   "layout_version": 6,
   "created_at": "2026-07-25T10:42:29.915424+00:00",
-  "current_week": 5,
+  "current_week": 6,
   "applied_weeks": [
     1,
     2,
     3,
     4,
-    5
+    5,
+    6
   ],
   "references_revealed": [],
   "applied_files": {
@@ -77,9 +78,23 @@
       "week05-development-harness/quality_demo/src/test/java/lab/week05/example/EngineCliTest.java",
       "week05-development-harness/quality_demo/src/test/java/lab/week05/example/EngineDesignTest.java",
       "week05-development-harness/quality_demo/windows-gradle.md"
+    ],
+    "6": [
+      "week06-llm-api-tool-calling/llm_lab/.gitignore",
+      "week06-llm-api-tool-calling/llm_lab/build.gradle",
+      "week06-llm-api-tool-calling/llm_lab/gradle/wrapper/gradle-wrapper.jar",
+      "week06-llm-api-tool-calling/llm_lab/gradle/wrapper/gradle-wrapper.properties",
+      "week06-llm-api-tool-calling/llm_lab/gradlew",
+      "week06-llm-api-tool-calling/llm_lab/gradlew.bat",
+      "week06-llm-api-tool-calling/llm_lab/README.md",
+      "week06-llm-api-tool-calling/llm_lab/settings.gradle",
+      "week06-llm-api-tool-calling/llm_lab/src/main/java/lab/week06/AssistantExercise.java",
+      "week06-llm-api-tool-calling/llm_lab/src/main/java/lab/week06/CustomerDirectory.java",
+      "week06-llm-api-tool-calling/llm_lab/src/main/java/lab/week06/Quickstart.java",
+      "week06-llm-api-tool-calling/llm_lab/src/test/java/lab/week06/QuickstartTest.java"
     ]
   },
-  "updated_at": "2026-09-10T13:18:42.076402+00:00",
+  "updated_at": "2026-09-10T15:02:02.997605+00:00",
   "source_guide_sha256": "6655b6771a17fea46d7d75aace25aa9f4fc52c1951ca3a370d04043a5166bea7",
   "migrated_from_layout_version": 2,
   "layout_migrated_at": "2026-08-12T17:39:12.701181+00:00",
