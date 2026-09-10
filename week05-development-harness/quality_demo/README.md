@@ -20,9 +20,9 @@ macOS·Linux·WSL:
 ./gradlew test
 ```
 
-`Refund.refundAmount(paid, fee)`는 유효한 두 금액의 차감을 계산하고 결과의 하한을 0으로 둡니다. 음수 입력은 계산 전에 거부합니다. 정수 원 단위이며 기본 출력은 `8000`, 시작 테스트는 세 개이며 현재 A까지의 전체 업무 검사는 11개입니다.
+`Refund.refundAmount(paid, fee)`는 유효한 두 금액의 차감을 계산하고 결과의 하한을 0으로 둡니다. 음수 입력은 계산 전에 거부합니다. 정수 원 단위이며 기본 출력은 `8000`입니다. 시작 테스트 세 개를 포함한 A 검사 11개, B 검사 7개, 저장된 출력 검사 10개로 `test` 작업은 총 28개입니다.
 
-**현재 Day 2의 요구 A까지 완료했습니다.** 수수료 면제와 JSON 입력 경계, 제공 자료를 연결한 검사가 구현되어 있습니다. 요구 B는 다음 활동으로 남아 있습니다. 아래 시작 설명은 제공본의 기준이며 현재 구현의 자동 검증 결과는 `../failure-recovery.md`에 있습니다.
+**현재 요구 A와 B의 구현·업무 검사를 확인했습니다.** 수수료 면제와 JSON 입력 경계를 여러 요청의 배치 처리에 재사용합니다. 실제 8행의 출력과 오류 행을 제외한 교육용 복사본의 대조 근거는 `../failure-recovery.md`에 있습니다.
 
 Windows의 Codex에서 Gradle 소켓 초기화가 실패하면 [소켓 오류 해결 및 정리](#windows에서-gradle-소켓-오류가-날-때)를 참고하세요.
 
@@ -89,13 +89,107 @@ macOS·Linux·WSL:
 
 `data/batch-expected.json`과 파싱한 결과의 값·배열 순서를 비교합니다. 공백과 객체 키 순서는 판정 기준이 아닙니다. 오류 행도 요청을 처리한 결과이며, 반환 행 수만 같아도 식별자나 순서가 다르면 완전하지 않습니다.
 
+## 이번 출력 검사와 완료 판단
+
+`BatchResultCheck.compare`는 기존 배치 테스트의 요청 수·식별자·순서·행 내용 비교를 공통 코드로 옮긴 것입니다. `BatchRefundTest`와 `checkBatch` 명령이 같은 기준을 사용합니다. `checkBatch`는 입력 파일, 업무 요구에서 정한 기대 결과 파일, 실제 출력 파일을 순서대로 받습니다. 파일을 읽거나 해석하지 못해도 실패합니다. 환불액은 현재 금액 계약에 맞는 0 이상의 64비트 정수 형식과 정확한 값까지 확인합니다. 소수점·지수 표기나 숫자를 담은 문자열은 통과하지 않습니다.
+
+다음은 배치를 새로 실행하고 **바로 그 출력**을 검사하는 경로입니다. 아래 순서와 검사 판정을 완료 보고 전에 사용하는 규칙은 `AGENTS.md`에 있습니다.
+
+Windows PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force -Path .local/current-batch | Out-Null
+.\gradlew.bat -q batch --args="data/batch-requests.json" 2> .local/current-batch/batch.stderr.log |
+    Set-Content -Encoding utf8 .local/current-batch/actual.json
+if ($LASTEXITCODE -ne 0) { throw '배치 실행 실패: 표준 오류의 원인을 확인하세요.' }
+.\gradlew.bat -q checkBatch --args="data/batch-requests.json data/batch-expected.json .local/current-batch/actual.json"
+if ($LASTEXITCODE -ne 0) { throw '완료 보류: 검사에서 지적한 결과를 확인하세요.' }
+.\gradlew.bat test
+```
+
+macOS·Linux·WSL:
+
+```bash
+mkdir -p .local/current-batch
+./gradlew -q batch --args="data/batch-requests.json" > .local/current-batch/actual.json 2> .local/current-batch/batch.stderr.log &&
+./gradlew -q checkBatch --args="data/batch-requests.json data/batch-expected.json .local/current-batch/actual.json" &&
+./gradlew test
+```
+
+정상 출력이나 비교용 복사본을 따로 검사하려면 `checkBatch`의 마지막 경로를 해당 파일로 바꿉니다. 성공 3행과 올바른 오류 5행이 모두 있으면 검사 통과와 종료 코드 0을 반환합니다. 누락·중복·잘못된 식별자·내용 불일치가 있으면 「완료 보류」와 이유를 표준 오류로 알리고 0이 아닌 코드로 끝납니다. 배치가 정상 종료했더라도 이 검사에서 실패한 파일은 완료 근거로 사용하지 않습니다.
+
+실패 원인을 확인하고 필요한 부분을 수정하거나 배치를 다시 실행한 뒤, 사용할 출력에 같은 검사를 적용합니다. 기대 자료를 실제 오답에 맞춰 바꾸지 않습니다. 검사 명령은 전달받은 파일을 대조하므로 어떤 실행에서 나온 파일인지는 실행·저장 경로와 함께 확인해야 합니다. 이 구성은 명령 결과와 프로젝트 지침으로 Codex의 다음 행동을 연결하며, Hook 없이 사용합니다.
+
 ## Hook: 명령 결과를 다음 판단에 연결하기
 
-Day 4~5에는 **Day 3의 완료 기준을 실제 검사와 후속 행동에 연결하는 방법**을 배웁니다. 결과 누락을 판정할 위치와 그 판정을 AI에 전달할 위치를 선택하고, 완료 보류·수정·재검사로 이어지는지 확인합니다. 새 세션에서는 저장된 지침과 검사를 찾아 같은 판단을 하는지 봅니다. 제공 Hook을 연결하는 것만으로 이 설계를 대신하지 않습니다.
+Day 4~5에는 **Day 3의 완료 기준을 실제 검사와 후속 행동에 연결하는 방법**을 배웁니다. 결과 누락을 판정할 위치와 그 판정을 AI에 전달할 위치를 선택하고, 완료 보류·수정·재검사로 이어지는지 확인합니다. 새 세션에서는 저장된 지침과 검사를 찾아 같은 판단을 하는지 봅니다.
 
-`.codex/hooks.json`은 `PostToolUse` 이벤트를 `.codex/hooks/PostToolUseReview.java`에 전달합니다. 실패 종료 코드는 짧은 경고와 원인 구분·수정·재검사 지침으로 바꿉니다. 종료 코드가 없으면 성공으로 간주하지 않고 실행 완료 여부를 확인하도록 알립니다. 종료 코드 0은 `{}`를 반환하므로 결과 누락 자체를 찾지 못합니다.
+Hook은 도구 사용 같은 특정 사건이 발생했을 때 정해 둔 프로그램을 실행하는 연결입니다. 이 프로젝트의 Hook은 **명령 실행이 끝난 시점에 실패 대응 지침을 추가로 전달하는 구성**입니다. 아래는 프로젝트에 들어 있는 실제 파일과 설정을 기준으로 한 설명입니다.
 
-Hook은 검사를 직접 시작하거나 코드를 복구하거나 작업 종료를 강제로 막지 않습니다. 실제 결과를 읽고 다음 행동을 정하는 모델까지 연결되었는지 확인합니다. 이벤트 입력을 읽는 데에는 Gson을 사용합니다.
+### 실제 구성 파일과 설정
+
+| 파일 | 현재 들어 있는 구성과 역할 |
+|---|---|
+| [.codex/config.toml](.codex/config.toml) | `[features]`의 `hooks = true`로 Hook 기능 사용을 설정합니다. |
+| [.codex/hooks.json](.codex/hooks.json) | `PostToolUse` 이벤트에 `matcher: "Bash"`와 `type: "command"`를 연결합니다. 어떤 명령 결과 뒤에 어느 프로그램을 실행할지 정합니다. |
+| [.codex/hooks/PostToolUseReview.java](.codex/hooks/PostToolUseReview.java) | 이벤트 JSON을 읽고 종료 코드에 따라 경고와 추가 지침을 만들어 반환합니다. |
+| [build.gradle](build.gradle) | `prepareHook`는 실행에 필요한 Gson을 준비하고, `hookTest`는 Hook 처리 코드의 동작을 검사합니다. |
+| [.codex/hooks/tests/PostToolUseReviewTest.java](.codex/hooks/tests/PostToolUseReviewTest.java) | 성공·실패·종료 코드 누락·잘못된 입력·로그 필드를 검사합니다. |
+
+`PostToolUse`는 도구가 결과를 반환한 뒤의 이벤트입니다. `Bash`는 여기서 명령 실행 도구를 고르는 이름이며 Windows에 Bash를 설치하라는 뜻이 아닙니다. Codex의 `exec_command`도 이 이름으로 매칭됩니다. [공식 도구 매칭 안내](https://learn.chatgpt.com/docs/hooks#tool-coverage)
+
+`hooks.json`의 `commandWindows`와 `command`에는 모두 다음 명령이 들어 있습니다. 작업 위치는 `quality_demo/`입니다.
+
+```text
+java --class-path ".local/hook-runtime/*" ".codex/hooks/PostToolUseReview.java"
+```
+
+`commandWindows`는 Windows에서, `command`는 macOS·Linux에서 사용할 명령입니다. 실행 제한 시간은 `timeout: 30`으로 30초이며, `statusMessage`는 `Reviewing command result`입니다. 이 시간 제한은 Hook 프로그램 한 번의 실행에 적용됩니다.
+
+### 명령 결과가 모델에 돌아가는 경로
+
+정의가 신뢰되고 Hook 연결이 동작하면 다음 순서로 처리됩니다. 이벤트 정보는 표준 입력으로 들어오는 JSON이며, Java Hook이 표준 출력에 쓴 JSON을 Codex가 피드백으로 읽습니다. [공식 입력·출력 규약](https://learn.chatgpt.com/docs/hooks#common-input-fields)
+
+```text
+Codex 도구로 명령 실행
+  → 도구 결과 반환, PostToolUse 이벤트
+  → hooks.json의 Bash 조건에 매칭
+  → PostToolUseReview.main() → run()
+      → 이벤트 JSON 읽기
+      → safeRecord()로 최소 이벤트 정보를 추려 로그에 기록
+      → hookOutput()이 commandExitCode()로 코드를 읽고 피드백 생성
+      → 피드백 JSON 출력
+  → Codex가 경고를 표시하고 모델에 추가 지침 전달
+  → 모델이 실제 명령 출력과 지침을 읽고 다음 행동 선택
+```
+
+예를 들어 명령이 실패했을 때 사용하는 필드만 추리면 다음과 같습니다. 전체 이벤트에는 작업 위치 등의 정보도 포함됩니다.
+
+```json
+{"tool_name":"Bash","tool_response":{"exit_code":1}}
+```
+
+`commandExitCode()`는 `tool_response.exit_code`를 읽습니다. 코드에는 `toolResponse.exitCode` 표기도 처리하도록 되어 있습니다. `hookOutput()`이 만드는 결과는 다음과 같습니다.
+
+| 읽은 명령 종료 코드 | 이 프로젝트의 Hook이 반환하는 내용 |
+|---|---|
+| `0` | 빈 JSON 객체 `{}`. 추가 경고나 지침을 만들지 않습니다. |
+| `0`이 아닌 정수 | 실패 코드 경고와 원인 구분·수정·같은 검사 재실행 안내를 만듭니다. |
+| 없거나 읽을 수 없는 값 | 종료 코드를 확인하지 못했다는 경고와 실행 완료 여부 확인 안내를 만듭니다. |
+
+경고는 `systemMessage`, 모델에게 추가할 지침은 `hookSpecificOutput.additionalContext`에 들어갑니다. 예시 입력의 `1`에는 “명령이 종료 코드 1로 실패했습니다.”라는 경고와 실행 환경 문제인지 기대값 불일치인지 구분하고 재검사하라는 지침이 생성됩니다. Codex는 경고를 표시하고 추가 지침을 모델의 맥락에 넣습니다. [공식 PostToolUse 출력 규약](https://learn.chatgpt.com/docs/hooks#posttooluse)
+
+**실패한 명령의 종료 코드와 Hook 프로그램의 종료 코드는 별개입니다.** 입력의 명령 코드가 `1`이어도 피드백을 정상적으로 만든 `run()`은 `0`으로 끝납니다. 이는 Hook 처리가 끝났다는 뜻이며, 원래 명령이 성공으로 바뀐 것은 아닙니다.
+
+### 검사·작업 지침·Hook의 역할
+
+프로젝트 검사는 요청과 실제 결과가 맞는지 판정합니다. `AGENTS.md`는 어떤 검사를 언제 실행하고 실패하면 어떻게 대응할지 안내합니다. 이 Hook은 명령 결과가 돌아오는 시점에 실패 대응 안내를 더합니다. 명령 출력은 Hook이 없어도 모델에 전달되므로, Hook의 추가 지침이 실제 후속 행동에 도움이 되는지 보고 사용할 이유를 판단합니다.
+
+**이 예제 Hook의 코드는 배치 요청이나 환불 결과를 대조하지 않습니다.** 정상 종료한 출력이 8행인지 3행인지 확인하지 않고 종료 코드 `0`에 `{}`를 반환합니다. 누락을 잡으려면 입력과 실제 출력을 대조하는 검사가 필요하며, 그 판정은 도구 출력으로 직접 전달할 수도 있습니다.
+
+이 예제 Hook은 피드백을 반환하고, 다음 명령 요청은 그 피드백을 읽은 모델이 결정합니다. 따라서 실제 수정·재검사는 모델이 도구를 다시 사용했는지 확인해야 합니다. 경고 표시나 추가 지침 전달만으로 완료 보고를 강제로 차단했다고 판단하지 않습니다.
+
+### 준비와 실제 연결 확인
 
 Hook을 처음 연결하기 전에 IDE의 `prepareHook`, `hookTest`를 실행하거나 다음 명령을 사용합니다.
 
@@ -111,15 +205,17 @@ macOS·Linux·WSL:
 ./gradlew prepareHook hookTest
 ```
 
-`prepareHook`는 `.local/hook-runtime/`에 의존성을 준비합니다. 실제 Hook 이벤트에서는 다음 명령으로 Java 소스 파일만 실행합니다. 업무 코드를 빌드하지 않아 업무 소스가 깨진 경우에도 실패 피드백을 만들 수 있습니다. 이벤트 안에서 Gradle을 호출하지 않아 검사→Hook→검사의 반복도 만들지 않습니다. 준비한 의존성을 지웠다면 연결 전 다시 준비합니다.
+`prepareHook`는 `.local/hook-runtime/`에 Gson을 준비합니다. Hook 이벤트에서는 준비된 라이브러리와 Java 소스 파일을 직접 실행합니다. 업무 코드를 빌드하지 않아 업무 소스가 깨져도 실패 피드백을 만들 수 있고, Hook 안에서 Gradle을 다시 호출하는 반복도 피합니다. 준비한 의존성을 지웠다면 연결 전에 다시 준비합니다.
 
-```text
-java --class-path ".local/hook-runtime/*" ".codex/hooks/PostToolUseReview.java"
-```
+프로젝트를 신뢰하고, 사용하는 Codex의 Hook 목록에서 정의와 실행 명령을 검토·신뢰한 뒤 활성화합니다. CLI에서는 `/hooks`를 사용할 수 있습니다. Hook 정의가 바뀌면 다시 검토합니다. `hooks = true`라는 설정과 해당 정의의 신뢰·자동 실행은 구분해서 확인합니다. [공식 Hook 검토·신뢰 안내](https://learn.chatgpt.com/docs/hooks#review-and-trust-hooks)
 
-사용하는 Codex 표면의 Hook 목록에서 정의를 검토·신뢰한 뒤 사용합니다. 변경한 정의는 다시 검토가 필요할 수 있습니다. 제공 matcher는 `Bash`이며 실제 관찰한 도구 이름이나 payload가 다르면 맞춥니다. 작업 위치는 이 프로젝트 폴더입니다. 사람이 터미널에서 직접 실행한 명령은 Codex 이벤트가 아니므로 Host 연결의 증거가 아닙니다. 지원하지 않는 표면에서는 직접 검사와 지침을 활용하고 Hook 연결은 미확인으로 남깁니다.
+실제 연결은 Codex 도구로 명령을 실행한 뒤 Hook의 피드백과 뒤따른 모델의 행동을 보고 확인합니다. `hookTest`나 예시 JSON을 넣은 직접 실행은 처리 코드의 검사입니다. 사람이 터미널에서 직접 실행한 명령은 Codex 이벤트 연결의 근거가 되지 않습니다. `exec_command`라는 도구명이 표시된다는 이유만으로 `Bash` matcher를 바꾸지 않고, 이벤트 입력이 코드가 읽는 형태인지 확인합니다.
 
-`hookTest`는 실패·성공·종료 코드 없음·잘못된 payload·최소 로그 필드를 검사합니다. 이것은 코드 검사이며 실제 Host 연결이나 모델의 후속 행동을 증명하지 않습니다. 로그 `../.local/raw/hook-events.jsonl`에는 도구 이름·종료 코드·시각·턴 식별자만 남기고 원시 명령·출력은 기록하지 않습니다. [공식 Hook 안내](https://learn.chatgpt.com/docs/hooks)
+`run()`은 이벤트의 작업 위치를 기준으로 `../.local/raw/hook-events.jsonl`에 도구 이름·종료 코드·시각·턴 식별자를 기록합니다. 명령·출력 원문은 저장하지 않습니다. 로그는 호출을 대조하는 보조 근거이고, 모델이 지침을 받아 적절히 행동했는지는 실제 다음 도구 실행과 보고로 확인합니다.
+
+### 이 실습의 연결 확인 상태
+
+Day 4 초기 점검에서는 Hook 코드 검사 5개와 예시 실패 입력의 피드백 생성을 확인했습니다. Codex 명령 뒤의 Hook 피드백과 이벤트 기록은 관찰되지 않아 자동 연결은 미확인입니다. 후속 연결 상태와 이 구성을 사용할지에 대한 판단은 [학습 기록](../failure-recovery.md#day-4--완료-검사를-실행하고-판정을-다음-행동에-연결하기)에 이어 기록합니다.
 
 ## Windows에서 Gradle 소켓 오류가 날 때
 
@@ -169,10 +265,11 @@ Java는 내부 통신용 소켓의 주소로 임시 폴더의 경로를 사용�
 
 ## 주요 파일
 
-- `src/main/java/lab/week05/Refund.java`: 시작 환불 계산과 A에서 확장할 업무 규칙.
-- `src/test/java/lab/week05/RefundTest.java`: 기존 세 검사와 A의 업무 규칙 검사를 둘 위치.
-- `RefundInput.java`, `RefundInputTest.java`: A에서 추가할 JSON 입력 경계와 검사. 각 main/test 패키지에 둡니다.
-- `BatchRefund.java`: B에서 추가할 파일 처리 진입점. 시작 자료에는 없습니다.
+- `src/main/java/lab/week05/Refund.java`: 기본 차감·하한·면제 계산과 음수 입력 거부.
+- `src/test/java/lab/week05/RefundTest.java`: 기존 세 검사와 A의 업무 규칙 검사.
+- `RefundInput.java`, `RefundInputTest.java`: A의 JSON 입력 경계와 검사. 각 main/test 패키지에 있습니다.
+- `BatchRefund.java`, `BatchRefundTest.java`: B의 파일 처리 진입점과 실제 프로세스의 출력·종료 코드 검사. 각 main/test 패키지에 있습니다.
+- `BatchResultCheck.java`, `BatchResultCheckTest.java`: 입력·기대 결과·저장된 출력의 공통 비교와 판정 검사. `JavaProcessFixture.java`는 두 테스트에서 Java 실행과 출력 수집을 재사용합니다.
 - `data/`: A·B의 업무 입력과 기대 결과.
 - `AGENTS.md`, `build.gradle`: 작업 지침과 실행·검사 구성.
 - `.codex/config.toml`, `.codex/hooks.json`: Hook 기능과 이벤트 연결 설정.

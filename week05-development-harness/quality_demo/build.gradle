@@ -18,6 +18,16 @@ tasks.withType(JavaExec).configureEach {
 }
 application { mainClass = 'lab.week05.Refund' }
 
+tasks.register('batch', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'lab.week05.BatchRefund'
+}
+
+tasks.register('checkBatch', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'lab.week05.BatchResultCheck'
+}
+
 configurations { hookLibraries }
 dependencies {
     implementation 'com.google.code.gson:gson:2.13.2'
