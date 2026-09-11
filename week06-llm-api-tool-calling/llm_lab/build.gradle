@@ -4,6 +4,7 @@ plugins {
 repositories { mavenCentral() }
 dependencies {
     implementation 'com.openai:openai-java:4.60.0'
+    implementation 'com.google.genai:google-genai:1.70.0'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
@@ -12,12 +13,17 @@ tasks.register('assistant', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = providers.gradleProperty('assistantMain').orElse('lab.week06.AssistantExercise')
 }
+tasks.register('gemini', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'lab.week06.GeminiQuickstart'
+}
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.release.set(17)
     options.compilerArgs += '-parameters'
 }
 tasks.withType(JavaExec).configureEach {
+    standardInput = System.in
     defaultCharacterEncoding = 'UTF-8'
     jvmArgs '-Dfile.encoding=UTF-8', '-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8'
 }
