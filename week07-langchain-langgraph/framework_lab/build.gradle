@@ -1,0 +1,30 @@
+plugins {
+    id 'application'
+}
+repositories { mavenCentral() }
+dependencies {
+    implementation 'dev.langchain4j:langchain4j:1.20.0'
+    implementation 'dev.langchain4j:langchain4j-open-ai:1.20.0'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.1'
+    runtimeOnly 'org.slf4j:slf4j-nop:2.0.17'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+application { mainClass = 'lab.week07.Quickstart' }
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release.set(17)
+    options.compilerArgs += '-parameters'
+}
+tasks.withType(JavaExec).configureEach {
+    defaultCharacterEncoding = 'UTF-8'
+    jvmArgs '-Dfile.encoding=UTF-8', '-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8'
+}
+tasks.named('test') {
+    useJUnitPlatform()
+    systemProperty 'file.encoding', 'UTF-8'
+    testLogging { events 'passed', 'skipped', 'failed' }
+}
+if (project.hasProperty('courseBuildDir')) {
+    layout.buildDirectory = file(project.property('courseBuildDir'))
+}

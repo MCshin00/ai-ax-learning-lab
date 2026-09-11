@@ -1,14 +1,15 @@
 {
   "layout_version": 6,
   "created_at": "2026-07-25T10:42:29.915424+00:00",
-  "current_week": 6,
+  "current_week": 7,
   "applied_weeks": [
     1,
     2,
     3,
     4,
     5,
-    6
+    6,
+    7
   ],
   "references_revealed": [],
   "applied_files": {
@@ -92,9 +93,31 @@
       "week06-llm-api-tool-calling/llm_lab/src/main/java/lab/week06/CustomerDirectory.java",
       "week06-llm-api-tool-calling/llm_lab/src/main/java/lab/week06/Quickstart.java",
       "week06-llm-api-tool-calling/llm_lab/src/test/java/lab/week06/QuickstartTest.java"
+    ],
+    "7": [
+      "week07-langchain-langgraph/framework_compare/business.py",
+      "week07-langchain-langgraph/framework_compare/clarification.py",
+      "week07-langchain-langgraph/framework_compare/comparison.py",
+      "week07-langchain-langgraph/framework_compare/components.py",
+      "week07-langchain-langgraph/framework_compare/exercise.py",
+      "week07-langchain-langgraph/framework_compare/model_boundary.py",
+      "week07-langchain-langgraph/framework_compare/README.md",
+      "week07-langchain-langgraph/framework_compare/requirements.txt",
+      "week07-langchain-langgraph/framework_compare/run.py",
+      "week07-langchain-langgraph/framework_compare/test_comparison.py",
+      "week07-langchain-langgraph/framework_lab/.gitignore",
+      "week07-langchain-langgraph/framework_lab/build.gradle",
+      "week07-langchain-langgraph/framework_lab/gradle/wrapper/gradle-wrapper.jar",
+      "week07-langchain-langgraph/framework_lab/gradle/wrapper/gradle-wrapper.properties",
+      "week07-langchain-langgraph/framework_lab/gradlew",
+      "week07-langchain-langgraph/framework_lab/gradlew.bat",
+      "week07-langchain-langgraph/framework_lab/README.md",
+      "week07-langchain-langgraph/framework_lab/settings.gradle",
+      "week07-langchain-langgraph/framework_lab/src/main/java/lab/week07/Quickstart.java",
+      "week07-langchain-langgraph/framework_lab/src/test/java/lab/week07/QuickstartTest.java"
     ]
   },
-  "updated_at": "2026-09-11T06:36:34.966300+00:00",
+  "updated_at": "2026-09-11T09:45:10.494397+00:00",
   "source_guide_sha256": "bdd80d7310eabdfbd0644a50e02d2874bc386877483ddb64ae3e3ba4a63bf2aa",
   "migrated_from_layout_version": 2,
   "layout_migrated_at": "2026-08-12T17:39:12.701181+00:00",

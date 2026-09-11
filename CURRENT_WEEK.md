@@ -1,11 +1,11 @@
 # 현재 학습
 
-## 6주차 · LLM API와 Tool Calling
+## 7주차 · Direct·LangChain·LangGraph 비교
 
-- 상세 학습 본문: [week06-llm-api-tool-calling/README.md](week06-llm-api-tool-calling/README.md)
-- 기본 작업 폴더(CWD): [`week06-llm-api-tool-calling/llm_lab`](week06-llm-api-tool-calling/llm_lab/)
+- 상세 학습 본문: [week07-langchain-langgraph/README.md](week07-langchain-langgraph/README.md)
+- 기본 작업 폴더(CWD): [`week07-langchain-langgraph/framework_compare`](week07-langchain-langgraph/framework_compare/)
 - 결과와 기록: 주차 README에서 지정한 파일 또는 기존 학습 노트
-- 개인 기록: `week06-llm-api-tool-calling/.local/` (Git 제외)
+- 개인 기록: `week07-langchain-langgraph/.local/` (Git 제외)
 
 개념 설명·실습 순서·복사할 요청문은 주차 README에서 읽습니다. 이 문서는 현재 위치와 다음 명령만 안내합니다.
 
