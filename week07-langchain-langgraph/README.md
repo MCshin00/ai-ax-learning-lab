@@ -7,25 +7,53 @@
 - 현재 위치와 다음 명령: [CURRENT_WEEK](../CURRENT_WEEK.md)
 
 
+이번 주는 **LangChain과 LangGraph를 실제로 사용하고, 처리 흐름을 직접 연결하는 Direct 방식과 비교하는 학습**입니다. Direct는 이 교재에서 직접 구현 방식을 가리키는 이름입니다. 먼저 두 프레임워크가 무엇을 제공하는지 배우고, 같은 주문 조회가 세 방식에서 어떻게 실행되는지 확인합니다.
+
 이번 주의 질문은 **“프레임워크는 어떤 복잡성을 줄이고, 어떤 결정은 여전히 개발자가 하는가?”**입니다. 제공된 주문 요구에서 입력·결과·상태·처리 책임·분기와 종료를 도출하고, 그 선택이 Direct, 실제 LangChain, 실제 LangGraph에서 어떻게 표현되는지 비교합니다. AI와 선택한 구조를 구현해 같은 제공 입력으로 사용합니다. 결과물은 세 방식의 비교와 요구를 근거로 설계한 작동하는 흐름입니다.
 
 업무 함수와 자료는 제공하므로 주문 시스템을 새로 만들 필요가 없습니다. Python은 실제 LangChain·LangGraph의 API를 다루는 짧은 비교에 사용합니다. `framework_lab/`의 LangChain4j는 Java에서의 선택을 돕는 보조 자료이며 Python LangChain·LangGraph를 대체하는 이름이 아닙니다.
 
 ## 시작 전에 알아둘 개념
 
-### SDK와 프레임워크 — 모델 연결과 흐름 연결의 책임
+### LangChain — 모델과 처리 부품을 조합해 LLM 애플리케이션을 만드는 프레임워크
 
-6주차의 SDK는 요청·응답 형식을 제공하고 애플리케이션이 다음 호출과 종료를 연결했습니다. 이번에는 **같은 업무 함수 사이의 순서·분기·값 전달**을 누가 표현하는지 비교합니다. Direct에서는 함수 호출과 `if`를 직접 쓰고, LangChain에서는 실행 가능한 구성요소를 연결하고, LangGraph에서는 상태를 읽고 바꾸는 노드와 다음 노드를 선택하는 간선을 선언합니다.
+LangChain은 모델을 호출하는 공통 인터페이스, 처리 부품을 연결하는 구성요소, 모델이 도구를 선택하고 결과를 받아 다시 처리하는 agent 구성 등을 제공합니다. 예를 들어 모델에 줄 입력을 만들고, 모델을 호출하고, 응답을 필요한 형태로 바꾸는 단계를 조합할 수 있습니다. 기존 업무 함수도 연결 가능한 부품으로 감싸 재사용합니다. [LangChain 개요](https://docs.langchain.com/oss/python/langchain/overview), [Runnable API](https://reference.langchain.com/python/langchain_core/runnables/)
 
-프레임워크를 사용한다고 주문 조회 규칙이나 실패의 의미가 생기지는 않습니다. 또한 그래프가 있다고 여러 AI가 일하는 것도 아닙니다. 이 실습의 조회는 일반 함수이고 모델은 조회된 사실을 안내 문장으로 표현할 때만 사용합니다. 도구 선택을 모델에 맡기는 agent 루프와, 정해진 업무 흐름을 실행하는 구성을 구분합니다. LangChain의 `create_agent`는 도구 호출 루프를 제공하는 별도 선택이며 이번 비교에서는 흐름의 연결을 드러내는 Runnable을 사용합니다. [LangChain 개요](https://docs.langchain.com/oss/python/langchain/overview), [LangChain agents](https://docs.langchain.com/oss/python/langchain/agents)
+이번 실습은 LangChain의 **Runnable을 이용한 연결과 분기**를 사용합니다. `comparison.py`에서 `langchain_core.runnables`를 가져오는 부분이 그 접점입니다. 조회 함수가 배송 상태를 찾는 책임은 그대로 맡고, 프레임워크는 그 결과를 다음 부품으로 전달합니다. 부품을 같은 방식으로 실행하고 다시 조합하기 쉬워지는 대신, 각 부품이 받는 값과 반환하는 값을 맞춰야 합니다.
+
+LangChain은 순차 연결뿐 아니라 조건 분기와 agent 구성도 지원합니다. 이번에는 주문 조회의 순서와 조건이 정해져 있어 Runnable 연결을 사용합니다. 모델이 다음 도구를 선택하도록 구성할 때의 기능과 LangGraph의 관계는 아래에서 설명합니다.
 
 ### Runnable과 연결 — 앞 단계의 결과를 다음 단계로 보냅니다
 
 Runnable은 `invoke(입력)`으로 실행할 수 있는 구성요소입니다. `RunnableLambda(lookup)`는 기존 함수를 같은 실행 인터페이스로 감싸고, `A | B`는 A의 출력을 B의 입력으로 전달합니다. LangChain을 쓴다고 함수가 자동으로 서로 맞는 자료를 주고받지는 않습니다. `lookup`이 `order`를 만들고 뒤의 `draft`가 같은 이름을 읽어야 합니다.
 
+예를 들어 `comparison.py`의 `RunnableLambda(lookup) | found_or_missing`은 **조회한 상태 전체를 받아 다음 처리를 고르는 구성요소로 전달한다**는 뜻입니다. `found_or_missing`은 조회 성공이면 생성 함수를, 부재이면 안내 함수를 실행하는 `RunnableBranch`입니다. 함수 본문에서 다음 함수를 직접 호출하던 연결을 실행 가능한 구성요소의 조합으로 옮긴 것입니다. Day 2에서 실제 분기 코드를 함께 읽습니다.
+
+### LangGraph — 상태와 처리 경로를 명시해 흐름을 실행하는 프레임워크
+
+LangGraph는 **상태와 처리 경로를 명시해 여러 단계의 실행을 제어하는 프레임워크**입니다. 개발자가 사용할 데이터와 처리 함수, 연결 규칙을 정의하면 LangGraph가 다음 함수를 실행하고 반환된 값을 상태에 반영합니다. 처리 함수에는 일반 업무 함수와 모델 호출을 모두 넣을 수 있습니다. [LangGraph 개요](https://docs.langchain.com/oss/python/langgraph/overview)
+
+예를 들어 주문 조회 결과가 있으면 안내 생성으로 가고, 없으면 부재 안내로 가는 경로를 표현할 수 있습니다. 이런 분기에 더해 반복, 사람의 입력을 기다린 뒤 재개하는 흐름을 구성할 때 상태와 실행 위치를 다루는 기능이 도움이 됩니다. 저장·재개에는 체크포인트 등의 구성이 필요하며, 기본 그래프를 실행했다고 영구 저장까지 생기지는 않습니다. 이 주차에서는 먼저 짧은 조회 흐름으로 상태와 경로를 읽고, Day 3의 보완 입력 사례에서 대기·재개 요구를 살펴봅니다.
+
+`comparison.py`의 `StateGraph(State)`는 사용할 상태 형태를 정하고, `graph.add_node(name, action)`은 실행할 함수를 등록합니다. `graph.add_edge(START, "prepare")`는 첫 처리 위치를 정합니다. `graph.compile().invoke`는 정의한 그래프를 실행할 수 있는 호출 접점입니다. 그래프를 구성하는 코드와 실제 입력으로 실행하는 시점이 나뉩니다.
+
 ### 상태·노드·간선 — 현재 사실과 다음 행동을 나눕니다
 
 **상태**는 지금 처리하는 대상과 다음 판단에 필요한 값입니다. **노드**는 상태를 읽고 결과를 반환하는 처리이며, **간선**은 다음에 실행할 노드를 정합니다. 상태를 명시하면 답변이 어떤 주문의 어떤 조회 결과에 의존하는지 코드에서 찾을 수 있습니다. LangGraph는 이 상태를 사용하는 노드와 간선을 연결해 실행하며, 구체적인 상태 항목과 갱신은 Day 1의 결과에서 확인합니다.
+
+주문 번호 `O-100`은 상태에 담긴 입력이고, `lookup`은 그 번호를 조회하는 노드입니다. 조회가 끝나면 상태에 `order`와 `status=FOUND`가 들어갑니다. 다음 경로를 고르는 함수가 이 상태를 읽어 `draft`로 보냅니다. 상태는 **다음 처리에 실제로 전달하는 애플리케이션 데이터**이므로, 이 값의 출처와 사용 위치를 보면 잘못된 주문 사실이 답변에 섞이는 원인도 추적할 수 있습니다.
+
+### LangChain과 LangGraph의 관계 — 부품의 조합과 실행 경로의 제어
+
+LangChain과 LangGraph는 함께 사용할 수 있습니다. LangChain의 모델 연결 부품을 LangGraph 노드에서 호출할 수도 있고, LangGraph에 일반 함수만 넣을 수도 있습니다. LangChain의 `create_agent`는 모델이 도구를 선택하고 결과를 받아 다음 행동을 정하는 루프를 구성하는 기능이며, LangGraph를 기반으로 실행됩니다. [LangChain agents](https://docs.langchain.com/oss/python/langchain/agents)
+
+이번 주문 요구에서는 번호와 조회 결과에 따른 다음 행동이 정해져 있습니다. 그래서 LangChain은 **Runnable로 그 처리 부품을 조합**하고, LangGraph는 **상태를 읽는 노드와 조건 간선으로 실행 경로를 정의**합니다. 조회 함수가 배송 사실을 찾고 성공한 경우에만 생성 함수가 안내 문장을 만듭니다. 두 방식에서 같은 업무 함수와 입력을 사용하면 연결 방식의 차이를 살펴볼 수 있습니다.
+
+### Direct — 프레임워크가 맡는 연결 책임을 비교할 기준
+
+Direct는 함수와 조건문으로 흐름을 직접 연결하는 방식입니다. `comparison.py`의 `build_direct`에서는 `state = lookup(state)`로 조회 결과를 받고, `if state["status"] != "FOUND"`이면 부재 안내로 끝내며, 성공하면 `return draft(state)`로 답변을 만듭니다. **처리 순서·값 전달·분기·종료가 함수 본문에 모여 있습니다.** 이 짧은 흐름을 기준으로 Runnable과 상태 그래프가 어떤 연결 책임을 맡는지 비교합니다.
+
+Day 4에서는 세 방식 모두 `model_boundary.py`의 `ChatOpenAI` 연결 부품을 사용해 같은 조회 사실을 전달합니다. 모델 호출 조건을 맞추고 업무 흐름을 연결하는 방식의 차이를 확인하기 위한 구성입니다.
 
 ### 실패와 종료 — 결과가 없는 이유에 따라 흐름이 달라집니다
 
@@ -90,6 +118,8 @@ python3 -m venv .venv
 기록은 `week07-langchain-langgraph/framework-note.md` 한 곳에 누적합니다. 핵심 코드 자체와 실제 출력도 결과물이며 별도 설계 보고서나 점수표를 만들지 않습니다.
 
 ### Day 1 — 같은 결과가 만들어지는 경로 읽기
+
+먼저 위의 Direct·LangChain·LangGraph 설명을 읽고, `comparison.py`의 `build_direct`, `build_langchain`, `build_langgraph`에서 각각 함수 호출, Runnable 연결, 노드·간선 선언을 찾습니다. 같은 업무 함수를 호출하므로 정상 입력의 조회 사실은 같을 것이라는 예상을 세운 뒤 실행합니다. 이 예상과 실제 출력의 관계를 아래의 상태 해설로 확인합니다.
 
 첫 실행은 세 방식 모두 `O-100`을 조회합니다. `business.py`의 `ORDERS`에는 `O-100: 배송 준비`, `O-200: 배송 중`이 있습니다. 다음은 출력에서 확인할 **기대 값**이며 자기 실행 기록을 대신하지 않습니다.
 
