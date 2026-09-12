@@ -2664,6 +2664,27 @@ Runnable은 `invoke(입력)`으로 실행할 수 있는 구성요소입니다. `
 
 예를 들어 `comparison.py`의 `RunnableLambda(lookup) | found_or_missing`은 **조회한 상태 전체를 받아 다음 처리를 고르는 구성요소로 전달한다**는 뜻입니다. `found_or_missing`은 조회 성공이면 생성 함수를, 부재이면 안내 함수를 실행하는 `RunnableBranch`입니다. 함수 본문에서 다음 함수를 직접 호출하던 연결을 실행 가능한 구성요소의 조합으로 옮긴 것입니다. Day 2에서 실제 분기 코드를 함께 읽습니다.
 
+#### LangChain에서 한 입력이 흐르는 모습
+
+다음은 `build_langchain`의 연결을 그린 그림입니다. 사각형은 함수를 감싼 Runnable, 마름모는 조건에 따라 한 경로를 고르는 RunnableBranch입니다. 화살표는 **앞 구성요소의 반환값이 다음 구성요소의 입력이 되는 연결**입니다.
+
+```mermaid
+flowchart TD
+    CP["RunnableLambda(prepare)<br/>입력 준비"] --> CB{"RunnableBranch<br/>번호 유무"}
+    CB -->|번호 없음| CA["RunnableLambda(ask)<br/>번호 질문"]
+    CB -->|번호 있음| CL["RunnableLambda(lookup)<br/>주문 조회"]
+    CL --> CF{"found_or_missing<br/>RunnableBranch"}
+    CF -->|FOUND| CD["RunnableLambda(draft)<br/>안내 생성"]
+    CF -->|NOT_FOUND| CU["RunnableLambda(unavailable)<br/>부재 안내"]
+    CA --> CR(["선택된 분기의 결과 반환"])
+    CD --> CR
+    CU --> CR
+```
+
+`O-100`의 경우 `lookup`이 반환한 값에는 `order`와 `status=FOUND`가 들어 있습니다. `found_or_missing`은 그 값을 받아 성공 분기의 `draft`에 전달합니다. `O-999`라면 `status=NOT_FOUND`이므로 `unavailable`로 전달합니다. 연결을 정의할 때는 구성요소를 만들고, `chain.invoke(입력)`을 호출할 때 실제 함수들이 이 순서로 실행됩니다. 두 분기를 모두 실행한 뒤 좋은 답변을 고르는 구성이 아닙니다.
+
+같은 조회 부품 뒤에 서로 다른 안내 형식을 연결해야 한다면, 조회의 입출력 계약을 유지하면서 뒤의 생성 부품을 교체할 수 있습니다. 공통 실행 인터페이스가 이런 조합과 재사용을 돕습니다. 다만 `lookup`의 반환값에서 `order`를 없애면 뒤의 생성 함수도 입력 계약을 바꿔야 합니다. 프레임워크는 값의 전달을 맡고, 값의 의미와 서로 맞는 계약은 개발자가 정합니다.
+
 ### LangGraph — 상태와 처리 경로를 명시해 흐름을 실행하는 프레임워크
 
 LangGraph는 **상태와 처리 경로를 명시해 여러 단계의 실행을 제어하는 프레임워크**입니다. 개발자가 사용할 데이터와 처리 함수, 연결 규칙을 정의하면 LangGraph가 다음 함수를 실행하고 반환된 값을 상태에 반영합니다. 처리 함수에는 일반 업무 함수와 모델 호출을 모두 넣을 수 있습니다. [LangGraph 개요](https://docs.langchain.com/oss/python/langgraph/overview)
@@ -2677,6 +2698,34 @@ LangGraph는 **상태와 처리 경로를 명시해 여러 단계의 실행을 �
 **상태**는 지금 처리하는 대상과 다음 판단에 필요한 값입니다. **노드**는 상태를 읽고 결과를 반환하는 처리이며, **간선**은 다음에 실행할 노드를 정합니다. 상태를 명시하면 답변이 어떤 주문의 어떤 조회 결과에 의존하는지 코드에서 찾을 수 있습니다. LangGraph는 이 상태를 사용하는 노드와 간선을 연결해 실행하며, 구체적인 상태 항목과 갱신은 Day 1의 결과에서 확인합니다.
 
 주문 번호 `O-100`은 상태에 담긴 입력이고, `lookup`은 그 번호를 조회하는 노드입니다. 조회가 끝나면 상태에 `order`와 `status=FOUND`가 들어갑니다. 다음 경로를 고르는 함수가 이 상태를 읽어 `draft`로 보냅니다. 상태는 **다음 처리에 실제로 전달하는 애플리케이션 데이터**이므로, 이 값의 출처와 사용 위치를 보면 잘못된 주문 사실이 답변에 섞이는 원인도 추적할 수 있습니다.
+
+#### LangGraph에서 상태와 다음 경로가 바뀌는 모습
+
+다음은 `build_langgraph`가 등록한 다섯 업무 노드와 연결입니다. `START`와 `END`는 실행의 시작·종료를 나타내는 표식입니다. 화살표의 `after_prepare`와 `after_lookup`은 상태를 읽어 다음 노드 이름을 반환하는 **경로 선택 함수**이며, 별도의 업무 노드로 등록된 함수가 아닙니다.
+
+```mermaid
+flowchart TD
+    GS([START]) --> GP["prepare<br/>입력 확인·상태 준비"]
+    GP -->|"after_prepare: 번호 없음"| GA["ask<br/>번호 질문"]
+    GP -->|"after_prepare: 번호 있음"| GL["lookup<br/>주문 사실 조회"]
+    GL -->|"after_lookup: FOUND"| GD["draft<br/>현재 사실로 안내"]
+    GL -->|"after_lookup: NOT_FOUND"| GU["unavailable<br/>부재 안내"]
+    GA --> GE([END])
+    GD --> GE
+    GU --> GE
+```
+
+`O-100`의 상태 변화는 다음과 같습니다. 아래는 제공 코드에서 도출한 **예상 변화**입니다.
+
+```text
+prepare 뒤: order_id=O-100, order=None, status=RECEIVED
+lookup 뒤:  order={order_id: O-100, shipping: 배송 준비}, status=FOUND
+draft 뒤:   같은 order, status=ANSWERED, answer=안내 문장
+```
+
+노드가 값을 반환하면 LangGraph는 그 항목을 상태에 반영합니다. 이 예제에서 따로 누적 규칙을 지정하지 않은 항목은 새 값으로 교체되고, 반환하지 않은 항목은 기존 값을 유지합니다. 제공 업무 함수는 기존 값을 포함한 상태 전체를 반환하므로 LangChain에서도 같은 함수를 쓸 수 있습니다. 같은 출력이 나온다고 두 프레임워크의 값 전달 방식까지 같은 것은 아닙니다. [LangGraph 상태 갱신 규칙](https://docs.langchain.com/oss/python/langgraph/graph-api#reducers)
+
+`lookup`이 갱신한 `status`를 `after_lookup`이 읽고, 반환한 이름을 조건 간선이 실제 노드에 연결합니다. **조회가 사실을 만들고, 경로 선택 함수가 그 사실을 보고 다음 행동을 정하는 책임 분리**입니다. 질문 후 같은 요청에서 이어야 한다는 요구가 생기면 어떤 상태와 실행 위치를 보관할지 결정하고 체크포인트를 연결합니다. Day 3의 보완 입력 사례에서 이 추가 요구를 다룹니다.
 
 ### LangChain과 LangGraph의 관계 — 부품의 조합과 실행 경로의 제어
 
@@ -2694,16 +2743,7 @@ Day 4에서는 세 방식 모두 `model_boundary.py`의 `ChatOpenAI` 연결 부�
 
 번호가 없으면 사용자에게 정보를 받아야 하고, 번호는 있는데 자료가 없으면 조회 실패를 안내해야 합니다. 이 둘을 모두 빈 답변으로 반환하면 다음 행동을 정할 수 없습니다. 조회 성공일 때만 생성 단계로 보내면 모델이 없는 주문 정보를 만들어 답할 기회도 줄어듭니다.
 
-```mermaid
-flowchart LR
-    P[입력 준비] -->|번호 없음| A[번호 질문]
-    P -->|번호 있음| L[주문 조회]
-    L -->|FOUND| D[조회 사실로 안내]
-    L -->|NOT_FOUND| U[부재 안내]
-    A --> E[종료]
-    D --> E
-    U --> E
-```
+위 두 그림에서 번호가 없으면 `prepare → ask`, 조회 부재이면 `prepare → lookup → unavailable`로 끝납니다. 두 경우 모두 `draft`에 도달하지 않습니다. 같은 업무 정책을 LangChain은 RunnableBranch의 선택으로, LangGraph는 조건 간선의 목적지로 표현합니다.
 
 질문은 이번 실행의 종료 결과입니다. 이후 사용자가 번호를 보충하면 입력과 기존 문의 내용을 다음 실행에 넣습니다. 제공 비교에는 영구 저장이나 자동 대화 재개가 없습니다. 필요한 상태와 분기를 먼저 이해한 뒤에 저장·재개 요구가 생겼을 때 체크포인트를 선택하는 이유가 여기에 있습니다.
 
