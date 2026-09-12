@@ -40,3 +40,8 @@ build/
 /.learning/legacy-references/
 
 # 학습 기록을 공개할지는 작성자가 결정합니다. 개인 기록은 .local/에 둡니다.
+
+*.env
+*.env.*
+
+/.learning/week07-file-moves.json

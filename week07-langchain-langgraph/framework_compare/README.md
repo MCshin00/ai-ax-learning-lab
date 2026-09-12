@@ -1,59 +1,76 @@
-# 프레임워크의 목적과 책임을 비교하는 실행 예제
+# LangChain·LangGraph 배송 문의 실습
 
-같은 제공 주문 자료로 고정 조회, 모델–도구 실행, 요청 보관·재개를 비교합니다. **답변이 같은지와 함께, 그 결과에 필요한 일을 직접 작성하는지 프레임워크에 맡기는지 확인합니다.** 개념·사례 해설·Day별 행동과 완료 기준은 [주차 README](../README.md)를 순서대로 읽습니다.
+같은 주문 자료로 값 전달·도구 실행·요청 보관을 비교하고, 두 배송 구성에 실제 모델과 번호 정정을 연결합니다. 개념과 Day별 진행은 [주차 README](../README.md)에 있습니다.
 
-## 실행 준비
+## 폴더와 주요 파일
 
-IDE에서 이 폴더를 열고 아래 명령으로 가상환경과 고정 버전의 의존성을 준비합니다. 이 설치에는 터미널을 사용해 실행 환경을 맞춥니다. 이미 환경이 준비돼 있으면 IDE의 Python 인터프리터로 `.venv`를 선택하고 파일의 실행 기능을 사용합니다.
-
-Windows PowerShell:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-```
-
-macOS·Linux·WSL:
-
-```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-```
-
-## 실행 파일과 확인할 책임
-
-| 실행 파일 | 확인할 것 | 기본 실행의 범위 |
+| 폴더 | 역할 | 주요 파일 |
 |---|---|---|
-| `run.py` | Direct의 분기, Runnable 연결, 그래프의 노드·간선 | 같은 고정 조회를 세 방식으로 실행 |
-| `state_updates.py` | 반환값 전달과 상태 갱신, 명시적 병합 | 생성 단계와 최종 결과에 문의가 남는지 출력 |
-| `tool_loop.py` | 직접 모델–도구 루프와 LangChain `create_agent` | 제공된 작은 문의 사례의 실제 도구 실행·결과 연결 |
-| `waiting_compare.py` | 앱의 요청별 저장소와 LangGraph 체크포인트 | 두 요청을 대기시키고 역순으로 번호만 보충 |
-| `clarification.py` | `interrupt`, 상태 갱신, 대기·종료 분기의 실제 그래프 | 번호 누락 요청 하나를 중단했다가 제공 번호로 재개 |
+| `examples/` | IDE에서 실행할 작은 사례 | `run.py`, `state_updates.py`, `tool_loop.py`, `waiting_compare.py`, `workflow_demo.py` |
+| `shipping/` | 배송 업무·상태·모델 연결 | `agent.py`, `graph.py`, `components.py`, `support.py`, `scenarios.py`, `model_boundary.py` |
+| `comparisons/` | 기초 비교의 상태와 연결 부품 | `business.py`, `flows.py`, `waiting_graph.py` |
+| `tests/` | 코드 변경 시 사용할 기존 검사 | 고정 조회·상태 갱신·도구 연결·대기·복구·정정 검사 |
 
-`business.py`와 `components.py`는 조회·안내 부품, `comparison.py`는 고정 흐름의 연결 코드입니다. `model_boundary.py`는 실제 모델 접점입니다. `exercise.py`는 선택한 구조를 구현할 때 사용할 수 있는 초기 스케치이며 상태·함수·진입점을 정답으로 고정하지 않습니다.
+`shipping/agent.py`는 도구·업무 상태·middleware와 `ShippingAgent`, `shipping/graph.py`는 상태·노드·간선과 `ShippingGraph`를 함께 둡니다. 실행 파일은 이 구현을 호출합니다. `shipping/components.py`의 주문 자료와 조회 함수는 두 구성과 기초 비교에서 공유합니다.
 
-각 파일을 IDE에서 실행하거나, 반복 실행에 다음 명령을 사용합니다. 모든 명령의 실행 위치는 이 폴더입니다.
+## IDE에서 실행하기
+
+이 `framework_compare` 폴더의 `.venv`를 Python 인터프리터로 선택하고 `examples/`에서 원하는 파일을 열어 **Run Python File in Terminal**로 실행합니다. `examples/_bootstrap.py`는 직접 파일 실행 시 같은 프로젝트의 패키지를 찾도록 연결합니다. 가상환경은 `examples/` 안으로 옮기지 않습니다.
+
+처음 의존성을 준비할 때만 터미널에서 다음 명령을 사용합니다.
 
 | Windows PowerShell | macOS·Linux·WSL |
 |---|---|
-| `.\.venv\Scripts\python.exe -B run.py` | `.venv/bin/python -B run.py` |
-| `.\.venv\Scripts\python.exe -B state_updates.py` | `.venv/bin/python -B state_updates.py` |
-| `.\.venv\Scripts\python.exe -B tool_loop.py` | `.venv/bin/python -B tool_loop.py` |
-| `.\.venv\Scripts\python.exe -B waiting_compare.py` | `.venv/bin/python -B waiting_compare.py` |
+| `python -m venv .venv` | `python3 -m venv .venv` |
+| `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` | `.venv/bin/python -m pip install -r requirements.txt` |
 
-`run.py --order-id=`는 번호 누락, `run.py --order-id O-999`는 주문 부재입니다. `tool_loop.py --method langchain --issue "O-100 배송 문의"`처럼 한 방식·입력을 지정할 수도 있습니다.
+## 실행할 사례
 
-`FIXED_OFFLINE`은 고정 안내를 사용합니다. `SCRIPTED_MODEL`은 제공 번호로 정해진 도구 요청을 만드는 모의 모델이며, 실제 LangChain과 조회 도구는 실행합니다. 이 결과는 모델의 자연어 판단·도구 선택 능력을 확인한 것이 아닙니다. 보관 비교의 두 저장소는 모두 메모리 방식이며 프로세스 종료 후 복원을 제공하지 않습니다.
+| 파일 | 입력과 확인할 동작 |
+|---|---|
+| `examples/run.py` | 같은 고정 조회를 Direct·Runnable·LangGraph로 실행. `--order-id=`는 누락, `--order-id O-999`는 부재 |
+| `examples/state_updates.py` | 부분 반환과 명시적 병합에서 문의가 생성 단계까지 남는지 비교 |
+| `examples/tool_loop.py` | 직접 루프와 LangChain의 도구 호출·결과 연결. `--method langchain --issue "O-100 배송 문의"`로 한 입력 지정 |
+| `examples/waiting_compare.py` | Direct 세션과 LangGraph 체크포인트에서 두 문의를 역순 보충 |
+| `examples/workflow_demo.py` | `shipping/`의 두 구성에 선택한 배송 사례 적용 |
 
-## 실제 모델 연결
+명령으로 실행할 때도 작업 폴더는 `framework_compare`입니다.
 
-IDE의 실행 환경에 `AI_AX_LIVE=1`, `OPENAI_API_KEY`, `OPENAI_MODEL`을 설정합니다. 값은 Git으로 공유하지 않는 로컬 환경에 둡니다. 실제 모델 호출은 과금됩니다. Day 4에서 선택한 흐름의 모델 역할에 맞는 실행을 사용합니다.
+| Windows PowerShell | macOS·Linux·WSL |
+|---|---|
+| `.\.venv\Scripts\python.exe -B examples/run.py` | `.venv/bin/python -B examples/run.py` |
+| `.\.venv\Scripts\python.exe -B examples/workflow_demo.py --method langchain --case lookup` | `.venv/bin/python -B examples/workflow_demo.py --method langchain --case lookup` |
+| `.\.venv\Scripts\python.exe -B examples/workflow_demo.py --method langgraph --case waiting` | `.venv/bin/python -B examples/workflow_demo.py --method langgraph --case waiting` |
 
-| 모델 역할 | Windows PowerShell | macOS·Linux·WSL |
+`workflow_demo.py`의 `--method`는 `langchain`, `langgraph`, `both`입니다. `--case`는 다음 중 필요한 사례 하나를 선택합니다.
+
+| 사례 | 입력·관찰 |
+|---|---|
+| `lookup` | O-100·O-200의 조회 사실과 답변 |
+| `missing` | O-999의 주문 부재 |
+| `partial` | O-100·O-999의 부분 안내 |
+| `waiting` | 번호 없는 A·B 문의에 B부터 번호 보충 |
+| `empty` | 빈 보충 두 번 뒤 종료 |
+| `generation-failure` | 조회 뒤 모의 생성 실패와 저장된 사실로 재시도 |
+| `correction` | O-100 → O-200 → O-999 정정과 이전 근거 제거 |
+
+`run.py`와 `waiting_compare.py`는 고정 안내, `state_updates.py`는 고정 생성 단계의 입력, `tool_loop.py`와 배송 시연의 기본값은 모의 모델을 사용합니다. 실제 프레임워크와 조회 함수가 실행되며 모델의 자연어 판단은 모의 결과에 포함되지 않습니다.
+
+## 실제 모델과 검사
+
+실제 모델은 `shipping/model_boundary.py`의 `live_model()`에서 만들고 기존 배송 구성에 전달합니다. API 구성은 주차 README의 Day 4와 [6주차 모델 연결 안내](../../week06-llm-api-tool-calling/README.md)를 따릅니다. `examples/workflow_demo.py --method langchain --case lookup --live`처럼 한 구성·사례를 선택할 수 있습니다. 생성 실패 사례는 모의 모델 전용입니다.
+
+환경변수 파일은 학습자만 열어 값을 입력합니다. AI는 해당 파일을 직접 또는 프로그램 실행으로 읽지 않으며, 검증에서는 파일 로더와 실제 모델을 가짜 설정·모의 응답으로 대체합니다.
+
+코드를 바꿨을 때 기존 검사는 IDE의 테스트 기능으로 실행합니다. 터미널에서 검사할 경우 Windows는 `.\.venv\Scripts\python.exe -B -m unittest discover -s tests`, macOS·Linux·WSL은 `.venv/bin/python -B -m unittest discover -s tests`를 사용합니다.
+
+## 이 학습 구현의 실행 파일
+
+| 활동 | 실행 파일 | 연결되는 구현 |
 |---|---|---|
-| 자연어 문의의 도구 선택·응답 | `.\.venv\Scripts\python.exe -B tool_loop.py --method langchain --issue "O-100 배송 문의" --live` | `.venv/bin/python -B tool_loop.py --method langchain --issue "O-100 배송 문의" --live` |
-| 대기·재개 뒤 안내 생성 | `.\.venv\Scripts\python.exe -B waiting_compare.py --method langgraph --live` | `.venv/bin/python -B waiting_compare.py --method langgraph --live` |
+| Day 2 복수 주문·번호 보충 | `examples/day2_agent.py`, `examples/day2_supplement.py` | `shipping/agent.py` |
+| Day 3 조회·대기·생성 재시도 | `examples/day3_graph.py`, `examples/day3_supplement.py`, `examples/day3_retry.py` | `shipping/graph.py` |
+| Day 4 실제 모델의 부분 부재 | `examples/day4_langchain.py`, `examples/day4_langgraph.py` | `shipping/live.py`에서 각 배송 구성 선택 |
+| Day 5 실제 모델의 번호 정정 | `examples/day5_langchain.py`, `examples/day5_langgraph.py` | 같은 배송 구성의 `correct` 호출 |
 
-각 method를 `direct`로 바꾸면 직접 구현한 흐름을 사용합니다. 고정 조회의 `run.py --method direct --live`도 같은 모델 경계를 사용합니다. 도구 실행 예제는 실제 모델 실행 시 한 방식·입력을 지정하며, 대기 예제의 실제 모델 실행은 제공 문의 하나를 재개합니다. 자기 구현에서는 선택한 호출 계약에 이 모델 접점을 연결합니다.
-
-`test_comparison.py`와 `test_framework_purposes.py`는 제작자가 예제의 업무 결과·정보 보존·도구 연결·대기 정책을 확인하는 검사입니다. 코드 변경에 따른 확인이 필요하면 IDE의 테스트 실행 기능을 사용합니다. 터미널에서는 Windows의 `.\.venv\Scripts\python.exe -B -m unittest -v`, macOS·Linux·WSL의 `.venv/bin/python -B -m unittest -v`를 사용합니다. 검사 성공이 실제 모델 연결이나 학습자의 이해를 대신하지는 않습니다.
+Gemini 모델은 `shipping/model_boundary.py`에서 연결합니다. 모델 설정 파일은 저장소 루트의 `.local/week07-gemini.env`이며 학습자가 직접 입력합니다. 필요한 연결 의존성은 `requirements-gemini.txt`에 있습니다. `shipping/scenarios.py`는 공통 입력 순서를 제공하며 실행 결과를 저장하는 파일은 아닙니다.
