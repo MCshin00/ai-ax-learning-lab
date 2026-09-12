@@ -5,33 +5,33 @@ from langgraph.graph import END, START, StateGraph
 from business import State, after_lookup, after_prepare, ask, lookup, prepare, unavailable
 
 
-def build_direct(draft):
+def build_direct(draft, lookup_step=lookup):
     def run(state):
         state = prepare(state)
         if not state["order_id"]:
             return ask(state)
-        state = lookup(state)
+        state = lookup_step(state)
         if state["status"] != "FOUND":
             return unavailable(state)
         return draft(state)
     return run
 
 
-def build_langchain(draft):
+def build_langchain(draft, lookup_step=lookup):
     found_or_missing = RunnableBranch(
         (lambda state: state["status"] == "FOUND", RunnableLambda(draft)),
         RunnableLambda(unavailable),
     )
     chain = RunnableLambda(prepare) | RunnableBranch(
         (lambda state: not state["order_id"], RunnableLambda(ask)),
-        RunnableLambda(lookup) | found_or_missing,
+        RunnableLambda(lookup_step) | found_or_missing,
     )
     return chain.invoke
 
 
-def build_langgraph(draft):
+def build_langgraph(draft, lookup_step=lookup):
     graph = StateGraph(State)
-    for name, action in {"prepare": prepare, "ask": ask, "lookup": lookup,
+    for name, action in {"prepare": prepare, "ask": ask, "lookup": lookup_step,
                          "unavailable": unavailable, "draft": draft}.items():
         graph.add_node(name, action)
     graph.add_edge(START, "prepare")

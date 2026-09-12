@@ -19,12 +19,12 @@ class PendingRequest(TypedDict, total=False):
 def build_waiting_flow(answerer=fixed_reply):
     def collect(state):
         if state.get("order_id", "").strip():
-            return {"status": "READY"}
+            return {"status": "READY", "answer": ""}
         # 재개하면 이 노드는 처음부터 실행됩니다. interrupt 앞에 외부 작업을 두지 않습니다.
         supplied = interrupt({"question": "주문 번호를 알려 주세요.", "issue": state["issue"]})
         attempts = state.get("attempts", 0) + 1
         if isinstance(supplied, str) and supplied.strip():
-            return {"order_id": supplied.strip(), "attempts": attempts, "status": "READY"}
+            return {"order_id": supplied.strip(), "attempts": attempts, "status": "READY", "answer": ""}
         return {"attempts": attempts, "status": "WAITING" if attempts < 2 else "UNRESOLVED",
                 "answer": "주문 번호 확인이 필요합니다."}
 

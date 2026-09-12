@@ -3,14 +3,18 @@ import json
 import os
 
 
-def live_generator():
+def live_model():
     if os.getenv("AI_AX_LIVE") != "1":
         raise ValueError("실제 호출은 AI_AX_LIVE=1 설정이 필요합니다.")
     if not os.getenv("OPENAI_API_KEY") or not os.getenv("OPENAI_MODEL"):
         raise ValueError("OPENAI_API_KEY와 OPENAI_MODEL을 실행 환경에 설정하세요.")
     from langchain_openai import ChatOpenAI
-    model = ChatOpenAI(model=os.environ["OPENAI_MODEL"], timeout=20, max_retries=0,
-                       max_tokens=400)
+    return ChatOpenAI(model=os.environ["OPENAI_MODEL"], timeout=20, max_retries=0,
+                      max_tokens=400)
+
+
+def live_generator():
+    model = live_model()
 
     def generate(state):
         message = model.invoke([

@@ -1,16 +1,16 @@
-# Direct·LangChain·LangGraph 비교 실행
+# 프레임워크의 목적과 책임을 비교하는 실행 예제
 
-같은 주문 입력·조회 함수·생성 함수를 세 연결 방식으로 실행합니다. Day별 해설과 제작 요청은 [주차 README](../README.md)에 있습니다. 실제 LangChain의 Runnable과 LangGraph의 StateGraph를 사용하며 모델 호출 경계만 고정 답변으로 바꿀 수 있습니다.
+같은 제공 주문 자료로 고정 조회, 모델–도구 실행, 요청 보관·재개를 비교합니다. **답변이 같은지와 함께, 그 결과에 필요한 일을 직접 작성하는지 프레임워크에 맡기는지 확인합니다.** 개념·사례 해설·Day별 행동과 완료 기준은 [주차 README](../README.md)를 순서대로 읽습니다.
 
-IDE에서 Python 3.12 가상환경을 지정하고 `requirements.txt`를 설치한 뒤 `run.py`를 실행합니다. Python은 이 비교 구현에 사용합니다. 기존 Java 실습은 유지하며 `../framework_lab/`의 LangChain4j는 별도의 Java 참고 예제입니다.
+## 실행 준비
+
+IDE에서 이 폴더를 열고 아래 명령으로 가상환경과 고정 버전의 의존성을 준비합니다. 이 설치에는 터미널을 사용해 실행 환경을 맞춥니다. 이미 환경이 준비돼 있으면 IDE의 Python 인터프리터로 `.venv`를 선택하고 파일의 실행 기능을 사용합니다.
 
 Windows PowerShell:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -B run.py
-.\.venv\Scripts\python.exe -B run.py --method langgraph --order-id O-999
 ```
 
 macOS·Linux·WSL:
@@ -18,24 +18,42 @@ macOS·Linux·WSL:
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python -B run.py
-.venv/bin/python -B run.py --method langgraph --order-id O-999
 ```
 
-`--order-id ''`로 번호 누락을 실행합니다. 기본 실행은 `FIXED_OFFLINE`이며 실제 프레임워크 연결·업무 함수를 확인합니다. 모델은 호출하지 않습니다. 실제 모델 실행은 환경에 `AI_AX_LIVE=1`, `OPENAI_API_KEY`, `OPENAI_MODEL`을 설정한 뒤 `run.py --method langgraph --live`로 진행합니다. 같은 명령에서 다른 method를 고르면 같은 모델 경계를 사용합니다. 모델 호출은 과금되며, `all --live`는 세 번 호출합니다. 고정 답변의 같은 결과는 모델 답변 품질의 우열을 뜻하지 않습니다.
+## 실행 파일과 확인할 책임
 
-| 파일 | 역할 |
+| 실행 파일 | 확인할 것 | 기본 실행의 범위 |
+|---|---|---|
+| `run.py` | Direct의 분기, Runnable 연결, 그래프의 노드·간선 | 같은 고정 조회를 세 방식으로 실행 |
+| `state_updates.py` | 반환값 전달과 상태 갱신, 명시적 병합 | 생성 단계와 최종 결과에 문의가 남는지 출력 |
+| `tool_loop.py` | 직접 모델–도구 루프와 LangChain `create_agent` | 제공된 작은 문의 사례의 실제 도구 실행·결과 연결 |
+| `waiting_compare.py` | 앱의 요청별 저장소와 LangGraph 체크포인트 | 두 요청을 대기시키고 역순으로 번호만 보충 |
+| `clarification.py` | `interrupt`, 상태 갱신, 대기·종료 분기의 실제 그래프 | 번호 누락 요청 하나를 중단했다가 제공 번호로 재개 |
+
+`business.py`와 `components.py`는 조회·안내 부품, `comparison.py`는 고정 흐름의 연결 코드입니다. `model_boundary.py`는 실제 모델 접점입니다. `exercise.py`는 선택한 구조를 구현할 때 사용할 수 있는 초기 스케치이며 상태·함수·진입점을 정답으로 고정하지 않습니다.
+
+각 파일을 IDE에서 실행하거나, 반복 실행에 다음 명령을 사용합니다. 모든 명령의 실행 위치는 이 폴더입니다.
+
+| Windows PowerShell | macOS·Linux·WSL |
 |---|---|
-| `business.py` | 주문 자료, 입력 초기화, 조회, 질문·실패 안내와 생성 함수 경계 |
-| `comparison.py` | Direct 분기, LangChain Runnable 연결, LangGraph 상태·간선 정의 |
-| `model_boundary.py` | 세 방식에 공통인 실제 모델 요청 |
-| `components.py` | 학습자의 상태 형태를 정하지 않는 조회·생성 부품 |
-| `clarification.py` | 질문 후 같은 요청에서 대기·재개할 때의 실제 SDK 비교 예제 |
-| `exercise.py` | 선택 가능한 초기 스케치. 함수 이름·상태·진입점을 바꿀 수 있음 |
-| `test_comparison.py` | 제작자가 유지하는 동일 계약·정정·모델 오류 검사 |
+| `.\.venv\Scripts\python.exe -B run.py` | `.venv/bin/python -B run.py` |
+| `.\.venv\Scripts\python.exe -B state_updates.py` | `.venv/bin/python -B state_updates.py` |
+| `.\.venv\Scripts\python.exe -B tool_loop.py` | `.venv/bin/python -B tool_loop.py` |
+| `.\.venv\Scripts\python.exe -B waiting_compare.py` | `.venv/bin/python -B waiting_compare.py` |
 
-설계 실습에서는 제공 요구에서 입력·결과·상태의 수명·실패의 다음 행동을 먼저 도출합니다. `business.State`와 `build_flow(draft)`는 비교 예제의 선택이며 학습자의 고정 계약이 아닙니다. `components.py`의 조회·생성 부품을 사용해 선택한 구조와 실행 진입점을 AI와 만듭니다. 완성된 비교 함수를 그대로 호출한 것만으로 제작을 마치지 않습니다. 후보 구조의 판단 근거는 주차 가이드의 완성된 설계 해설에서 읽습니다.
+`run.py --order-id=`는 번호 누락, `run.py --order-id O-999`는 주문 부재입니다. `tool_loop.py --method langchain --issue "O-100 배송 문의"`처럼 한 방식·입력을 지정할 수도 있습니다.
 
-`python -B clarification.py`는 번호가 없는 같은 요청을 중단했다가 제공 번호로 재개하는 SDK 예제입니다. 기본 세 방식 비교와 요구가 달라졌으므로 실행 시간의 우열 비교에 섞지 않습니다. `InMemorySaver`는 같은 프로세스 안의 대기 상태만 보존합니다. 체크포인트·질문 재개를 모든 설계에 추가하는 과제는 아닙니다.
+`FIXED_OFFLINE`은 고정 안내를 사용합니다. `SCRIPTED_MODEL`은 제공 번호로 정해진 도구 요청을 만드는 모의 모델이며, 실제 LangChain과 조회 도구는 실행합니다. 이 결과는 모델의 자연어 판단·도구 선택 능력을 확인한 것이 아닙니다. 보관 비교의 두 저장소는 모두 메모리 방식이며 프로세스 종료 후 복원을 제공하지 않습니다.
 
-필요한 코드 변경 후 기존 검사를 실행하려면 선택한 가상환경에서 `python -B -m unittest -v`를 사용합니다. 매 입력마다 전체 검사를 반복할 필요는 없습니다. 실행 결과와 선택 이유는 `../framework-note.md` 한 곳에 남깁니다.
+## 실제 모델 연결
+
+IDE의 실행 환경에 `AI_AX_LIVE=1`, `OPENAI_API_KEY`, `OPENAI_MODEL`을 설정합니다. 값은 Git으로 공유하지 않는 로컬 환경에 둡니다. 실제 모델 호출은 과금됩니다. Day 4에서 선택한 흐름의 모델 역할에 맞는 실행을 사용합니다.
+
+| 모델 역할 | Windows PowerShell | macOS·Linux·WSL |
+|---|---|---|
+| 자연어 문의의 도구 선택·응답 | `.\.venv\Scripts\python.exe -B tool_loop.py --method langchain --issue "O-100 배송 문의" --live` | `.venv/bin/python -B tool_loop.py --method langchain --issue "O-100 배송 문의" --live` |
+| 대기·재개 뒤 안내 생성 | `.\.venv\Scripts\python.exe -B waiting_compare.py --method langgraph --live` | `.venv/bin/python -B waiting_compare.py --method langgraph --live` |
+
+각 method를 `direct`로 바꾸면 직접 구현한 흐름을 사용합니다. 고정 조회의 `run.py --method direct --live`도 같은 모델 경계를 사용합니다. 도구 실행 예제는 실제 모델 실행 시 한 방식·입력을 지정하며, 대기 예제의 실제 모델 실행은 제공 문의 하나를 재개합니다. 자기 구현에서는 선택한 호출 계약에 이 모델 접점을 연결합니다.
+
+`test_comparison.py`와 `test_framework_purposes.py`는 제작자가 예제의 업무 결과·정보 보존·도구 연결·대기 정책을 확인하는 검사입니다. 코드 변경에 따른 확인이 필요하면 IDE의 테스트 실행 기능을 사용합니다. 터미널에서는 Windows의 `.\.venv\Scripts\python.exe -B -m unittest -v`, macOS·Linux·WSL의 `.venv/bin/python -B -m unittest -v`를 사용합니다. 검사 성공이 실제 모델 연결이나 학습자의 이해를 대신하지는 않습니다.
