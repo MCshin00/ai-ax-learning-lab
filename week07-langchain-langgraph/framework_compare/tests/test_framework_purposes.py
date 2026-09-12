@@ -4,9 +4,9 @@ from langchain.agents.middleware.model_call_limit import ModelCallLimitExceededE
 from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 
-from state_updates import compare_updates
-from tool_loop import AGENT_BUILDERS, ScriptedOrderModel
-from waiting_compare import WAITING_BUILDERS
+from examples.state_updates import compare_updates
+from examples.tool_loop import AGENT_BUILDERS, ScriptedOrderModel
+from examples.waiting_compare import WAITING_BUILDERS
 
 
 class FrameworkPurposeTest(unittest.TestCase):

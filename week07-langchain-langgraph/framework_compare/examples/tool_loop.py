@@ -1,4 +1,8 @@
 """같은 모델·조회 도구로 직접 실행 루프와 LangChain create_agent를 비교합니다."""
+
+if __package__ in (None, ""):
+    import _bootstrap
+
 import argparse
 import json
 import re
@@ -11,8 +15,7 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.tools import StructuredTool
 from pydantic import ValidationError
 
-from components import lookup_order
-from model_boundary import live_model
+from shipping.components import lookup_order
 
 
 POLICY = ("제공된 배송 문의를 처리하세요. 주문 번호가 없으면 번호를 질문하세요. "
@@ -117,16 +120,13 @@ def main():
     parser = argparse.ArgumentParser(description="모델–도구 실행 루프의 책임 비교")
     parser.add_argument("--method", choices=[*AGENT_BUILDERS, "all"], default="all")
     parser.add_argument("--issue", help="생략하면 제공 사례를 모두 실행합니다.")
-    parser.add_argument("--live", action="store_true")
     args = parser.parse_args()
-    if args.live and (args.method == "all" or args.issue is None):
-        parser.error("실제 모델은 --method와 --issue로 한 방식·입력을 지정하세요.")
     selected = AGENT_BUILDERS if args.method == "all" else {args.method: AGENT_BUILDERS[args.method]}
     for issue in CASES if args.issue is None else [args.issue]:
         for method, builder in selected.items():
-            model = live_model() if args.live else ScriptedOrderModel()
+            model = ScriptedOrderModel()
             result = builder(model)(issue)
-            print(json.dumps({"method": method, "mode": "LIVE_MODEL" if args.live else "SCRIPTED_MODEL",
+            print(json.dumps({"method": method, "mode": "SCRIPTED_MODEL",
                               "issue": issue, **summarize(result)}, ensure_ascii=False))
 
 

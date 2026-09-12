@@ -12,7 +12,7 @@ class State(TypedDict, total=False):
     generation: str
 
 
-ORDERS = {"O-100": {"shipping": "배송 준비"}, "O-200": {"shipping": "배송 중"}}
+from shipping.components import ORDERS
 
 
 def prepare(state: State) -> State:

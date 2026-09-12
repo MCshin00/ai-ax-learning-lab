@@ -1,7 +1,7 @@
 import unittest
 
-from business import make_draft
-from comparison import BUILDERS
+from comparisons.business import make_draft
+from comparisons.flows import BUILDERS
 
 
 class ComparisonTest(unittest.TestCase):

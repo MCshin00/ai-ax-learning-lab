@@ -1,5 +1,5 @@
 """설계 실습에서 재사용할 업무·생성 부품. 애플리케이션의 상태 형태는 정하지 않습니다."""
-from business import ORDERS
+ORDERS = {"O-100": {"shipping": "배송 준비"}, "O-200": {"shipping": "배송 중"}}
 
 
 def lookup_order(order_id: str) -> dict | None:
@@ -11,10 +11,3 @@ def lookup_order(order_id: str) -> dict | None:
 
 def fixed_reply(issue: str, facts: dict) -> str:
     return f"{facts['order_id']}: {facts['shipping']}. 문의 내용은 추가 사실로 확정하지 않았습니다."
-
-
-def live_reply():
-    # 기존 모델 경계의 요청 형식만 맞춥니다. 학습자의 상태에 이 필드명을 강제하지 않습니다.
-    from model_boundary import live_generator
-    generate = live_generator()
-    return lambda issue, facts: generate({"issue": issue, "order": facts})

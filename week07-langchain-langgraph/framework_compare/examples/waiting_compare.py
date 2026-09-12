@@ -1,12 +1,16 @@
 """같은 두 배송 문의를 앱의 세션과 LangGraph 체크포인트로 보관·재개합니다."""
+
+if __package__ in (None, ""):
+    import _bootstrap
+
 import argparse
 import json
 from copy import deepcopy
 
 from langgraph.types import Command
 
-from clarification import build_waiting_flow
-from components import fixed_reply, live_reply, lookup_order
+from comparisons.waiting_graph import build_waiting_flow
+from shipping.components import fixed_reply, lookup_order
 
 
 class DirectWaitingFlow:
@@ -95,26 +99,14 @@ def compare_waiting(methods=None):
                    **flow.resume(request_id, supplied)}
 
 
-def single_request(flow):
-    yield {"phase": "waiting", **flow.start("provided-live-request", "배송 예정일 문의")}
-    yield {"phase": "resumed", **flow.resume("provided-live-request", "O-100")}
-
-
 def main():
     parser = argparse.ArgumentParser(description="문의 보관과 재개의 책임 비교")
     parser.add_argument("--method", choices=[*WAITING_BUILDERS, "all"], default="all")
-    parser.add_argument("--live", action="store_true")
     args = parser.parse_args()
-    if args.live and args.method == "all":
-        parser.error("실제 모델은 --method로 한 방식을 지정하세요.")
     selected = WAITING_BUILDERS if args.method == "all" else {args.method: WAITING_BUILDERS[args.method]}
-    if args.live:
-        flow = selected[args.method](live_reply())
-        events = single_request(flow)
-    else:
-        events = compare_waiting(selected)
+    events = compare_waiting(selected)
     for event in events:
-        event = {"mode": "LIVE_MODEL" if args.live else "FIXED_OFFLINE", "method": args.method, **event}
+        event = {"mode": "FIXED_OFFLINE", "method": args.method, **event}
         print(json.dumps(event, ensure_ascii=False))
 
 

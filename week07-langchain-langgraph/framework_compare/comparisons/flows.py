@@ -2,7 +2,7 @@
 from langchain_core.runnables import RunnableBranch, RunnableLambda
 from langgraph.graph import END, START, StateGraph
 
-from business import State, after_lookup, after_prepare, ask, lookup, prepare, unavailable
+from comparisons.business import State, after_lookup, after_prepare, ask, lookup, prepare, unavailable
 
 
 def build_direct(draft, lookup_step=lookup):

@@ -1,11 +1,10 @@
 """대기 요구가 있을 때의 비교 예제. InMemorySaver는 프로세스 재시작 후 복원을 제공하지 않습니다."""
-import json
 from typing import TypedDict
 
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
-from langgraph.types import Command, interrupt
-from components import fixed_reply, lookup_order
+from langgraph.types import interrupt
+from shipping.components import fixed_reply, lookup_order
 
 
 class PendingRequest(TypedDict, total=False):
@@ -44,13 +43,3 @@ def build_waiting_flow(answerer=fixed_reply):
     graph.add_conditional_edges("collect", route, {"answer": "answer", "collect": "collect", END: END})
     graph.add_edge("answer", END)
     return graph.compile(checkpointer=InMemorySaver())
-
-
-if __name__ == "__main__":
-    app = build_waiting_flow()
-    config = {"configurable": {"thread_id": "provided-order-request"}}
-    first = app.invoke({"issue": "배송 문의", "order_id": "", "attempts": 0}, config)
-    print(json.dumps({"phase": "waiting", "question": first["__interrupt__"][0].value}, ensure_ascii=False))
-    # 제공 입력으로 SDK 재개를 시연합니다. 실제 사용자의 응답을 받았다는 기록은 아닙니다.
-    final = app.invoke(Command(resume="O-100"), config)
-    print(json.dumps({"phase": "resumed", **final}, ensure_ascii=False))

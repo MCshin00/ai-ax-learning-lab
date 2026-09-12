@@ -1,8 +1,12 @@
 """같은 부분 반환을 값 전달과 상태 갱신으로 읽는 비교. 모든 실행은 오프라인입니다."""
+
+if __package__ in (None, ""):
+    import _bootstrap
+
 import json
 
-from business import fixed_answer, lookup, make_draft
-from comparison import BUILDERS
+from comparisons.business import fixed_answer, lookup, make_draft
+from comparisons.flows import BUILDERS
 
 
 def partial_lookup(state):
