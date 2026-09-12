@@ -422,7 +422,7 @@ R-01·R-02의 로그인 관련 로딩 지속과 재시작 후 동일한 현상�
 
 ```text
 $issue-summary로 다음 제보를 개발자에게 전달할 이슈로 정리해 주세요.
-Skill: C:/Users/ADMINI~1/AppData/Local/Temp/day4-before-4pswgv5k/issue-summary/SKILL.md
+Skill: <비교용 임시 폴더>/issue-summary/SKILL.md
 
 [R-01] Android 앱에서 로그인 버튼을 누르면 로딩이 계속됩니다. 앱을 다시 켜도 같습니다.
 [R-02] Android 앱의 로그인 화면에서 로딩이 끝나지 않습니다. 앱 재시작 후에도 같습니다.
@@ -525,7 +525,7 @@ Skill: C:/Users/ADMINI~1/AppData/Local/Temp/day4-before-4pswgv5k/issue-summary/S
 
 ```text
 $issue-summary로 다음 제보를 개발자에게 전달할 이슈로 정리해 주세요.
-Skill: C:/Users/Administrator/Desktop/ai-ax-learning-lab/week02-codex-skills/.agents/skills/issue-summary/SKILL.md
+Skill: .agents/skills/issue-summary/SKILL.md
 
 [R-01] Android 앱에서 로그인 버튼을 누르면 로딩이 계속됩니다. 앱을 다시 켜도 같습니다.
 [R-02] Android 앱의 로그인 화면에서 로딩이 끝나지 않습니다. 앱 재시작 후에도 같습니다.

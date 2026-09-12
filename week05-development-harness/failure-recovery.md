@@ -2,6 +2,8 @@
 
 하네스는 모델에 맥락과 도구를 연결하고 실행 결과를 다음 판단으로 돌려주는 실행 시스템이다. 이번 실습은 Codex 내장 하네스 위에 프로젝트의 업무 요구·작업 지침·결과 검사를 연결하는 과정이었다. 환불 프로그램은 작업 대상이고, 프로젝트에 추가한 지침과 검사는 그 대상을 어떻게 확인하고 완료할지 정하는 구성이다.
 
+이 기록은 [환불 업무용 검사·운영 구성을 구현한 버전 d7f9a965](https://github.com/MCshin00/ai-ax-learning-lab/tree/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo)을 기준으로 한다. 아래 코드·실행 안내는 당시 버전에 연결한다. 직접 만든 실행 엔진의 구조와 실행 결과는 [개발 하네스 학습 기록](harness-learning.md)에 있다.
+
 ## Day 1 — 내장 하네스의 실행과 피드백 경로
 
 기본 실행을 통해 **모델의 도구 요청 → 실제 실행 → 결과 반환 → 해석**을 확인했다. Day 1에 적용된 하네스는 Codex 내장 하네스다. 프로그램이 어떤 값을 낼 것이라는 설명을 실제 출력과 대조하면서, 모델의 판단과 실행 환경의 역할을 구분하는 활동이었다.
@@ -33,7 +35,7 @@
 
 ### 요구에서 검사 기준으로
 
-[프로젝트 지침](quality_demo/AGENTS.md)은 업무 요구에 근거해 기대값을 정하고 현재 요구와 기존 동작을 함께 검사하도록 안내한다. 요구 A에서는 수수료 면제 조건과 [입력·기대값 자료](quality_demo/data/refund-cases.json)가 기준이 됐다. 실제 출력에 맞춰 기대값을 정하면 잘못된 구현도 통과시킬 수 있으므로, 기대값은 요구에서 정해야 한다.
+[프로젝트 지침](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/AGENTS.md)은 업무 요구에 근거해 기대값을 정하고 현재 요구와 기존 동작을 함께 검사하도록 안내한다. 요구 A에서는 수수료 면제 조건과 [입력·기대값 자료](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/data/refund-cases.json)가 기준이 됐다. 실제 출력에 맞춰 기대값을 정하면 잘못된 구현도 통과시킬 수 있으므로, 기대값은 요구에서 정해야 한다.
 
 작업 지침은 모델의 작업 순서를 안내한다. 프로젝트 폴더는 파일과 명령의 기준 위치이며, 실제 편집·도구 사용 권한은 Codex의 권한 설정이 결정한다. 지침에 작업 방법을 적는 것과 도구 실행 권한을 부여하는 것은 역할이 다르다.
 
@@ -68,7 +70,7 @@
 
 ### 실제 입력과 결과
 
-[배치 입력](quality_demo/data/batch-requests.json) 8건의 결과는 [기대 결과](quality_demo/data/batch-expected.json)와 일치했다.
+[배치 입력](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/data/batch-requests.json) 8건의 결과는 [기대 결과](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/data/batch-expected.json)와 일치했다.
 
 | 순서 | id | 입력의 핵심 | 실제 결과 |
 |---:|---|---|---|
@@ -134,7 +136,7 @@ Day 3의 기준을 **이번 출력에 적용할 검사**로 만들고, 검사 �
 
 앞선 대화 전문 없이 새 작업에서 **프로젝트에 저장된 맥락·검사 경로·실패 대응 지침을 다시 찾아 사용할 수 있는지** 확인했다. Day 4의 연결을 대화 밖의 파일에 남겨 두는 이유를 검증한 단계다.
 
-[주차 README의 Day 5](README.md#day-5--새-세션에서-설계한-구성을-재사용하기), 프로젝트 `AGENTS.md`, 실습 README, `build.gradle`에서 실행·검사 경로를 찾아 재사용했다. 이번 요청문으로 정상·누락·식별자·출력 오류를 확인할 활동을 지정했고, 구체적인 실행 방법과 완료 기준은 저장된 구성을 따랐다.
+[주차 README의 Day 5](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/README.md#day-5--새-세션에서-설계한-구성을-재사용하기), 프로젝트 `AGENTS.md`, 실습 README, `build.gradle`에서 실행·검사 경로를 찾아 재사용했다. 이번 요청문으로 정상·누락·식별자·출력 오류를 확인할 활동을 지정했고, 구체적인 실행 방법과 완료 기준은 저장된 구성을 따랐다.
 
 ### 새 실행과 반례의 판정
 
@@ -172,11 +174,11 @@ Day 3의 기준을 **이번 출력에 적용할 검사**로 만들고, 검사 �
 |---|---|---|---|
 | 모델 | Codex에서 동작하는 모델 | Codex에서 제공 | 요구와 지침을 읽고 도구를 요청하며, 결과에 따라 수정·재실행·완료 보고를 결정 |
 | 실행 환경 | Codex 내장 하네스 | Codex에서 제공 | 파일 읽기·명령 실행·권한 적용과 도구 결과 반환을 연결 |
-| 작업 맥락과 운영 지침 | [AGENTS.md](quality_demo/AGENTS.md), [실습 README](quality_demo/README.md) | 제공 지침에 이번 출력 검사와 실패 대응 순서 추가 | 요구, 실행 방법, 완료 전 검사와 실패 대응 순서를 안내 |
-| 업무 입력과 기대 결과 | [배치 입력](quality_demo/data/batch-requests.json), [기대 결과](quality_demo/data/batch-expected.json) | 과정의 제공 자료 재사용 | 처리할 요청과 요구에 맞는 답을 제공 |
-| 업무 실행 | [BatchRefund](quality_demo/src/main/java/lab/week05/BatchRefund.java) → [RefundInput](quality_demo/src/main/java/lab/week05/RefundInput.java) → [Refund](quality_demo/src/main/java/lab/week05/Refund.java) | 시작 코드에 Day 2의 면제·입력 검사와 Day 3의 배치 기능 구현 | 요청을 읽고 검증·계산한 뒤 요청별 결과를 출력 |
-| 완료 검사 | [BatchResultCheck](quality_demo/src/main/java/lab/week05/BatchResultCheck.java) | Day 4에 기존 비교 기준을 공통화해 구현하고 금액 비교 보완 | 입력·기대 결과·이번 출력을 대조해 통과 또는 구체적인 실패 원인을 반환 |
-| 명령 연결 | [build.gradle](quality_demo/build.gradle) | 제공 실행·검사 구성에 `batch`와 `checkBatch` 추가 | 업무 실행, 저장된 출력 검사, 기존 기능 검사를 각각 실행 |
+| 작업 맥락과 운영 지침 | [AGENTS.md](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/AGENTS.md), [실습 README](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/README.md) | 제공 지침에 이번 출력 검사와 실패 대응 순서 추가 | 요구, 실행 방법, 완료 전 검사와 실패 대응 순서를 안내 |
+| 업무 입력과 기대 결과 | [배치 입력](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/data/batch-requests.json), [기대 결과](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/data/batch-expected.json) | 과정의 제공 자료 재사용 | 처리할 요청과 요구에 맞는 답을 제공 |
+| 업무 실행 | [BatchRefund](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/src/main/java/lab/week05/BatchRefund.java) → [RefundInput](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/src/main/java/lab/week05/RefundInput.java) → [Refund](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/src/main/java/lab/week05/Refund.java) | 시작 코드에 Day 2의 면제·입력 검사와 Day 3의 배치 기능 구현 | 요청을 읽고 검증·계산한 뒤 요청별 결과를 출력 |
+| 완료 검사 | [BatchResultCheck](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/src/main/java/lab/week05/BatchResultCheck.java) | Day 4에 기존 비교 기준을 공통화해 구현하고 금액 비교 보완 | 입력·기대 결과·이번 출력을 대조해 통과 또는 구체적인 실패 원인을 반환 |
+| 명령 연결 | [build.gradle](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/build.gradle) | 제공 실행·검사 구성에 `batch`와 `checkBatch` 추가 | 업무 실행, 저장된 출력 검사, 기존 기능 검사를 각각 실행 |
 
 환불 프로그램은 하네스가 다루는 업무 대상이다. `BatchResultCheck`는 결과 판정 도구이며, `AGENTS.md`와 이를 읽은 모델의 판단이 이 도구를 완료 보고 앞에 배치한다. `batch`와 `checkBatch`는 별도 명령이다. 배치 실행만으로 검사가 자동 실행되지는 않으므로, 지침에 따라 이번 출력을 저장하고 검사하는 도구 요청이 이어져야 한다.
 
@@ -201,15 +203,15 @@ flowchart TD
 
 코드 변경의 정상·경계·오류 동작은 기존 테스트로 함께 확인한다. 테스트와 저장된 출력 검사는 같은 비교 함수를 사용하지만 대상이 다르다. 테스트는 새로 실행한 프로그램의 동작을, `checkBatch`는 전달받은 특정 출력 파일을 확인한다.
 
-실행·저장·검사 순서는 [실습 README](quality_demo/README.md#이번-출력-검사와-완료-판단)에 있다. 검사기는 파일을 비교하므로, 이번 실행에서 얻은 파일을 전달할 책임은 실행 흐름에 있다. 현재 기대 자료는 제공된 환불 요청에 맞춰져 있다. 입력이나 업무 요구가 바뀌면 그 요구에 맞는 기대 결과를 준비하고 같은 검사 경로에 연결해야 한다.
+실행·저장·검사 순서는 [실습 README](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/README.md#이번-출력-검사와-완료-판단)에 있다. 검사기는 파일을 비교하므로, 이번 실행에서 얻은 파일을 전달할 책임은 실행 흐름에 있다. 현재 기대 자료는 제공된 환불 요청에 맞춰져 있다. 입력이나 업무 요구가 바뀌면 그 요구에 맞는 기대 결과를 준비하고 같은 검사 경로에 연결해야 한다.
 
 ### Hook의 구성과 확인한 범위
 
-제공 Hook은 명령 결과 뒤에 실패 대응 안내를 추가하는 구성이다. [Hook 설정](quality_demo/.codex/config.toml)의 `hooks = true`, [이벤트 정의](quality_demo/.codex/hooks.json)의 `PostToolUse`와 `Bash` 매칭, [PostToolUseReview](quality_demo/.codex/hooks/PostToolUseReview.java)로 연결되어 있다.
+제공 Hook은 명령 결과 뒤에 실패 대응 안내를 추가하는 구성이다. [Hook 설정](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/.codex/config.toml)의 `hooks = true`, [이벤트 정의](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/.codex/hooks.json)의 `PostToolUse`와 `Bash` 매칭, [PostToolUseReview](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/.codex/hooks/PostToolUseReview.java)로 연결되어 있다.
 
 코드는 이벤트 JSON의 `tool_response.exit_code`를 읽는다. 0이면 `{}`, 실패 코드이면 `systemMessage`에 경고와 `hookSpecificOutput.additionalContext`에 원인 확인·재검사 안내를 만든다. 종료 코드를 읽지 못하면 실행 결과 확인을 안내한다. 다음 명령은 이 피드백을 받은 모델이 선택한다.
 
-Hook 코드 검사와 예시 입력에 대한 피드백 생성은 확인했으며, Host가 실제 명령 뒤에 Hook을 자동 실행하는 연결은 미확인이다. Day 4·5에서 실제 사용한 경로는 `checkBatch`의 도구 출력과 프로젝트 지침이다. 이 경로에서 완료 보류와 재검사는 확인됐으며, 모든 완료 보고를 강제로 차단하는 장치로 구현한 것은 아니다. Hook의 실행 준비와 세부 입출력은 [실습 README의 Hook 설명](quality_demo/README.md#hook-명령-결과를-다음-판단에-연결하기)에 있다.
+Hook 코드 검사와 예시 입력에 대한 피드백 생성은 확인했으며, Host가 실제 명령 뒤에 Hook을 자동 실행하는 연결은 미확인이다. Day 4·5에서 실제 사용한 경로는 `checkBatch`의 도구 출력과 프로젝트 지침이다. 이 경로에서 완료 보류와 재검사는 확인됐으며, 모든 완료 보고를 강제로 차단하는 장치로 구현한 것은 아니다. Hook의 실행 준비와 세부 입출력은 [실습 README의 Hook 설명](https://github.com/MCshin00/ai-ax-learning-lab/blob/d7f9a9650c49738864df97c0785037af6a0ec9c5/week05-development-harness/quality_demo/README.md#hook-명령-결과를-다음-판단에-연결하기)에 있다.
 
 ---
 
