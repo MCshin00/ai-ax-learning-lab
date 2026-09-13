@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "authority": "trusted-ingestion-config",
+  "documents": {
+    "account-unlock-policy.md": {
+      "document_id": "account-unlock-policy",
+      "status": "current",
+      "tenant_id": "public",
+      "trust": "trusted",
+      "version": "1",
+      "policy_family": "account"
+    },
+    "billing-ownership.md": {
+      "document_id": "billing-ownership",
+      "status": "current",
+      "tenant_id": "public",
+      "trust": "trusted",
+      "version": "1",
+      "policy_family": "billing"
+    },
+    "data-access-policy.md": {
+      "document_id": "data-access-policy",
+      "status": "current",
+      "tenant_id": "public",
+      "trust": "trusted",
+      "version": "1",
+      "policy_family": "security"
+    },
+    "prompt-injection-sample.md": {
+      "document_id": "prompt-injection-sample",
+      "status": "current",
+      "tenant_id": "public",
+      "trust": "untrusted",
+      "version": "fixture",
+      "policy_family": "security-test"
+    },
+    "refund-policy.md": {
+      "document_id": "refund-policy",
+      "status": "current",
+      "tenant_id": "public",
+      "trust": "trusted",
+      "version": "2",
+      "policy_family": "refund"
+    },
+    "refund-policy-conflict-current.md": {
+      "document_id": "refund-policy-conflict-current",
+      "status": "current",
+      "tenant_id": "public",
+      "trust": "trusted",
+      "version": "conflict-fixture",
+      "policy_family": "refund",
+      "conflicts_with": "refund-policy",
+      "fixture_only": true
+    },
+    "refund-policy-v1-archived.md": {
+      "document_id": "refund-policy-v1-archived",
+      "status": "archived",
+      "tenant_id": "public",
+      "trust": "trusted",
+      "version": "1",
+      "policy_family": "refund"
+    },
+    "security-policy.md": {
+      "document_id": "security-policy",
+      "status": "current",
+      "tenant_id": "public",
+      "trust": "trusted",
+      "version": "3",
+      "policy_family": "security"
+    },
+    "subscription-cancellation.md": {
+      "document_id": "subscription-cancellation",
+      "status": "current",
+      "tenant_id": "public",
+      "trust": "trusted",
+      "version": "1",
+      "policy_family": "subscription"
+    },
+    "support-escalation.md": {
+      "document_id": "support-escalation",
+      "status": "current",
+      "tenant_id": "public",
+      "trust": "trusted",
+      "version": "1",
+      "policy_family": "support"
+    },
+    "tenant-beta-private-policy.md": {
+      "document_id": "tenant-beta-private-policy",
+      "status": "current",
+      "tenant_id": "tenant-beta",
+      "trust": "trusted",
+      "version": "1",
+      "policy_family": "tenant-private"
+    }
+  }
+}
