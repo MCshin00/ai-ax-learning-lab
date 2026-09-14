@@ -2,7 +2,7 @@
 
 요구에서 필요한 구성을 도출하고 AI와 설계·구현한 뒤 실제 결과를 판단하는 학습 저장소입니다. [CURRENT_WEEK.md](CURRENT_WEEK.md)에서 현재 주차 README로 이동하세요. 전체 본문과 공통 안내는 [LEARNING_GUIDE.md](LEARNING_GUIDE.md)에 있습니다.
 
-1~10주차는 제공 업무·자료만으로 기술의 구성과 연결을 배웁니다. 개인 프로젝트나 다른 프로젝트 적용 과제를 요구하지 않습니다. 11~12주차는 학습자가 원하는 포트폴리오의 목적·범위·스택·형태·배포 여부를 정하고 제작하도록 돕습니다. 기존 프로젝트가 없어도 진행할 수 있습니다.
+1~11주차는 제공 업무·자료만으로 기술의 구성과 연결을 배웁니다. 개인 프로젝트나 다른 프로젝트 적용 과제를 요구하지 않습니다. 12~13주차는 학습자가 원하는 포트폴리오의 목적·범위·스택·형태·배포 여부를 정하고 제작하도록 돕습니다. 기존 프로젝트가 없어도 진행할 수 있습니다.
 
 **개념 이해 → 요구에서 구성 도출 → AI와 설계·구현 → 실행 결과 해석**으로 진행합니다. 교재가 실제 코드·입출력과 설계 이유를 설명하고, AI는 구성과 구현을 돕습니다. 학습자는 추천의 이유와 예상 동작을 검토하고 실제 결과와 대조합니다. 새로운 선택이 없는 단순 수정에는 같은 설계 대화를 반복하지 않습니다.
 
@@ -21,13 +21,14 @@ Java가 기본이며 실제 LangChain·LangGraph 비교와 Dify Tool Plugin에 �
 | 3 | [MCP 서버·클라이언트](week03-mcp-integration/) |
 | 4 | [다중 작업과 Worktree](week04-multi-agent-worktrees/) |
 | 5 | [개발 하네스 v1](week05-development-harness/) |
-| 6 | [LLM API와 Tool Calling](week06-llm-api-tool-calling/) |
-| 7 | [Direct·LangChain·LangGraph 비교](week07-langchain-langgraph/) |
-| 8 | [RAG·평가·Red Team](week08-rag-evaluation/) |
-| 9 | [Dify Workflow와 Tool Plugin](week09-dify-workflow/) |
+| 6 | [LLM API·Tool Calling·구조화 출력·MCP 앱 연결](week06-llm-api-tool-calling/) |
+| 7 | [Direct·LangChain·LangGraph와 상태·모델 입력 관리](week07-langchain-langgraph/) |
+| 8 | [BM25·임베딩·하이브리드 RAG·평가](week08-rag-evaluation/) |
+| 9 | [Dify·Tool Plugin과 업무 결과 전달](week09-dify-workflow/) |
 | 10 | [다섯 가지 개발 방식 비교와 하네스 v2](week10-ai-development-methods/) |
-| 11 | [원하는 포트폴리오 구체화와 첫 구현](week11-portfolio-build/) |
-| 12 | [선택한 포트폴리오 완성과 전달](week12-portfolio-evidence/) |
+| 11 | [AI 파이프라인·에이전트 통합 구현](week11-ai-agent-integration/) |
+| 12 | [원하는 포트폴리오 구체화와 첫 구현](week12-portfolio-build/) |
+| 13 | [선택한 포트폴리오 완성과 전달](week13-portfolio-evidence/) |
 
 ## 파일과 폴더
 
