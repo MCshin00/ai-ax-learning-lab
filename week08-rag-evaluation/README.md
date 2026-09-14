@@ -217,6 +217,27 @@ allowedChunks.stream().filter(c -> c.documentId().equals(hit.documentId())
 | `Evaluation.java`, `data/golden.json`, `data/red-team.json` | 제공 사례 실행과 검토 기준 |
 | `../rag-note.md` | 변경 이유·실제 근거·평가 해석을 이어 기록 |
 
+### 모델 선택 — 검색용 임베딩과 답변 생성
+
+의미 검색에서는 **임베딩 모델**이 문서·질문을 숫자 벡터로 바꾸고, 저장소가 벡터를 비교해 관련 조각을 찾습니다. **생성 모델**은 질문과 선택된 근거를 읽어 최종 답변을 작성합니다. 예를 들어 “같은 요금이 두 번 나갔어요”에서 환불 정책을 찾는 데 임베딩을 쓰고, 찾은 정책의 30일·소유권·승인 조건을 설명하는 데 생성 모델을 씁니다. 어휘 검색에는 임베딩 모델이 필요하지 않습니다.
+
+짧은 한국어 정책을 검색하는 이번 실습에서는 다음을 시작 후보로 고려합니다. 모델 이름만으로 검색 성공을 보장하지 않으므로 제공된 네 질문에서 필요한 근거 확보와 자료 밖 질문의 보류를 확인합니다.
+
+| 제공자 | 임베딩 모델 선택 예시 | 선택 이유·조건 |
+|---|---|---|
+| OpenAI | `text-embedding-3-small` | 현재 제공 코드로 시작할 기본 추천. 더 높은 검색 성능을 검토할 때는 `text-embedding-3-large`와 비교합니다. [공식 모델 안내](https://developers.openai.com/api/docs/models/text-embedding-3-small) |
+| Google | `gemini-embedding-001` | 텍스트 전용 자료의 시작 후보. 이미지 등도 검색하려면 `gemini-embedding-2`를 검토합니다. 두 모델의 입력·작업 유형 지정 방식은 다릅니다. [공식 임베딩 안내](https://ai.google.dev/gemini-api/docs/embeddings) |
+| Voyage AI | `voyage-4-lite` 또는 `voyage-4` | 비용·속도를 우선하면 lite, 다국어 검색 품질과 효율의 균형을 고려하면 4를 검토합니다. [공식 모델 안내](https://docs.voyageai.com/docs/embeddings) |
+| Cohere | `embed-v4.0` | 한국어를 포함한 다국어 자료의 검색 후보입니다. [공식 모델 안내](https://docs.cohere.com/docs/cohere-embed) |
+
+답변 생성에는 API에서 사용할 수 있는 GPT·Gemini·Claude 등의 텍스트 생성 모델을 별도로 고릅니다. 짧은 정책 안내부터 시작해 지침 준수·출처 표시·보류를 확인하고, 부족할 때 상위 모델을 검토합니다. 임베딩과 생성의 제공자는 같을 필요가 없습니다. 예를 들어 Voyage 임베딩과 Claude 생성을 조합할 수 있습니다. Anthropic은 자체 임베딩 모델을 제공하지 않으며 외부 임베딩 연결을 안내합니다. [Claude의 임베딩 안내](https://platform.claude.com/docs/en/build-with-claude/embeddings)
+
+**현재 제공 코드는 OpenAI 임베딩 API와 Responses API에 연결됩니다.** 시작 설정은 `OPENAI_EMBEDDING_MODEL=text-embedding-3-small`이고, 생성할 때 별도로 `OPENAI_MODEL`을 지정합니다. 타사 모델을 선택하면 `EmbeddingIndex.Embedder`와 `Quickstart.Generator`의 역할을 경계로 해당 제공자의 인증·요청·응답 연결을 준비해야 합니다. 모델 이름과 키만 바꾸는 것으로 연결을 대신할 수 없습니다. 임베딩 연결은 조각별 벡터를 반환하고 문서용·질문용 입력 구분을 해당 API 규칙에 맞춥니다. 이 앱에서는 문서와 질문에 같은 임베딩 모델·차원·서로 대응하는 검색용 설정을 사용하고, 임베딩 조건을 바꾸면 색인을 다시 준비해 임계값도 재확인합니다. 생성 모델만 바꾸는 경우에는 문서를 다시 임베딩할 필요가 없습니다.
+
+임베딩 비용은 자료 준비 때 문서 입력과 검색 때 질문 입력에, 생성 비용은 답변 생성 호출에 발생합니다. 콘솔의 긴 JSON 출력은 그 자체로 API 과금 대상이 아닙니다. 모델 ID·현재 단가·계정의 사용 가능 여부는 실행 전에 각 공식 문서에서 확인합니다.
+
+### 실제 API 설정
+
 실제 의미 검색에는 `OPENAI_API_KEY`, `OPENAI_EMBEDDING_MODEL`, `AI_AX_LIVE=1`이 필요합니다. 답변 생성에는 `OPENAI_MODEL`도 사용합니다. 학습자가 현재 계정에서 사용 가능한 모델과 단가를 확인하고 IDE의 비공유 실행 설정에 넣습니다. IDE 실행 설정은 터미널과 별개이며 제공 앱은 다른 폴더의 `.env`를 자동으로 읽지 않습니다. `--offline`은 어휘 검색만 수행합니다. `--retrieve-only --semantic`은 답변 생성을 생략하지만 질문 임베딩 API는 호출하므로 과금될 수 있습니다.
 
 **실제 키를 읽는 앱과 API 호출은 학습자가 IDE에서 실행합니다.** AI는 환경변수 파일과 키가 저장된 비공유 실행 설정을 읽거나 이를 읽는 프로그램을 실행하지 않습니다. AI의 로컬 검증은 파일 로더와 인증 입력을 가짜 설정으로 대체하고 `Generator`·`Embedder` 대역을 사용합니다. Day 3~5에서는 AI가 연결 코드와 실행 안내를 준비하고, 학습자가 실행한 결과를 함께 해석합니다. 실제 연결이 준비되지 않았으면 구현과 대역 확인까지 진행하고 실제 임베딩·생성·Red Team은 미확인으로 남깁니다.
