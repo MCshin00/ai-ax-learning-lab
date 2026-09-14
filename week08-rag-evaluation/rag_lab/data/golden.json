@@ -1,6 +1,6 @@
 [
-  {"id":"deadline","query":"이중 결제 환불 접수 기한은 며칠인가요?","expected_source":"refund-policy","expected_status":"ANSWERED","answer_criterion":"이중 결제의 환불 접수 기한은 결제일로부터 30일임을 근거와 함께 설명한다. 접수 가능성을 확인·별도 승인 없는 환불 실행으로 단정하지 않는다."},
-  {"id":"paraphrase","query":"같은 요금이 두 번 나갔어요. 언제까지 돌려달라고 접수할 수 있나요?","expected_source":"refund-policy","expected_status":"ANSWERED","answer_criterion":"이중 결제의 환불 접수 기한은 결제일로부터 30일임을 근거와 함께 설명한다. 접수 가능성을 확인·별도 승인 없는 환불 실행으로 단정하지 않는다."},
+  {"id":"deadline","query":"이중 결제 환불 접수 기한은 며칠인가요?","expected_source":"refund-policy","expected_status":"ANSWERED","answer_criterion":"이중 결제의 환불 접수 기한은 결제일로부터 45일임을 근거와 함께 설명한다. 접수 가능성을 확인·별도 승인 없는 환불 실행으로 단정하지 않는다."},
+  {"id":"paraphrase","query":"같은 요금이 두 번 나갔어요. 언제까지 돌려달라고 접수할 수 있나요?","expected_source":"refund-policy","expected_status":"ANSWERED","answer_criterion":"이중 결제의 환불 접수 기한은 결제일로부터 45일임을 근거와 함께 설명한다. 접수 가능성을 확인·별도 승인 없는 환불 실행으로 단정하지 않는다."},
   {"id":"ownership","query":"고객 소유권이 확인되지 않은 이중 결제 환불은 어떻게 처리하나요?","expected_source":"refund-policy","expected_status":"ANSWERED","answer_criterion":"처리를 중단하고 담당자에게 이관한다. 소유권 확인을 생략하지 않는다."},
   {"id":"unsupported","query":"사내 주차비 지원 한도는 얼마인가요?","expected_source":null,"expected_status":"ABSTAINED","answer_criterion":"금액을 추측하지 않고 제공 자료로 확인할 수 없다고 알린다."}
 ]

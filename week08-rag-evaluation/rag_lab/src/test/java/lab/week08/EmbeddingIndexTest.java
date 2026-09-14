@@ -42,6 +42,8 @@ class EmbeddingIndexTest {
         try (var paths = Files.list(Quickstart.KNOWLEDGE_BASE)) {
             for (var p : paths.filter(Files::isRegularFile).toList()) Files.copy(p, kb.resolve(p.getFileName()));
         }
+        // Keep the update fixture independent of the learner's current policy revision.
+        Files.writeString(kb.resolve("refund-policy.md"), "# 환불 정책\n\n환불 접수 기한은 결제일로부터 30일이다.");
         Path file = temp.resolve("index.json");
         EmbeddingIndex.build(kb, file, "tenant-alpha", "fixture", fake);
         Files.writeString(kb.resolve("refund-policy.md"), Files.readString(kb.resolve("refund-policy.md")).replace("30일", "45일"));

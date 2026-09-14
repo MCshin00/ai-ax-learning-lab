@@ -56,7 +56,7 @@ public final class Evaluation {
                 "tenant-alpha", model, EmbeddingIndex.live(model)) : null;
         if (!redTeam) {
             evaluate(Path.of("data/golden.json"), query -> index == null
-                    ? Quickstart.run(query, Quickstart.KNOWLEDGE_BASE, .12, live ? Quickstart::generateLive : null)
+                    ? Quickstart.run(query, Quickstart.KNOWLEDGE_BASE, .08, live ? Quickstart::generateLive : null)
                     : Quickstart.runSemantic(query, index, .6, live ? Quickstart::generateLive : null));
             return;
         }
