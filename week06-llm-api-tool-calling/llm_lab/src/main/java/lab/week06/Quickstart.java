@@ -54,6 +54,14 @@ public final class Quickstart {
     }
 
     public static Map<String, Object> run(String text, Gateway client, String model, boolean plain, int maxRequests) {
+        return runWithTools(text, client, model, plain ? List.of() : List.of(TOOL),
+            plain ? "사용자의 요청에 한국어로 간결하게 답하세요." : INSTRUCTIONS, Quickstart::executeCall, maxRequests);
+    }
+
+    public static Map<String, Object> runWithTools(String text, Gateway client, String model,
+            List<FunctionTool> tools, String instructions,
+            java.util.function.BiFunction<String, String, Map<String, Object>> execute, int maxRequests) {
+        boolean plain = tools.isEmpty();
         if (maxRequests < 1 || maxRequests > 5) throw new IllegalArgumentException("maxRequests must be 1..5");
         var history = new ArrayList<ResponseInputItem>();
         history.add(ResponseInputItem.ofEasyInputMessage(EasyInputMessage.builder()
@@ -62,9 +70,10 @@ public final class Quickstart {
         var turns = new ArrayList<Map<String, Object>>();
         for (int index = 1; index <= maxRequests; index++) {
             var request = ResponseCreateParams.builder().model(model).inputOfResponse(history)
-                .instructions(plain ? "사용자의 요청에 한국어로 간결하게 답하세요." : INSTRUCTIONS)
+                .instructions(instructions)
                 .maxOutputTokens(700).store(false);
-            if (!plain) request.addTool(TOOL).parallelToolCalls(false)
+            tools.forEach(request::addTool);
+            if (!plain) request.parallelToolCalls(false)
                 .addInclude(ResponseIncludable.REASONING_ENCRYPTED_CONTENT);
             Turn turn;
             try { turn = client.create(request.build()); }
@@ -86,7 +95,7 @@ public final class Quickstart {
             if (index == maxRequests)
                 return result("STOPPED", "모델 요청 한도에 도달해 추가 함수를 실행하지 않습니다.", toolResults, turns);
             var call = calls.get(0);
-            var toolResult = executeCall(call.name(), call.arguments());
+            var toolResult = execute.apply(call.name(), call.arguments());
             toolResults.add(Map.of("call_id", call.callId(), "name", call.name(), "result", toolResult));
             // Preserve all items, including reasoning. Errors also return to the matching call.
             turn.output().forEach(item -> history.add(JSON.convertValue(item, ResponseInputItem.class)));

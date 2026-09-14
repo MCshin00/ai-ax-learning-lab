@@ -1,5 +1,7 @@
 # 고객 조회와 Tool Calling 루프
 
+`StructuredAnswer.main`은 최종 응답 스키마와 사실 검사를, `McpAssistant.main`은 기존 상품 MCP 서버를 모델에 연결하는 경로를 제공합니다. 기본 실행은 모델 대역이며 `--live`는 학습자가 IDE에서 실제 연결할 때 사용합니다. MCP 참고 연결에는 3주차 서버의 `installDist` 결과와 `--server-lib`로 지정한 `lib` 폴더가 필요합니다. 같은 서버를 다른 클래스로 구현했다면 `--server-main`으로 선택합니다. 준비·인수·복사할 요청문은 주차 README의 Day 3~5를 따릅니다. 의존성에 MCP SDK 1.1.4를 사용합니다.
+
 제공 고객 조회 함수와 공식 SDK를 연결하는 Java 예제입니다. 모델 요청→호출 해석→인자 확인→함수 실행→결과 전달→다음 호출·종료를 배웁니다. Day별 해설과 제작 요청은 [주차 README](../README.md), 결과와 선택 이유는 `../api-note.md`에 이어 남깁니다.
 
 `CustomerDirectory`는 모델과 분리된 제공 업무 함수입니다. `Quickstart`는 공개 Tool·호출 이력·종료 정책을 선택한 완성 참고 구현이고, Day 3에서는 요구에서 이 계약과 제어를 직접 설계합니다. `AssistantExercise`는 교체 가능한 빈 진입점으로 고정 `run` 인터페이스를 요구하지 않습니다. 자신의 메인 클래스를 만들었다면 `assistant`에 `-PassistantMain=lab.week06.CustomerAssistant`처럼 지정합니다. 기본 진입점의 `DESIGN_PENDING`은 아직 제작하지 않았다는 안내입니다.

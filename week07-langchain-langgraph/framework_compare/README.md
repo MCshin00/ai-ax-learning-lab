@@ -1,5 +1,7 @@
 # LangChain·LangGraph 배송 문의 실습
 
+`examples/context_window.py`는 대화 기록을 보관하면서 현재 업무에 필요한 메시지만 모델에 보내는 실행입니다. 기본값은 모델 대역이고 `--live`는 실제 연결입니다. `ShippingAgent(retain_history=True)`와 `ShippingPolicy.wrap_model_call`의 선택을 읽고, 현재 문의·호출과 결과 쌍·최신 주문 사실이 유지되는지 Day 5에서 확인합니다.
+
 같은 주문 자료로 값 전달·도구 실행·요청 보관을 비교하고, 두 배송 구성에 실제 모델과 번호 정정을 연결합니다. 개념과 Day별 진행은 [주차 README](../README.md)에 있습니다.
 
 ## 폴더와 주요 파일

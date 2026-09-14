@@ -6,7 +6,7 @@ from typing import Annotated
 from langchain.agents import AgentState, create_agent
 from langchain.agents.middleware import AgentMiddleware, ModelCallLimitMiddleware, hook_config
 from langchain.tools import ToolRuntime, tool
-from langchain_core.messages import AIMessage, RemoveMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, RemoveMessage, ToolMessage
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph.message import REMOVE_ALL_MESSAGES
 from langgraph.types import Command, Overwrite
@@ -40,13 +40,24 @@ def shipping_tool(lookup=lookup_order):
     return lookup_shipping
 
 
+def current_turn_messages(messages):
+    """현재 업무 입력부터의 호출·결과 쌍을 함께 전달합니다. 보관 상태는 수정하지 않습니다."""
+    start = next((i for i in range(len(messages) - 1, -1, -1)
+                  if isinstance(messages[i], HumanMessage)), None)
+    if start is None:
+        raise ValueError("현재 업무 입력이 필요합니다.")
+    return messages[start:]
+
+
 class ShippingPolicy(AgentMiddleware):
     state_schema = ShippingState
 
-    def __init__(self, max_empty_replies=2):
+    def __init__(self, max_empty_replies=2, compact_context=False):
         if max_empty_replies < 1:
             raise ValueError("빈 보충 허용 횟수는 양수여야 합니다.")
         self.max_empty_replies = max_empty_replies
+        self.compact_context = compact_context
+        self.last_model_messages = []
 
     @hook_config(can_jump_to=["end"])
     def before_model(self, state, runtime):
@@ -62,6 +73,9 @@ class ShippingPolicy(AgentMiddleware):
         return {"status": "READY", "answer": ""}
 
     def wrap_model_call(self, request, handler):
+        if self.compact_context:
+            request = request.override(messages=current_turn_messages(request.messages))
+        self.last_model_messages = list(request.messages)
         response = handler(request)
         message = response.result[0]
         # 잘못된 응답은 모델 단계에서 실패시켜 재시도 때 모델을 다시 호출합니다.
@@ -82,14 +96,16 @@ class ShippingAgent:
     """참고 도구·상태·정책을 재사용하고 문의의 시작·보충·결과 조회를 연결합니다."""
 
     def __init__(self, model, *, lookup=lookup_order,
-                 max_empty_replies=2, max_model_calls=4):
+                 max_empty_replies=2, max_model_calls=4, retain_history=False):
+        self.retain_history = retain_history
+        self.policy = ShippingPolicy(max_empty_replies=max_empty_replies, compact_context=retain_history)
         self.app = create_agent(
             model=model,
             tools=[shipping_tool(lookup)],
             system_prompt=AGENT_POLICY,
             state_schema=ShippingState,
             middleware=[
-                ShippingPolicy(max_empty_replies=max_empty_replies),
+                self.policy,
                 ModelCallLimitMiddleware(run_limit=max_model_calls, exit_behavior="error"),
             ],
             checkpointer=InMemorySaver(),
@@ -122,11 +138,13 @@ class ShippingAgent:
         previous = self.snapshot(request_id).values
         state = initial_state(previous["issue"], order_ids)
         state["attempts"] = attempts
-        # 병합 상태와 모델 문맥을 함께 교체해 이전 주문이 현재 근거로 남지 않게 합니다.
+        # 기록을 보관해도 현재 주문 사실은 초기화하고 모델 입력은 현재 턴에서 선택합니다.
+        messages = [model_input(state)] if self.retain_history else [
+            RemoveMessage(id=REMOVE_ALL_MESSAGES), model_input(state)]
         self.app.invoke({
             **state,
             "orders": Overwrite({}),
-            "messages": [RemoveMessage(id=REMOVE_ALL_MESSAGES), model_input(state)],
+            "messages": messages,
         }, self.config(request_id))
         return self.view(request_id)
 
@@ -148,7 +166,10 @@ class ShippingAgent:
         if not snapshot.values:
             raise ValueError("시작하지 않은 요청입니다.")
         events = []
-        for message in snapshot.values["messages"]:
+        messages = snapshot.values["messages"]
+        if self.retain_history:
+            messages = current_turn_messages(messages)
+        for message in messages:
             if isinstance(message, AIMessage) and message.tool_calls:
                 events.append({"requests": [{"id": call["id"], "tool": call["name"],
                                               "args": call["args"]}

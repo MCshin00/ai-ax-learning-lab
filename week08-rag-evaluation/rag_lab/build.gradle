@@ -3,6 +3,9 @@ plugins {
 }
 repositories { mavenCentral() }
 dependencies {
+    implementation 'org.apache.lucene:lucene-core:9.12.3'
+    implementation 'org.apache.lucene:lucene-analysis-common:9.12.3'
+    implementation 'org.apache.lucene:lucene-analysis-nori:9.12.3'
     implementation 'com.openai:openai-java:4.60.0'
     implementation 'dev.langchain4j:langchain4j:1.20.0'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
