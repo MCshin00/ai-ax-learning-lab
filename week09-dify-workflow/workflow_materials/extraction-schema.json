@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "properties": {
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {"type": "string"},
+          "owners": {"type": "array", "items": {"type": "string"}},
+          "due": {"type": "string"},
+          "evidence": {"type": "array", "items": {"type": "string"}},
+          "conflicts": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["title", "owners", "due", "evidence", "conflicts"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["tasks"],
+  "additionalProperties": false
+}

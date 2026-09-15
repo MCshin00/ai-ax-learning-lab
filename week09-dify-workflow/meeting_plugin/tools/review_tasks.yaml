@@ -1,0 +1,43 @@
+identity:
+  name: review_tasks
+  author: learninglab
+  label:
+    en_US: Review meeting tasks
+description:
+  human:
+    en_US: Check required fields, unresolved conflicts, and evidence copied from the memo.
+  llm: Validate extracted tasks; never invent or complete missing fields.
+parameters:
+  - name: memo
+    type: string
+    required: true
+    label:
+      en_US: Original memo
+    human_description:
+      en_US: Original meeting text including any explicit human correction.
+    llm_description: Original meeting text.
+    form: llm
+  - name: extraction_json
+    type: string
+    required: true
+    label:
+      en_US: Extracted tasks JSON
+    human_description:
+      en_US: JSON object with a tasks array containing title, owners, due, evidence, and conflicts.
+    llm_description: The extraction node's JSON text, unchanged.
+    form: llm
+output_schema:
+  type: object
+  properties:
+    status:
+      type: string
+      description: ready, review, or invalid
+    summary:
+      type: string
+      description: Tasks and review reasons to display to the user.
+    payload:
+      type: string
+      description: JSON review result for the application's next step; this is not human approval.
+extra:
+  python:
+    source: tools/review_tasks.py

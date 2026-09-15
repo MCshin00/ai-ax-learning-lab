@@ -1,7 +1,7 @@
 {
   "layout_version": 6,
   "created_at": "2026-07-25T10:42:29.915424+00:00",
-  "current_week": 8,
+  "current_week": 9,
   "applied_weeks": [
     1,
     2,
@@ -10,7 +10,8 @@
     5,
     6,
     7,
-    8
+    8,
+    9
   ],
   "references_revealed": [],
   "applied_files": {
@@ -154,10 +155,34 @@
       "week08-rag-evaluation/rag_lab/src/test/java/lab/week08/EvaluationTest.java",
       "week08-rag-evaluation/rag_lab/src/test/java/lab/week08/PipelineTest.java",
       "week08-rag-evaluation/rag_lab/src/test/java/lab/week08/QuickstartTest.java"
+    ],
+    "9": [
+      "week09-dify-workflow/meeting_plugin/.difyignore",
+      "week09-dify-workflow/meeting_plugin/.env.example",
+      "week09-dify-workflow/meeting_plugin/.gitignore",
+      "week09-dify-workflow/meeting_plugin/_assets/icon.svg",
+      "week09-dify-workflow/meeting_plugin/business.py",
+      "week09-dify-workflow/meeting_plugin/main.py",
+      "week09-dify-workflow/meeting_plugin/manifest.yaml",
+      "week09-dify-workflow/meeting_plugin/provider/meeting.py",
+      "week09-dify-workflow/meeting_plugin/provider/meeting.yaml",
+      "week09-dify-workflow/meeting_plugin/README.md",
+      "week09-dify-workflow/meeting_plugin/requirements.txt",
+      "week09-dify-workflow/meeting_plugin/test_plugin.py",
+      "week09-dify-workflow/meeting_plugin/test_workflow_client.py",
+      "week09-dify-workflow/meeting_plugin/tools/review_tasks.py",
+      "week09-dify-workflow/meeting_plugin/tools/review_tasks.yaml",
+      "week09-dify-workflow/meeting_plugin/workflow_client.py",
+      "week09-dify-workflow/workflow_materials/cases.json",
+      "week09-dify-workflow/workflow_materials/extraction-prompt.txt",
+      "week09-dify-workflow/workflow_materials/extraction-schema.json",
+      "week09-dify-workflow/workflow_materials/ready-template.jinja",
+      "week09-dify-workflow/workflow_materials/review-template.jinja",
+      "week09-dify-workflow/workflow_materials/workflow-setup.md"
     ]
   },
-  "updated_at": "2026-09-14T13:59:21.989550+00:00",
-  "source_guide_sha256": "3dfd40d18787c216ecd98f573f708ad58c841bef891c3d769f05a6c8e48e5d6c",
+  "updated_at": "2026-09-15T10:08:05.035865+00:00",
+  "source_guide_sha256": "43e852c250db9bba1b76eab9dfcf49fe08544ad27a6dee881c50791baeeb1254",
   "migrated_from_layout_version": 2,
   "layout_migrated_at": "2026-08-12T17:39:12.701181+00:00",
   "layout_migrations": [

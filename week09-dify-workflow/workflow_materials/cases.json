@@ -1,0 +1,35 @@
+[
+  {
+    "id": "normal",
+    "memo": "민수가 금요일에 초안을 공유한다.",
+    "extraction": {"tasks": [{"title": "초안 공유", "owners": ["민수"], "due": "금요일", "evidence": ["민수가 금요일에 초안을 공유한다."], "conflicts": []}]},
+    "expected_status": "ready"
+  },
+  {
+    "id": "missing",
+    "memo": "초안을 공유하기로 했다. 담당자와 기한은 정하지 않았다.",
+    "extraction": {"tasks": [{"title": "초안 공유", "owners": [], "due": "", "evidence": ["초안을 공유하기로 했다. 담당자와 기한은 정하지 않았다."], "conflicts": []}]},
+    "expected_status": "review"
+  },
+  {
+    "id": "conflict",
+    "memo": "민수가 금요일에 초안을 공유한다. 지수도 초안 공유 담당자라고 기록됐다. 최종 담당자는 확인하지 않았다.",
+    "extraction": {"tasks": [{"title": "초안 공유", "owners": ["민수", "지수"], "due": "금요일", "evidence": ["민수가 금요일에 초안을 공유한다.", "지수도 초안 공유 담당자라고 기록됐다. 최종 담당자는 확인하지 않았다."], "conflicts": ["최종 담당자 미확정"]}]},
+    "expected_status": "review"
+  },
+  {
+    "id": "partial",
+    "memo": "초안을 공유하기로 했다. 담당자와 기한은 정하지 않았다.\n사람의 보완: 담당자는 민수로 확정했다. 기한은 아직 정하지 않았다.",
+    "extraction": {"tasks": [{"title": "초안 공유", "owners": ["민수"], "due": "", "evidence": ["초안을 공유하기로 했다. 담당자와 기한은 정하지 않았다.", "사람의 보완: 담당자는 민수로 확정했다. 기한은 아직 정하지 않았다."], "conflicts": []}]},
+    "expected_status": "review"
+  },
+  {
+    "id": "mixed",
+    "memo": "민수가 금요일에 초안을 공유한다. 검토 회의 준비 담당자와 기한은 정하지 않았다.",
+    "extraction": {"tasks": [
+      {"title": "초안 공유", "owners": ["민수"], "due": "금요일", "evidence": ["민수가 금요일에 초안을 공유한다."], "conflicts": []},
+      {"title": "검토 회의 준비", "owners": [], "due": "", "evidence": ["검토 회의 준비 담당자와 기한은 정하지 않았다."], "conflicts": []}
+    ]},
+    "expected_status": "review"
+  }
+]
