@@ -1,0 +1,15 @@
+identity:
+  author: learninglab
+  name: meeting_review_lab
+  label:
+    en_US: Meeting Review Lab
+  description:
+    en_US: Validate meeting task fields without generating missing facts.
+  icon: icon.svg
+  tags: [productivity]
+credentials_for_provider: {}
+tools:
+  - tools/review_tasks.yaml
+extra:
+  python:
+    source: provider/meeting.py

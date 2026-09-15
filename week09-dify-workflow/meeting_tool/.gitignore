@@ -1,0 +1,12 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+*.difypkg
+.local/
+
+.env.*
+*.env
+*.env.*
+.vscode/
+!.env.example

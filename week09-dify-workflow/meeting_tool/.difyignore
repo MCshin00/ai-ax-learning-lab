@@ -1,0 +1,13 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.local/
+test_plugin.py
+
+.env.*
+*.env
+*.env.*
+.vscode/
+workflow_client.py
+test_workflow_client.py
