@@ -6,16 +6,11 @@ import java.util.*;
 
 /** The application validates requested fields and returns only selected customer values. */
 final class GeminiToolLoop {
-    static final String TOOL_NAME = "get_customer_context";
-    static final int MAX_REQUESTS = 3;
-    static final Set<String> ALLOWED_FIELDS = Set.of("plan", "status");
-    static final String DEFAULT_TEXT = "C-100 고객의 요금제를 알려주세요.";
-    static final String INSTRUCTIONS = "한국어로 간결하게 답하세요. 고객 요금제와 상태는 반드시 "
-            + "get_customer_context의 실제 조회 결과에 근거하세요. 고객 번호가 없으면 질문하고 "
-            + "번호를 추측하지 마세요. CUSTOMER_NOT_FOUND이면 고객 번호 확인을 안내하세요. "
-            + "질문한 항목만 fields에 지정하세요. 요금제는 plan, 계정 상태는 status이며 "
-            + "둘 다 물으면 두 항목을 함께 지정하세요. 반환되지 않은 고객 정보는 추측하지 마세요. "
-            + "한 응답에는 함수 호출을 최대 하나만 요청하고, 조회 결과가 있으면 답하세요.";
+    static final String TOOL_NAME = CustomerTool.TOOL_NAME;
+    static final int MAX_REQUESTS = CustomerTool.MAX_REQUESTS;
+    static final Set<String> ALLOWED_FIELDS = CustomerTool.ALLOWED_FIELDS;
+    static final String DEFAULT_TEXT = CustomerTool.DEFAULT_TEXT;
+    static final String INSTRUCTIONS = CustomerTool.INSTRUCTIONS;
     static final Tool TOOL = Tool.builder().functionDeclarations(FunctionDeclaration.fromJson("""
         {"name":"get_customer_context","description":"고객의 요금제·계정 상태 중 요청한 항목만 반환합니다.",
          "parameters":{"type":"OBJECT","properties":{"customer_id":{"type":"STRING",
@@ -36,23 +31,7 @@ final class GeminiToolLoop {
     }
 
     static Map<String, Object> executeCall(String name, Map<String, Object> args) {
-        if (!TOOL_NAME.equals(name)) return Map.of("error", "UNKNOWN_TOOL");
-        if (args == null || !args.keySet().equals(Set.of("customer_id", "fields"))
-                || !(args.get("customer_id") instanceof String id) || id.isBlank()
-                || !(args.get("fields") instanceof List<?> fields) || fields.isEmpty())
-            return Map.of("error", "INVALID_ARGUMENTS");
-        var selected = new LinkedHashSet<String>();
-        for (Object field : fields) {
-            if (!(field instanceof String requested) || !ALLOWED_FIELDS.contains(requested))
-                return Map.of("error", "INVALID_ARGUMENTS");
-            selected.add(requested);
-        }
-        var customer = CustomerDirectory.lookup(id);
-        if (customer.containsKey("error")) return customer;
-        var result = new LinkedHashMap<String, Object>();
-        result.put("customer_id", customer.get("customer_id"));
-        for (String field : selected) result.put(field, customer.get(field));
-        return result;
+        return CustomerTool.executeCall(name, args);
     }
 
     static Map<String, Object> run(String text, String model, Gateway gateway) {
@@ -61,6 +40,11 @@ final class GeminiToolLoop {
 
     /** The caller owns this conversation; the request budget belongs to this input. */
     static Map<String, Object> run(String text, String model, Gateway gateway, List<Content> history) {
+        return run(text, model, gateway, history, false);
+    }
+
+    static Map<String, Object> run(String text, String model, Gateway gateway,
+                                   List<Content> history, boolean structured) {
         var result = new LinkedHashMap<String, Object>();
         var toolResults = new ArrayList<Map<String, Object>>();
         var turns = new ArrayList<Map<String, Object>>();
@@ -73,12 +57,18 @@ final class GeminiToolLoop {
         result.put("model_requests", 0);
         result.put("tool_results", toolResults);
         result.put("turns", turns);
+        if (structured) {
+            result.put("next_action", "HOLD");
+            result.put("response_schema", GeminiStructuredAnswer.SCHEMA);
+        }
+        boolean finalPhase = false;
         for (int index = 1; index <= MAX_REQUESTS; index++) {
             result.put("model_requests", index);
             GenerateContentResponse response;
             try {
                 // Immutable snapshot: a test double sees exactly what this request sent.
-                response = gateway.generate(model, List.copyOf(history), requestConfig());
+                response = gateway.generate(model, List.copyOf(history),
+                        finalPhase ? GeminiStructuredAnswer.config(toolResults) : requestConfig());
             } catch (RuntimeException error) {
                 result.put("status", "PROVIDER_ERROR");
                 result.put("answer", "");
@@ -94,6 +84,7 @@ final class GeminiToolLoop {
                         .asText("BLOCK_REASON_UNSPECIFIED");
                 var turn = new LinkedHashMap<String, Object>();
                 turn.put("request_number", index);
+                if (structured) turn.put("phase", finalPhase ? "STRUCTURED_ANSWER" : "TOOL_SELECTION");
                 turn.put("input_contents", history.size());
                 turn.put("finish_reason", finish);
                 turn.put("usage_status", body.hasNonNull("usageMetadata") ? "REPORTED" : "UNAVAILABLE");
@@ -112,9 +103,26 @@ final class GeminiToolLoop {
                 Content content = response.candidates().orElseThrow().get(0).content().orElseThrow();
                 var parts = content.parts().orElse(List.of());
                 var calls = parts.stream().flatMap(part -> part.functionCall().stream()).toList();
+                if (structured && finalPhase) {
+                    if (!calls.isEmpty()) {
+                        result.putAll(GeminiStructuredAnswer.hold("INVALID_OUTPUT"));
+                        return result;
+                    }
+                    String raw = parts.stream().filter(part -> !part.thought().orElse(false))
+                            .flatMap(part -> part.text().stream()).reduce("", String::concat);
+                    result.put("structured_response", raw);
+                    result.putAll(GeminiStructuredAnswer.consume(raw, toolResults));
+                    if ("MODEL_RESPONSE".equals(result.get("status"))) history.add(content);
+                    return result;
+                }
                 if (calls.isEmpty()) {
                     String answer = parts.stream().filter(part -> !part.thought().orElse(false))
                             .flatMap(part -> part.text().stream()).reduce("", String::concat);
+                    if (structured && !answer.isBlank()) {
+                        // The unstructured draft is not presented as an accepted final answer.
+                        finalPhase = true;
+                        continue;
+                    }
                     result.put("answer", answer);
                     result.put("status", answer.isBlank() ? "INVALID_OUTPUT" : "MODEL_RESPONSE");
                     // Clarifications and final answers must survive the next user input too.
@@ -151,6 +159,13 @@ final class GeminiToolLoop {
                 evidence.put("arguments", args);
                 evidence.put("result", value);
                 toolResults.add(evidence);
+                if (structured) {
+                    if (value.containsKey("error") && !"CUSTOMER_NOT_FOUND".equals(value.get("error"))) {
+                        result.putAll(GeminiStructuredAnswer.hold("TOOL_ERROR"));
+                        return result;
+                    }
+                    finalPhase = true;
+                }
             } catch (Exception error) {
                 result.put("status", "INVALID_OUTPUT");
                 result.put("message", "응답 형식을 해석하지 못했습니다.");

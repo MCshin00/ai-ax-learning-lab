@@ -120,6 +120,7 @@ public final class GeminiQuickstart {
         boolean tools = false;
         boolean plain = false;
         boolean chat = false;
+        boolean structured = false;
         boolean caseSpecified = false;
         String scenario = "normal";
         for (int i = 0; i < args.length; i++) {
@@ -127,6 +128,7 @@ public final class GeminiQuickstart {
             else if ("--plain".equals(args[i])) plain = true;
             else if ("--tools".equals(args[i])) tools = true;
             else if ("--chat".equals(args[i])) chat = true;
+            else if ("--structured".equals(args[i])) structured = true;
             else if ("--case".equals(args[i]) && i + 1 < args.length) {
                 scenario = args[++i];
                 caseSpecified = true;
@@ -135,18 +137,18 @@ public final class GeminiQuickstart {
             else {
                 var error = baseResult();
                 error.put("status", "INVALID_ARGUMENTS");
-                error.put("message", "프로그램 인자는 --plain, --tools, --chat, --text, --offline, --case normal|status|both|unknown|repeat를 사용하세요.");
+                error.put("message", "프로그램 인자는 --plain, --tools, --chat, --structured, --text, --offline, --case normal|status|both|unknown|repeat를 사용하세요.");
                 print(error);
                 return;
             }
         }
 
-        if ((plain && tools) || !Set.of("normal", "status", "both", "unknown", "repeat").contains(scenario)
+        if ((structured && "repeat".equals(scenario)) || (structured && !(tools || chat)) || (plain && tools) || !Set.of("normal", "status", "both", "unknown", "repeat").contains(scenario)
                 || (caseSpecified && !(offline && tools))
                 || (chat && (plain || tools || text != null || caseSpecified))) {
             var error = baseResult();
             error.put("status", "INVALID_ARGUMENTS");
-            error.put("message", "--chat은 단독 또는 --offline과 사용하세요. --plain과 --tools는 함께 쓰지 않습니다. --case는 --tools --offline에서 사용하세요.");
+            error.put("message", "--structured는 --tools 또는 --chat과 사용하세요. --chat은 --offline, --structured와 함께 사용할 수 있습니다. --plain과 --tools는 함께 쓰지 않습니다. --case는 --tools --offline에서 사용하세요. repeat는 구조화 모드에서 지원하지 않습니다.");
             print(error);
             return;
         }
@@ -159,10 +161,10 @@ public final class GeminiQuickstart {
         Map<String, Object> result;
         if (offline) {
             if (chat) {
-                chat("scripted-offline", GeminiChat.offline(), "SCRIPTED_OFFLINE");
+                chat("scripted-offline", structured ? GeminiStructuredOffline.gateway() : GeminiChat.offline(), "SCRIPTED_OFFLINE", structured);
                 return;
             }
-            if (tools) result = GeminiToolLoop.run(text, "scripted-offline", GeminiToolLoop.offline(scenario));
+            if (tools) result = GeminiToolLoop.run(text, "scripted-offline", structured ? GeminiStructuredOffline.gateway() : GeminiToolLoop.offline(scenario), new ArrayList<>(), structured);
             else
             result = run(text, "scripted-offline", (model, input, config) ->
                     GenerateContentResponse.fromJson("""
@@ -189,11 +191,11 @@ public final class GeminiQuickstart {
                     .build()) {
                 if (chat) {
                     chat(environment.get("GEMINI_MODEL"),
-                            (model, history, config) -> client.models.generateContent(model, history, config), "LIVE");
+                            (model, history, config) -> client.models.generateContent(model, history, config), "LIVE", structured);
                     return;
                 }
                 if (tools) result = GeminiToolLoop.run(text, environment.get("GEMINI_MODEL"),
-                        (model, history, config) -> client.models.generateContent(model, history, config));
+                        (model, history, config) -> client.models.generateContent(model, history, config), new ArrayList<>(), structured);
                 else result = run(text, environment.get("GEMINI_MODEL"),
                         (model, input, config) -> client.models.generateContent(model, input, config));
             }
@@ -202,10 +204,10 @@ public final class GeminiQuickstart {
         print(result);
     }
 
-    private static void chat(String model, GeminiToolLoop.Gateway gateway, String mode) throws IOException {
+    private static void chat(String model, GeminiToolLoop.Gateway gateway, String mode, boolean structured) throws IOException {
         GeminiChat.run(model, gateway, mode,
                 new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8)),
-                new PrintWriter(System.out, true, StandardCharsets.UTF_8));
+                new PrintWriter(System.out, true, StandardCharsets.UTF_8), structured);
     }
 
     private static void print(Map<String, Object> result) throws Exception {

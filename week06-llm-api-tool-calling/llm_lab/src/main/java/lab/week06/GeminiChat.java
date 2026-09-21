@@ -8,6 +8,11 @@ import java.util.*;
 final class GeminiChat {
     static void run(String model, GeminiToolLoop.Gateway gateway, String mode,
                     BufferedReader input, PrintWriter output) throws IOException {
+        run(model, gateway, mode, input, output, false);
+    }
+
+    static void run(String model, GeminiToolLoop.Gateway gateway, String mode,
+                    BufferedReader input, PrintWriter output, boolean structured) throws IOException {
         var history = new ArrayList<Content>();
         output.println("대화를 시작합니다. 질문을 입력하세요. 종료: /exit");
         while (true) {
@@ -20,7 +25,7 @@ final class GeminiChat {
                 return;
             }
             if (text.isBlank()) continue;
-            var result = GeminiToolLoop.run(text.strip(), model, gateway, history);
+            var result = GeminiToolLoop.run(text.strip(), model, gateway, history, structured);
             result.put("mode", mode);
             output.println(GeminiQuickstart.JSON.writerWithDefaultPrettyPrinter().writeValueAsString(result));
             if (!"MODEL_RESPONSE".equals(result.get("status"))) {
