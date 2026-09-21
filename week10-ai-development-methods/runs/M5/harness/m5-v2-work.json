@@ -1,0 +1,12 @@
+{
+  "workspace": "..",
+  "task": "../../m5-task.md",
+  "context": ["../../../AGENTS.md", "README.md", "harness/context.md", "harness/v2-context.md"],
+  "verify": {
+    "windows": ["cmd", "/d", "/c", "gradlew.bat", "--no-daemon", "--continue", "test", "acceptance", "-PharnessReportTasks=test,acceptance"],
+    "posix": ["sh", "gradlew", "--no-daemon", "--continue", "test", "acceptance", "-PharnessReportTasks=test,acceptance"]
+  },
+  "maxRepairs": 1,
+  "timeoutSeconds": 600,
+  "execution": {"model": "gpt-6-astra", "reasoningEffort": "low"}
+}
