@@ -103,34 +103,15 @@ sequenceDiagram
     Note over Entry: mode=LIVE를 붙이고 JSON 출력
 ```
 
-### 첫 요청: 실행 진입점에서 SDK까지
+### 첫 요청: 질문과 공개 기능을 모델에 전달하기
 
-IDE의 실행 인자는 `--tools --text "C-100 고객의 요금제를 알려주세요."`다. `main`은 `--tools`로 고객 조회 경로를 선택하고 `--text` 뒤의 문장을 `text`로 받는다. 실제 실행에서는 `GEMINI_API_KEY`, `GEMINI_MODEL`, `AI_AX_LIVE=1` 설정을 확인한 뒤 기존 Google GenAI Java SDK 1.70.0 클라이언트를 만든다. SDK 연결에는 요청 시간 제한과 `attempts(1)`이 설정되어 있다.
-
-다음 실제 코드에서 마지막 인자는 `Gateway`의 동작을 전달한다.
-
-```java
-if (tools) result = GeminiToolLoop.run(text, environment.get("GEMINI_MODEL"),
-        (model, history, config) -> client.models.generateContent(model, history, config));
-```
-
-`Gateway`는 `run`이 모델을 요청할 때 호출하는 앱 내부 연결점이다. 위 연결을 사용하면 공식 SDK의 `generateContent`가 실행되고 `GenerateContentResponse`가 돌아온다. 대역 실행에서는 같은 자리에 고정 응답을 돌려주는 함수를 넣는다. 그래서 모델 경계를 바꿔도 앱의 인자 검사·업무 조회·이력 전달·종료 흐름을 그대로 확인할 수 있다.
-
-`run`은 최초 질문을 `history`에 넣는다.
-
-```java
-history.add(Content.builder().role("user").parts(Part.fromText(text)).build());
-```
-
-반복문 안의 다음 호출이 위 SDK 연결로 이어진다.
+IDE 인자 `--tools --text "C-100 고객의 요금제를 알려주세요."`로 고객 조회 경로를 실행했다. `GeminiQuickstart.main`은 입력과 Google GenAI Java SDK 1.70.0 연결을 준비하고, `GeminiToolLoop.run`은 질문을 이력에 넣어 모델에 보낸다. 당시 연결은 요청 시간 제한과 `attempts(1)`을 사용했다. `Gateway`가 실제 SDK의 `generateContent`와 고정 응답 대역을 교체하는 경계다.
 
 ```java
 response = gateway.generate(model, List.copyOf(history), requestConfig());
 ```
 
-전달하는 값은 모델, 대화 이력, 요청 설정이다. `List.copyOf(history)`는 이번 요청 시점의 이력 목록을 전달한다. `requestConfig()`는 Day 1의 출력 제한·추론 수준을 재사용하면서 고객 조회 지침을 `systemInstruction`에 넣고 `tools(TOOL)`로 함수 정의를 추가한다. 지침과 Tool 정의는 `history`의 항목이 아니라 별도의 설정으로 매 요청에 함께 전달된다.
-
-Tool 정의에는 공개 이름 `get_customer_context`, 설명, 필수 문자열 인자 `customer_id`가 들어 있다. 이는 모델이 어떤 기능을 어떤 입력으로 요청할지 알려주는 계약이다. 실제 조회 함수의 데이터나 실행 코드를 모델에 보내는 것은 아니다. 콘솔의 `request.tools`는 앱이 만든 이름 목록 요약이며, SDK에 전달된 전체 함수 스키마를 출력한 값은 아니다.
+`history`는 현재 질문과 앞선 결과, `requestConfig()`는 공통 지침·출력 제한·Tool 정의를 담는다. Tool 정의는 공개 이름 `get_customer_context`와 필수 문자열 인자 `customer_id`를 설명하며 실제 고객 데이터나 실행 코드를 모델에게 보내지 않는다. `request.tools`는 콘솔의 이름 요약이고 전체 스키마는 요청 설정에 있다. 모델은 이 계약을 보고 조회를 요청하고, 다음 단계에서 앱이 실제 함수를 실행한다.
 
 ### 첫 응답: 생성 종료와 함수 실행 판단
 
@@ -234,7 +215,7 @@ if (calls.isEmpty()) {
 
 없는 고객 경로도 최종 분류는 `MODEL_RESPONSE`였다. 이 값은 API 응답을 코드가 해석해 붙인 앱의 응답 상태이며, 고객 조회의 성공을 의미하지 않는다. 현재 분기는 차단·종료 이유와 함수 호출 여부를 확인하고 비어 있지 않은 답변이 있을 때 이 상태를 반환한다. 고객 조회 성공 여부는 `tool_results[].result`의 조회값 또는 업무 오류로 판단한다. 전송 실패는 SDK 호출에서 정상 응답을 얻지 못한 상황이어서 `PROVIDER_ERROR`로 끝내고, 앞서 조회했다면 그 근거를 남긴다.
 
-반복 종료는 조회의 성공 여부와도 다르다. 현재 앱은 모델 요청을 최대 세 번 허용하고, 세 번째 응답도 조회를 요청하면 실행 전에 `STOPPED`로 끝낸다. 더 조회해도 결과를 전달할 다음 요청이 없기 때문이다. 반복 대역에서 모델 요청 세 번·조회 두 번으로 이 경계를 확인했다. 순차 조회해야 할 기능이 늘어나면 필요한 왕복 수에 맞춰 한도를 다시 판단해야 한다.
+조회 성공과 실행 종료는 별개의 판단이다. 반복 대역의 중단 위치와 요청 한도를 선택한 이유는 Day 4에 연결한다.
 
 ### 대역으로 확인한 응답 보존
 
@@ -358,110 +339,17 @@ call.id().ifPresent(functionResponse::id);
 
 ## Day 4 — 업무 오류의 전달과 반복 종료의 책임
 
-### 모델 요청과 업무 함수 호출을 구분하기
+### 조회 오류는 다음 판단의 자료이고, 호출 한도는 앱의 실행 정책이다
 
-이 앱의 처리에는 두 종류의 호출이 있다. `gateway.generate(...)`는 실제 연결에서 Gemini API에 입력을 보내 모델 응답을 받는다. `executeCall(...) → CustomerDirectory.lookup(...)`은 앱 내부에서 제공 고객 자료를 조회한다. 모델 응답의 `functionCall`은 이 로컬 함수를 실행해 달라는 요청 데이터다. 모델이 로컬 함수를 직접 실행하거나 다음 API 요청을 스스로 전송하는 것은 아니다. 다음 행동을 실행하는 주체는 `GeminiToolLoop.run`의 코드다.
+Day 3의 실제 세 성공 사례는 각각 모델 요청 두 번과 로컬 조회 한 번이었다. 모델이 조회를 요청한 뒤 앱이 얻은 값을 다시 보내 안내를 받는 경로는 Day 2에서 확인했다. 이 두 번째 요청은 전송 오류의 자동 재시도가 아니다. 연결의 `attempts(1)`과 앱이 조회 결과를 전달하는 요청은 서로 다른 동작이다.
 
-Day 3의 세 실제 성공 결과는 각각 **모델 요청 두 번과 고객 조회 한 번**이었다. 이 둘을 모두 단순히 “호출”이라고 부르면 왜 다음 요청이 필요한지와 무엇을 제한하는지가 섞인다.
+`customer_id=C-404, fields=["plan"]`은 형식에 맞지만 고객이 없는 입력이다. `executeCall`은 조회 오류를 성공 필드 선택보다 먼저 반환하므로 `CUSTOMER_NOT_FOUND`가 빈 성공 값으로 바뀌지 않는다. 모델 대역은 원래 호출에 대응하는 오류를 받고 고객 번호 확인 문장을 반환했다. 이때 `MODEL_RESPONSE`는 안내 응답을 얻었다는 분류이며 조회 성공을 뜻하지 않는다.
 
-### 조회가 성공했는데 두 번째 모델 요청이 필요한 이유
+반면 조회가 성공해도 다음 모델 응답이 다시 함수를 요청할 수 있다. 한 번의 응답 생성이 `STOP`으로 끝난 것, 조회 함수가 값을 반환한 것, 앱의 `run`이 최종 결과를 반환한 것은 종료 대상이 다르다. 실제 첫 응답도 `STOP`이었지만 함수 요청이 있어 앱의 처리가 계속됐다. 같은 조회를 계속 보내는 입력은 반복 대역으로 만들었으며 실제 Gemini가 반복했다는 기록은 아니다.
 
-첫 모델 요청에는 사용자 질문, 지침과 Tool 정의가 들어 있다. 모델은 현재 고객 자료를 직접 읽지 못하므로 `get_customer_context(customer_id="C-100", fields=["plan"])`을 요청한다. 이 응답이 생성될 때에는 앱의 고객 조회가 아직 실행되지 않았으므로, 이번 조회로 확인할 `basic` 값도 첫 요청의 입력에는 없다.
+### 추가 조회보다 먼저 한도를 검사하는 이유
 
-앱이 그 응답을 읽어 함수를 실행하면 비로소 고객 ID와 `plan=basic`을 얻는다. 그러나 조회 함수가 반환한 값은 앱 메모리에 생긴 데이터다. 이미 응답을 마친 모델에게 저절로 전달되지는 않는다. 이 앱은 모델에게 실제 조회값을 바탕으로 자연어 안내를 만들게 하므로, 조회값을 포함한 **새 모델 요청**이 필요하다.
-
-```text
-모델 요청 1: “C-100 고객의 요금제를 알려주세요.” + Tool 정의
-  ← 모델 응답 1: “get_customer_context(C-100, fields=[plan])을 실행해 달라”
-
-로컬 조회 1: CustomerDirectory.lookup("C-100")
-  → 앱이 선택한 결과: {customer_id:C-100, plan:basic}
-
-모델 요청 2: 최초 질문 + 모델의 호출 요청 + 실제 함수 결과
-  ← 모델 응답 2: “C-100 고객의 요금제는 basic입니다.”
-
-앱이 최종 답변을 반환하고 이번 처리를 종료
-```
-
-이는 정상 처리에서도 필요한 두 단계다. SDK의 전송 실패 재시도와는 역할이 다르다. 현재 실제 SDK 연결의 `attempts(1)`은 자동 재시도를 끄지만, 앱이 조회 결과를 전달하려고 두 번째 `generateContent`를 호출하는 흐름은 그대로 존재한다.
-
-결과를 정해진 화면이나 문장에 넣어 보여주는 요구라면 일반 코드가 조회값을 표시하고 끝낼 수도 있다. 이번에는 모델이 질문을 해석하고 조회 결과를 설명하는 구조를 선택했기 때문에 이 왕복을 사용한다.
-
-### 두 번째 모델 응답이 반드시 최종 안내는 아닌 이유
-
-`requestConfig()`는 다음 요청에도 지침과 Tool 정의를 함께 보낸다. 따라서 두 번째 응답에도 텍스트 안내뿐 아니라 새로운 `functionCall`이 들어올 수 있다. 이번 지침에는 “조회 결과가 있으면 답하세요”가 있지만, 앱 코드가 두 번째 응답을 무조건 최종 문장으로 고정하는 것은 아니다.
-
-일반적인 Tool Calling에서는 추가 정보가 필요해 다른 함수를 요청하는 흐름도 가능하다. 현재 한 고객을 조회하는 요구에서는 한 번의 조회로 충분하지만, 모델이 이미 받은 정보를 다시 요청하는 응답도 앱이 처리할 수 있는 형태다. 같은 유효한 조회를 계속 보내는 반복 대역은 그 상황에서 앱이 어떻게 움직이는지 확인하기 위한 입력이다. 실제 Gemini가 이번 실습에서 반복했다는 기록은 아니다.
-
-여기서는 세 종료를 구분해야 한다.
-
-| 종료한 대상 | 의미 | 그 다음에 가능한 처리 |
-|---|---|---|
-| 한 번의 모델 응답 생성 | 이번 응답을 만드는 작업이 끝남. 실제 첫 응답도 `STOP`이었음 | 응답 안에 함수 요청이 있으면 앱이 조회할 수 있음 |
-| 한 번의 고객 조회 | 업무 함수가 고객값 또는 업무 오류를 반환함 | 앱이 그 결과를 모델에 전달할 수 있음 |
-| 앱의 이번 요청 처리 | `run`이 최종 결과를 반환함 | 현재 반복문을 더 진행하지 않음 |
-
-따라서 `STOP`이나 조회 성공만으로 전체 처리의 종료를 결정할 수 없다. `run`은 응답 안의 함수 호출 여부와 앱의 실행 정책을 함께 판단한다.
-
-### 다음 요청으로 넘어가는 실제 코드 위치
-
-[GeminiToolLoop.java](llm_lab/src/main/java/lab/week06/GeminiToolLoop.java)의 `run`은 반복문 시작에서 모델에 요청한다.
-
-```java
-for (int index = 1; index <= MAX_REQUESTS; index++) {
-```
-
-반복문의 본문에서 수행하는 모델 요청은 다음과 같다.
-
-```java
-response = gateway.generate(model, List.copyOf(history), requestConfig());
-```
-
-응답을 검사한 뒤 함수 호출이 없으면 텍스트를 모아 반환한다. 아래는 Day 4 시점의 분기로, `return result`가 **`run` 전체를 끝낸다**. Day 5에서는 이 반환 직전에 최종 응답을 이력에 저장하는 코드를 추가했다.
-
-```java
-if (calls.isEmpty()) {
-    String answer = parts.stream().filter(part -> !part.thought().orElse(false))
-            .flatMap(part -> part.text().stream()).reduce("", String::concat);
-    result.put("answer", answer);
-    result.put("status", answer.isBlank() ? "INVALID_OUTPUT" : "MODEL_RESPONSE");
-    return result;
-}
-```
-
-함수 호출이 하나 있고 남은 요청 여유가 있으면, 앱은 실제 함수를 실행하고 결과를 이력에 붙인다.
-
-```java
-var value = executeCall(name, args);
-var functionResponse = FunctionResponse.builder().name(name).response(value);
-call.id().ifPresent(functionResponse::id);
-history.add(content);
-history.add(Content.builder().role("user")
-        .parts(Part.builder().functionResponse(functionResponse.build()).build()).build());
-```
-
-이 정상적인 함수 실행 경로에서는 `toolResults`에 실행 기록을 추가한 뒤 **`return` 없이 반복문 본문 끝에 도달**한다. 그러면 `index++`가 실행되고 반복 조건을 검사한 뒤 다음 `gateway.generate`로 들어간다. 이때 앞선 호출 요청과 실제 결과가 추가된 이력이 새 요청으로 전달된다. 다음 요청은 모델이 뒤에서 자동 실행하는 것이 아니라 이 반복문 때문에 발생한다.
-
-### 종료 조건이 있어도 횟수 상한은 별도로 필요한 이유
-
-“종료 조건이 없다”와 “몇 번 안에 종료되는지 보장하지 못한다”는 다른 문제다. 횟수 제한이 없더라도 “함수 호출 없는 최종 답변이 오면 종료”라는 조건은 둘 수 있다. 하지만 그 조건은 다음 모델 응답의 내용에 달려 있다.
-
-예를 들어 **횟수 제한을 둔 현재 반복문을 제한 없는 반복으로 바꾸고, 요청 한도 분기도 없앴다**고 가정하면 다음 경로가 가능하다. 이는 현재 코드의 실행 결과가 아니라 제한을 제거했을 때의 설명용 흐름이다.
-
-```text
-요청 1 → 유효한 조회 요청 → 조회 성공 → 결과를 붙여 다음 요청
-요청 2 → 유효한 조회 요청 → 조회 성공 → 결과를 붙여 다음 요청
-요청 3 → 유효한 조회 요청 → 조회 성공 → 결과를 붙여 다음 요청
-...
-```
-
-각 응답이 올바른 형식의 조회 요청이면 인자 검사나 업무 오류 처리에 걸리지 않는다. 모델이 함수 호출 없는 답변을 내면 종료하겠지만, 이 조건만으로는 “반드시 N번째 요청 이전에 그런 답변이 온다”는 경계를 정할 수 없다. 현실에서 서비스 제한이나 연결 오류로 멈출 수도 있으나, 그 외부 사건을 기다리는 것으로 앱의 실행 횟수 상한을 정한 것은 아니다. 모델에 “곧 답하라”고 지시하는 것도 앱의 횟수 조건을 대신하지 않는다.
-
-현재 앱에는 이미 `index <= MAX_REQUESTS`와 아래 한도 분기가 있으므로 이 제한 없는 가정과 다르다. 특히 **한도 분기 하나만 없앤다고 현재 `for`가 무한 반복으로 바뀌는 것은 아니다.** 반복문의 조건 자체도 최대 요청 수를 제한한다. 여기서 다루는 문제는 모델 응답만 종료 기준으로 삼고 앱의 횟수 제한을 두지 않은 설계다.
-
-### 현재 앱은 어느 위치에서 상한을 보장하는가
-
-`MAX_REQUESTS=3`이고 `index`는 한 번의 `run`에서 모델 요청마다 증가한다. `index <= MAX_REQUESTS` 때문에 네 번째 모델 요청은 시작할 수 없다. 여기에 함수 실행 전의 다음 분기가 중단 이유를 결과로 반환하고, 결과를 전달할 기회가 없는 추가 조회도 막는다.
+당시 `GeminiToolLoop.run`은 모델 요청을 최대 세 번 허용했다. 함수 호출 없는 응답을 먼저 반환하고, 또 함수를 요청했을 때 다음 분기를 `executeCall` 앞에서 적용했다.
 
 ```java
 if (index == MAX_REQUESTS) {
@@ -471,40 +359,23 @@ if (index == MAX_REQUESTS) {
 }
 ```
 
-이 분기는 `executeCall(name, args)`보다 앞에 있다. 반복 대역에서 확인한 결과는 다음과 같다.
+반복 대역의 실제 경로는 다음과 같았다.
 
 ```text
 모델 요청 1 → 조회 요청 → 실제 조회 1 → 결과 전달
 모델 요청 2 → 조회 요청 → 실제 조회 2 → 결과 전달
-모델 요청 3 → 조회 요청 → 한도 분기에서 STOPPED
-                         실제 조회 3은 시작하지 않음
+모델 요청 3 → 조회 요청 → STOPPED, 실제 조회 3은 시작하지 않음
 ```
 
-세 번째 응답 뒤에도 조회를 실행하면 그 결과를 설명할 네 번째 모델 요청이 필요하지만, 선택한 한도에는 그 요청이 없다. 그래서 조회 뒤 중단하는 대신 실행 전에 멈춘다. 중복 이름·인자를 비교해 중단하는 정책은 아니므로, 호출 ID가 새로 생겨도 요청 횟수가 세 번에 도달하면 같은 경계가 적용된다.
+세 번째 조회까지 실행하면 그 결과를 설명할 네 번째 모델 요청이 필요하다. 선택한 한도에는 그 여유가 없으므로 실행 전에 멈췄다. 세 번째 응답이 최종 안내라면 앞선 반환 분기에서 정상 종료한다. 요청 수는 `index <= MAX_REQUESTS`가 제한하고, 이 분기는 사용하지 못할 추가 조회를 막으며 중단 이유를 반환한다. 같은 이름·인자를 비교하는 중복 호출 차단 정책은 아니다.
 
-앞서 본 **함수 호출 없는 응답의 반환 분기는 한도 분기보다 앞에 있다.** 따라서 세 번째 응답이 정상적인 최종 안내라면 `MODEL_RESPONSE`로 끝난다. 세 번째 요청 자체가 실패인 것이 아니라, 그 응답이 또 함수를 요구할 때 추가 실행을 거부하는 구조다.
+조회 오류 전달은 모델이 보완할 정보를 주고, 호출 한도는 모델의 다음 응답과 무관하게 앱이 실행을 통제한다. 지침만으로 모델의 종료를 보장할 수 없어 두 책임을 나눴다. 순차 조회할 기능이 늘어나면 필요한 왕복 수와 실행 효과를 기준으로 한도를 다시 정하게 된다.
 
-이렇게 모델이 어떤 응답을 보내는지와 별개로 앱이 한 실행의 최대 요청 수를 정한다. 조회가 모두 성공해도 제한 없는 반복은 무료 사용 한도를 소모하거나 유료 호출 비용을 누적시킬 수 있다. 반복 종료 조건은 그 불필요한 호출 누적을 제한하는 실행 정책이다.
+### 확인 근거
 
-### 없는 고객 오류를 전달하는 경로와의 차이
+[GeminiToolLoopTest.java](llm_lab/src/test/java/lab/week06/GeminiToolLoopTest.java)의 `normalAndMissingCustomerReturnActualResultsWithOriginalModelContent`는 고객 부재가 원래 응답·호출 ID와 함께 다음 요청에 전달되는지 확인한다. `projectionPreservesErrorsAndDoesNotMutateBusinessData`는 필드 선택에서 오류와 원자료가 보존되는지, `repeatedCallsStopBeforeThirdExecution`는 모델 요청 세 번·조회 두 번 뒤 중단하는지 확인한다.
 
-`customer_id=C-404, fields=["plan"]`은 형식은 맞지만 실제 고객을 찾지 못하는 요청이다. `executeCall`은 다음 분기에서 오류를 그대로 반환한다.
-
-```java
-var customer = CustomerDirectory.lookup(id);
-if (customer.containsKey("error")) return customer;
-```
-
-이 분기가 성공 필드를 고르는 코드보다 앞에 있으므로 `CUSTOMER_NOT_FOUND`가 사라지지 않는다. `run`은 이 값을 원래 함수 이름·호출 ID에 대응하는 `functionResponse`에 넣고 다음 모델 요청에 전달한다. 그 결과를 받은 대역의 안내는 “고객 번호를 확인해 주세요.”였다.
-
-오류 전달은 모델이 다음 안내를 만드는 데 필요한 정보를 제공한다. 한도 검사는 추가 실행을 허용할지 앱이 결정한다. 업무 오류가 없어도 반복은 발생할 수 있고, 오류를 돌려줬다는 사실만으로 다음 모델 응답이 반드시 최종 안내일 것이라고 보장할 수도 없다. 그래서 두 책임이 모두 필요하다.
-
-### 대역으로 오류 전달과 반복 경계를 확인하는 방법
-
-[GeminiToolLoopTest.java](llm_lab/src/test/java/lab/week06/GeminiToolLoopTest.java)의 `normalAndMissingCustomerReturnActualResultsWithOriginalModelContent`는 없는 고객의 오류가 원래 Content와 호출 ID에 대응해 두 번째 요청에 전달되는지 검사한다. `projectionPreservesErrorsAndDoesNotMutateBusinessData`는 항목 선택 과정에서도 업무 오류가 보존되는지 확인한다. `repeatedCallsStopBeforeThirdExecution`는 같은 유효 호출을 계속 보내 모델 요청 세 번·실행 결과 두 개 뒤 `STOPPED`가 되는지 확인한다.
-
-대역은 모델 응답을 고정하지만 실제 앱의 검사·업무 함수·이력 구성·종료 분기를 실행한다. 따라서 이번 대상인 오류 전달과 실행 횟수 경계는 이 방법으로 확인할 수 있다. 모델이 실제로 어느 항목을 선택하고 어떤 문장으로 설명하는지는 실제 응답을 대조하는 별도의 확인이며, Day 3의 세 실제 입력에서는 정상적인 항목 선택과 최종 안내를 확인했다.
-
+대역은 실제 앱의 검사·조회·이력·종료 분기를 실행한다. 이 근거로 오류 전달과 한도는 확인할 수 있지만 실제 모델의 반복 성향이나 문장 품질을 판단할 수는 없다. Day 3의 정상 항목 선택과 안내는 별도의 실제 모델 결과다.
 
 ## Day 5 — 파생 질문을 이어받는 대화 이력
 
@@ -514,31 +385,11 @@ if (customer.containsKey("error")) return customer;
 
 새 입력마다 조회와 최종 답변에 필요한 호출 기회를 주기 위해 호출 한도도 새로 적용한다. 첫 질문에서 조회 요청과 조회 결과를 설명하는 데 모델 요청 두 번을 썼을 때, 대화 전체에 세 번을 나누어 쓰면 다음 질문에는 한 번만 남는다. 다음 질문도 조회가 필요하면 결과를 모델에 전달하고 답변받는 과정까지 진행하기 어렵다. 따라서 이력은 질문 사이에 유지하되, 최대 세 번의 모델 요청은 각각의 사용자 입력에 적용하는 구성을 선택했다.
 
-### 실행 옵션에서 실제 모델 연결까지
+### 대화의 실행 진입점
 
-[GeminiQuickstart.java](llm_lab/src/main/java/lab/week06/GeminiQuickstart.java)의 인자 해석에 `--chat` 분기를 추가했다. 실제 실행에서는 환경변수를 확인하고 SDK Client를 만든 다음 아래 분기로 들어간다. 아래 코드 블록은 현재 파일의 실제 구현을 발췌한 것이다.
+Day 5에는 `GeminiQuickstart`의 `--chat` 경로를 추가해 `GeminiChat`의 콘솔 입력과 기존 모델 연결을 사용했다. Program arguments에는 모드를 넣고 실제 질문은 실행된 콘솔에 입력한다. Gradle 실행에서도 입력을 받도록 `standardInput = System.in`을 연결했다. `--chat --offline`은 같은 대화 코드의 모델 경계만 대역으로 바꾼다.
 
-```java
-if (chat) {
-    chat(environment.get("GEMINI_MODEL"),
-            (model, history, config) -> client.models.generateContent(model, history, config), "LIVE");
-    return;
-}
-```
-
-여기서 전달한 `(model, history, config) -> client.models.generateContent(...)`가 실제 API를 호출하는 연결 함수다. `GeminiToolLoop`가 이 함수를 호출할 때 요청이 발생한다. Client는 대화 전체 동안 열려 있고 콘솔 실행이 끝나면 닫힌다. `--chat --offline`은 별도 분기에서 `GeminiChat.offline()`을 전달하므로 같은 대화 처리 코드를 고정 응답으로 실행한다.
-
-콘솔 입출력은 다음 메서드에서 연결한다.
-
-```java
-private static void chat(String model, GeminiToolLoop.Gateway gateway, String mode) throws IOException {
-    GeminiChat.run(model, gateway, mode,
-            new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8)),
-            new PrintWriter(System.out, true, StandardCharsets.UTF_8));
-}
-```
-
-`System.in`으로 들어오는 한 줄을 읽고 `System.out`으로 결과를 표시한다. `build.gradle`의 `tasks.withType(JavaExec).configureEach`에는 `standardInput = System.in`을 추가해 Gradle로 시작한 앱에도 콘솔 입력이 전달되도록 했다. 따라서 Program arguments에는 모드인 `--chat`만 넣고, 실제 질문은 실행된 콘솔에 입력한다.
+다음 코드 발췌는 구조화 응답 옵션과 공통 코드 분리 전, Day 5 실행 당시의 구조를 보여 준다. 현재 진입점은 링크한 파일에서 확인하며 당시 결과를 현재 코드의 모든 옵션에 대한 실행 근거로 해석하지 않는다.
 
 ### 콘솔 반복문 밖에서 이력을 만들고 같은 객체를 전달하기
 
@@ -576,47 +427,11 @@ static void run(String model, GeminiToolLoop.Gateway gateway, String mode,
 
 `GeminiToolLoop.run`이 결과를 반환하면 JSON을 출력한다. 정상 모델 응답이면 반복문 끝에서 다음 `readLine()`으로 돌아가 **새 사용자 입력을 기다린다**. 입력 대기의 반복이 자동 모델 요청을 뜻하지는 않는다. 빈 줄은 처리 함수를 부르기 전에 `continue`하고, `/exit`이나 입력 스트림 종료는 `return`한다. 응답이 실패·중단 상태이면 출력 후 `return`하므로 그 대화의 다음 입력을 처리하지 않는다.
 
-### 입력별 처리 함수에서 횟수를 새로 시작하기
+### 이력은 대화 단위로, 호출 예산은 입력 단위로 관리하기
 
-[GeminiToolLoop.java](llm_lab/src/main/java/lab/week06/GeminiToolLoop.java)의 대화용 `run`은 이력을 인자로 받도록 확장했다. 메서드 시작부터 모델 요청 반복문까지의 실제 부분이다.
+대화용 `GeminiToolLoop.run`은 전달받은 이력에 이번 사용자 입력을 더한다. `result`, `toolResults`, `turns`와 모델 요청 횟수는 호출마다 새로 만든다. 그래서 앞선 문의는 이어지지만 이번 결과에는 이번 입력의 조회와 요청 기록이 담긴다.
 
-```java
-static Map<String, Object> run(String text, String model, Gateway gateway, List<Content> history) {
-    var result = new LinkedHashMap<String, Object>();
-    var toolResults = new ArrayList<Map<String, Object>>();
-    var turns = new ArrayList<Map<String, Object>>();
-    history.add(Content.builder().role("user").parts(Part.fromText(text)).build());
-    result.put("request", Map.of("model", model, "input", text,
-            "instructions", INSTRUCTIONS, "tools", List.of(TOOL_NAME), "max_model_requests", MAX_REQUESTS,
-            "context_messages", contextMessages(history)));
-    result.put("status", "NOT_VERIFIED");
-    result.put("answer", "");
-    result.put("model_requests", 0);
-    result.put("tool_results", toolResults);
-    result.put("turns", turns);
-    for (int index = 1; index <= MAX_REQUESTS; index++) {
-        result.put("model_requests", index);
-```
-
-이 메서드는 새 이력을 만들지 않고, 받은 이력에 이번 사용자 입력을 추가한다. 반면 `result`, `toolResults`, `turns`는 호출마다 새로 만든다. 모델 요청의 `index`도 매번 1부터 시작하며 `MAX_REQUESTS=3`까지 증가한다. 이 배치 때문에 대화 맥락은 이어지고 각 결과 JSON에는 이번 입력의 요청·함수 실행 결과가 담긴다.
-
-반복문 안의 실제 요청은 다음 한 줄에서 발생한다.
-
-```java
-response = gateway.generate(model, List.copyOf(history), requestConfig());
-```
-
-이 호출이 앞서 연결한 `client.models.generateContent(model, history, config)`로 이어진다. `List.copyOf`는 그 요청에 넘길 목록을 고정하며, 목록 안의 원래 Content를 다시 만들지는 않는다. 함수 호출 응답을 처리해 이력을 추가한 뒤 반복문 끝에 도달하면 같은 입력을 처리하는 다음 모델 요청으로 넘어간다. 최종 답변을 반환하면 이 내부 반복은 끝나고 바깥 콘솔 반복으로 복귀한다.
-
-기존 단일 질문용 진입점은 새 이력을 만들어 같은 메서드를 부르는 형태로 남겼다.
-
-```java
-static Map<String, Object> run(String text, String model, Gateway gateway) {
-    return run(text, model, gateway, new ArrayList<>());
-}
-```
-
-단일 입력과 대화 모드는 인자 검사·항목 선택·함수 결과 전달 코드를 함께 사용한다. 차이는 이력을 누가 생성하고 얼마나 오래 보관하는가다. 이력을 기억하는 주체는 앱이며, SDK 연결 객체를 재사용하는 것만으로 대화가 기억되는 것은 아니다. 입력 대기를 어느 클래스에 둘지는 앱의 설계 선택이고, 모델 응답과 함수 결과를 API 형식에 맞춰 전달하는 것은 연결에 필요한 계약이다.
+단일 질문용 진입점은 새 이력을 만들어 같은 처리 함수를 호출한다. 두 모드가 공유하는 인자 검사·조회·결과 전달은 Day 2~3의 경로이며, 차이는 이력을 누가 만들고 얼마나 보관하는가다. SDK Client를 재사용하는 것만으로 대화가 기억되는 것은 아니다.
 
 ### 최종 답변과 확인 질문도 원래 응답으로 보존하기
 
@@ -636,21 +451,7 @@ if (calls.isEmpty()) {
 
 이제 “고객 번호를 알려주세요.”라는 확인 질문도, 조회 뒤의 최종 안내도 다음 입력까지 남는다. 보이는 답변 문자열로 모델 응답을 재구성하지 않고 원래 `Content`를 저장하므로 `parts`와 응답에 붙은 `thoughtSignature`도 함께 보존된다. 서명은 앱이 해석하거나 생성하는 값이 아니다. 함수 호출 응답 역시 원래 Content를 저장하고, 실제 조회값은 기존대로 함수 이름과 받은 ID에 대응하는 `functionResponse`에 넣는다.
 
-그 함수 실행·이력 추가 경로는 다음 실제 코드다. 앞에서 함수 호출 수와 이번 입력의 요청 한도를 검사한 뒤 이 부분에 도달한다.
-
-```java
-var value = executeCall(name, args);
-var functionResponse = FunctionResponse.builder().name(name).response(value);
-call.id().ifPresent(functionResponse::id);
-// Preserve every model part, including thoughtSignature, without reconstruction.
-history.add(content);
-history.add(Content.builder().role("user")
-        .parts(Part.builder().functionResponse(functionResponse.build()).build()).build());
-```
-
-`executeCall`이 인자를 검사하고 요청한 필드만 선택한 실제 결과를 만든다. 첫 `history.add`에는 **모델이 보낸 호출 응답**, 두 번째에는 **앱이 만든 함수 결과**가 들어간다. 함수 결과의 역할도 `user`이지만 자연어 사용자 입력이 아니라 `functionResponse`라는 Part로 구분된다. 그 뒤 다음 모델 요청에 이 목록을 보내면 모델이 조회값을 읽고 최종 안내를 만들 수 있다. 위의 함수 호출 없는 분기가 그 안내 Content를 저장하고 콘솔로 반환한다.
-
-한도 때문에 실행하지 못한 함수 호출은 앞서 본 콘솔의 중단 분기에서 대화가 끝나므로 다음 입력의 작업으로 넘어가지 않는다. 프로세스를 다시 실행하면 `GeminiChat.run`이 새 메모리 이력을 만든다.
+함수 호출 응답과 실제 결과의 대응은 Day 2의 연결을 재사용한다. Day 5에서 달라진 점은 함수 호출 없는 확인 질문과 최종 안내도 다음 사용자 입력까지 보관한다는 것이다. 이 앱은 실패·한도 중단이면 콘솔 대화를 끝내고, 다시 실행하면 메모리 이력을 새로 만든다. 이는 이 실습의 종료·상태 수명 정책이다.
 
 ### 두 입력이 실제 요청으로 이어진 오프라인 결과
 
@@ -682,3 +483,209 @@ history.add(Content.builder().role("user")
 
 최종 답변 뒤 콘솔은 다음 입력을 기다렸고 `/exit`에 “대화를 종료합니다.”를 출력했다. 이번 실제 실행으로 고객 번호 확인 → 같은 대화의 후속 입력 → 요청한 요금제 조회 → 조회값에 근거한 안내 → 명시적 종료까지 확인했다.
 
+
+
+## 최종 구조화 응답과 후속 처리
+
+### 후속 처리 요구에서 이 구성을 해석하기
+
+이 앱은 조회 결과를 이미 가지고 있으므로 요금제 표시 자체는 코드가 직접 만들 수 있다. 현재 `CustomerAnswer.consume`의 `display`도 정상 값은 조회 근거에서 가져온다. 구조화 응답은 모델의 결과를 정해진 필드로 받아 검사하고 다음 코드에 넘기는 경계를 확인하려고 연결한 구성이다. 단순 조회 화면에 반드시 필요한 추가 단계는 아니다.
+
+모델이 생성하는 안내·확인 문장과 앱이 결정하는 표시·질문·보류를 구분한다. `needs_follow_up`은 모델의 출력이며 조회 사실과 대조할 대상이고, `next_action`은 대조 후 앱의 결정이다. `needs_follow_up=true`인 유효한 확인 질문은 `ASK_CUSTOMER_ID`로 사용하고, 사실 불일치나 응답 실패는 `HOLD`로 사용을 중단한다. 이 코드의 보류는 자동 재시도를 기다리는 상태가 아니다.
+
+도구 선택과 최종 스키마 응답을 별도 요청으로 둬 출력 계약을 따로 적용했지만, 번호가 없는 경우에도 두 요청이 발생한다. 조회 근거가 비면 번호를 다시 묻는 현재 정책은 이미 번호가 있는데 도구를 사용하지 않은 상황을 별도로 구별하지 못한다. 호출 비용과 이 한계는 선택한 구현의 성질이며 구조화 출력의 필수 규칙이 아니다. 아래는 당시 구현·실행 결과이고, 이 절의 해설은 그 결과에서 읽을 수 있는 선택과 한계를 정리한 것이다.
+
+### 조회 인자와 안내 결과의 계약
+
+기존 Day 3의 실제 Gemini 실행에서는 요금제·상태·두 항목의 선택과 반환 범위를, Day 5에서는 고객 번호 확인 뒤 같은 대화를 이어 조회하는 흐름을 확인했다. 그때 `MODEL_RESPONSE`는 비어 있지 않은 자연어 답변을 받았다는 분류였다. 답변에 업무 필드가 갖춰졌는지, 조회값과 일치하는지를 자동으로 검사하는 분기는 없었다.
+
+[GeminiToolLoop.java](llm_lab/src/main/java/lab/week06/GeminiToolLoop.java)의 `TOOL`은 모델이 실행을 요청할 인자를 정한다. `customer_id=C-100, fields=["plan"]`을 `executeCall`이 검사하고 조회하면 모델에게 돌려주는 사실은 `{customer_id:C-100, plan:basic}`이다. 현재 사실을 다음 모델 입력으로 공급하는 것이며, 고객 자료를 바꾸는 일이 모델 재학습을 뜻하지는 않는다.
+
+[GeminiStructuredAnswer.java](llm_lab/src/main/java/lab/week06/GeminiStructuredAnswer.java)의 `SCHEMA`는 조회 뒤 다음 코드가 읽을 결과를 정한다. `customer_id`와 `answer`는 문자열, `needs_follow_up`은 불리언, `plan`과 `account_status`는 문자열 또는 null이다. 다섯 필드를 필수로 두고 추가 필드는 허용하지 않는다. 도구 결과의 `status`는 최종 응답의 `account_status`에 대응한다. 요금제만 조회했다면 `account_status=null`이며, 이는 계정 비활성이 아니라 이번 조회에서 상태를 제공하지 않았다는 뜻이다.
+
+다음은 대역에서 사용한 정상 응답 예다.
+
+```json
+{
+  "customer_id": "C-100",
+  "plan": "basic",
+  "account_status": null,
+  "needs_follow_up": false,
+  "answer": "basic 요금제입니다."
+}
+```
+
+`plan`을 `premium`으로 바꿔도 JSON의 필드와 자료형은 유효하다. 그러나 이번 조회는 `basic`이므로 사실 대조에서 `FACT_MISMATCH`로 보류한다. 스키마 계약과 업무 사실 검사가 다른 책임인 이유다. `plan=basic`을 유지한 채 자유 문장만 “premium 요금제입니다.”로 바꾼 대역은 필드 검사를 통과한다. 따라서 검증한 표시 값은 `display`에 따로 구성하고, `answer`의 문장은 실제 조회 근거와 함께 읽어야 한다.
+
+### 선택한 구조와 실제 코드의 연결
+
+선택한 구성은 기존 Gemini 연결에서 조회 단계와 최종 구조화 응답 단계를 나누고, 앱이 후속 행동을 정하는 방식이다. 이 추천 구성에 대한 수용 의견은 “네 이 구성이 괜찮아보입니다.”였다. 실제 실행 근거는 아래 결과 절에 이어 남기고, 학습 내용에 대한 해석은 대화에서 확인한 의견을 바탕으로 정리한다.
+
+`GeminiQuickstart`의 `--structured` 옵션이 기존 고객 조회·대화 경로로 전달된다. 모델 ID와 인증 연결은 기존 IDE 실행 구성을 사용한다. `GeminiToolLoop.run(..., structured)`은 첫 요청에 기존 Tool 계약을 제공한다. 조회가 끝나면 `finalPhase=true`로 전환해 다음 요청에 `GeminiStructuredAnswer.config(toolResults)`를 사용한다.
+
+```java
+// 실제 최종 요청 설정의 핵심
+.responseMimeType("application/json").responseJsonSchema(SCHEMA)
+```
+
+이 설정은 단순히 지침에 “JSON으로 써라”를 넣는 것과 다르다. SDK의 응답 형식 설정에 스키마를 넘긴다. 최종 단계에는 도구를 제공하지 않고, 원래 함수 호출 Content와 그 호출에 대응하는 실제 결과는 기존 이력에 보존한다. 이번 조회 근거만 최종 필드에 옮기도록 지침을 주며, `consume`은 같은 근거와 응답을 대조한다. 모델이 안내를 결정했다는 말만 믿는 대신 앱이 받아들일 수 있는 결과인지 확인하는 경계다.
+
+정상 조회는 모델의 도구 선택 → 로컬 조회 → 구조화 응답의 두 요청이다. 첫 응답에 도구 호출 없이 확인 문장이 오면 그 초안을 표시하거나 이력에 확정하지 않고, 같은 사용자 입력으로 구조화 응답을 한 번 더 요청한다. 이 경우 이번 조회 근거는 비어 있으며 고객 ID는 빈 문자열, 두 고객 값은 null, `needs_follow_up=true`여야 한다. 이는 조회 근거를 얻지 못한 경우 번호를 다시 확인하는 이 앱의 정책이다. 사용자가 이미 번호를 제시했는데 모델이 조회하지 않은 경우도 여기에 들어가므로, 실제 입력과 `tool_results`를 함께 읽어 도구 선택이 적절했는지 확인한다.
+
+수용한 최종 Content는 다음 사용자 입력에 그대로 전달한다. 번호 확인 결과와 정상 안내는 대화를 계속하고, 보류는 콘솔 대화를 중단한다. 각 입력의 조회 근거는 새 목록에 담으므로 이전 요금제를 이번 상태 조회의 필드 검사 근거로 재사용하지 않는다.
+
+| 이번 입력의 근거·응답 | 후속 처리 | 판단 이유 |
+|---|---|---|
+| 조회 성공, 응답 필드와 조회값 일치 | `SHOW_ACCOUNT` | 검증한 고객 값을 `display`에 구성 |
+| 조회 근거 없음 | `ASK_CUSTOMER_ID` | 번호 확인 질문을 `display.question`에 구성 |
+| `CUSTOMER_NOT_FOUND`, 고객 값 null, 추가 확인 true | `ASK_CUSTOMER_ID` | 존재하지 않는 번호를 다시 확인 |
+| 다른 요금제·고객 번호·조회하지 않은 상태 값 | `HOLD`, `FACT_MISMATCH` | 이번 조회 근거와 불일치 |
+| 필드 누락·잘못된 타입·중복 키·뒤에 붙은 JSON | `HOLD`, `INVALID_OUTPUT` | 한 개의 유효한 최종 결과로 수용할 수 없음 |
+| 거절·불완전 응답·전송 실패 | `HOLD`와 해당 원인 | 정상 고객 결과를 확정할 수 없음 |
+| 허용하지 않은 Tool·인자 오류 | `HOLD`, `TOOL_ERROR` | 고객 번호 부재와 다른 실행 계약 오류 |
+
+### 대역으로 확인한 결과
+
+[GeminiStructuredAnswerTest.java](llm_lab/src/test/java/lab/week06/GeminiStructuredAnswerTest.java)에서 모델 응답을 고정하고 실제 앱의 조회·스키마 요청·응답 수용·대화 분기를 실행했다. 요금제 조회는 `plan=basic, account_status=null`, 상태 조회는 `plan=null, account_status=active`, 두 항목 조회는 두 값을 수용했다. 없는 고객은 번호 확인으로 넘어갔다. “요금제를 알려주세요” → “C-100” 대역에서도 첫 구조화 확인 응답이 다음 요청에 보존되고 후속 입력에서 정상 안내로 전환됐다. 각 입력은 모델 요청 두 번이며 첫 입력에는 조회가 없었다.
+
+틀린 요금제와 고객 번호, 조회하지 않은 상태 값을 보류하는 결과를 확인했다. 거절·출력 중단·최종 단계의 추가 도구 요청·전송 실패에서도 확정 데이터가 생성되지 않았고, 실패 응답을 정상 대화 이력에 넣지 않았다. 기존 일반 호출·Tool 루프·대화 테스트와 함께 통과했다. 상세 검사 출력은 `llm_lab/.local/structured-validation/test-result.txt`에 있다. 이 대역 실행은 앱의 처리 경계를 확인한다. 실제 모델의 스키마 수용·도구 선택·문장은 아래 실제 실행 결과에서 별도로 대조한다.
+
+### IDE에서 실제 결과 확인하기
+
+기존 `lab.week06.GeminiQuickstart` 실행 구성을 사용한다. Working directory는 학습 저장소의 `week06-llm-api-tool-calling/llm_lab`, 모듈은 기존 main 모듈이다. 기존 비공유 설정의 `GEMINI_API_KEY`, `GEMINI_MODEL`, `AI_AX_LIVE=1`을 사용하며 실제 실행에서는 `--offline`을 넣지 않는다.
+
+먼저 Program arguments를 아래처럼 지정한다.
+
+```text
+--tools --structured --text "C-100 고객의 요금제를 알려주세요."
+```
+
+정상 예상은 `mode=LIVE`, `next_action=SHOW_ACCOUNT`다. `tool_results`의 `plan=basic`과 `data.plan`을 대조하고 `data.account_status=null`인지 본다. `response_schema`는 최종 단계에 지정할 스키마이고, `turns`의 `STRUCTURED_ANSWER` 단계와 `structured_response`로 실제 최종 요청·응답까지 도달했는지 확인한다. `structured_response`는 모델의 JSON 텍스트여서 바깥 출력 안에서는 따옴표가 이스케이프되어 보이고, `data`는 앱이 파싱·검증해 수용한 객체다.
+
+같은 구성에서 번호만 `C-404`로 바꾸면 `tool_results`의 `CUSTOMER_NOT_FOUND`, `data.customer_id=C-404`, 고객 값 둘 다 null, `needs_follow_up=true`, `next_action=ASK_CUSTOMER_ID`를 예상한다.
+
+번호 보충은 Program arguments를 `--chat --structured`로 바꾸고 콘솔에 다음 순서로 입력한다.
+
+```text
+요금제를 알려주세요
+C-100
+/exit
+```
+
+첫 입력은 조회 없이 `ASK_CUSTOMER_ID`, 두 번째는 요금제 조회 뒤 `SHOW_ACCOUNT`를 예상한다. 화면 문장은 대역과 달라도 된다. 실제 조회값과 문장의 의미가 일치하는지, 예상과 달랐다면 도구 선택·조회·최종 응답·수용 검사 중 어디에서 달라졌는지 해석한다.
+
+공유할 근거는 해당 입력의 `mode`, `request.model`, `tool_results`, `turns`, `structured_response`, `data`, `next_action`, `status`와 안내 문장이다. 키나 인증 헤더를 공유하지 않는다. 실제 결과와 그에 대한 해석은 이 노트에 이어 기록한다.
+
+
+### 실제 Gemini의 정상 구조화 응답과 안내 선택
+
+2026-09-21의 IDE 출력에서 `mode=LIVE`, 모델 `gemini-3.5-flash`, 입력 “C-100 고객의 요금제를 알려주세요.”를 확인했다. `TOOL_SELECTION` 단계에서 `get_customer_context`의 인자는 `customer_id=C-100, fields=["plan"]`이었고, 실제 반환값은 `{customer_id:C-100, plan:basic}`이었다. 질문에 맞게 요금제만 요청하고 반환한 결과다.
+
+다음 `STRUCTURED_ANSWER` 단계의 실제 응답은 다음과 같다. 출력의 `structured_response`에 담긴 JSON 내용을 풀어 적었다.
+
+```json
+{
+  "customer_id": "C-100",
+  "plan": "basic",
+  "account_status": null,
+  "needs_follow_up": false,
+  "answer": "C-100 고객님의 요금제는 basic입니다."
+}
+```
+
+고객 번호와 요금제는 실제 조회값과 일치했고, 조회하지 않은 계정 상태는 null로 남았다. `account_status=null`은 정보 부족 때문에 이번 요금제 질문을 해결하지 못했다는 뜻이 아니다. 요청한 요금제는 확인했으므로 `needs_follow_up=false`와 함께 정상 안내로 처리할 수 있다. 안내 문장의 `basic`도 이번 조회값과 일치했다.
+
+앱이 수용한 `data`에는 위 다섯 필드가 있었고, `next_action=SHOW_ACCOUNT`, `display={customer_id:C-100, plan:basic}`으로 이어졌다. 최종 응답 스키마에는 `next_action`이 없다. 모델은 결과 필드를 생성하고, `consume`이 형식·조회 사실·추가 확인 여부를 대조한 뒤 앱의 후속 행동을 정한 것이다. JSON 형식이 맞다는 사실만으로 정상 안내를 선택한 것은 아니다.
+
+모델 요청은 도구 선택과 최종 구조화 응답의 두 단계로 끝났다. 입력 Content가 1개에서 3개로 늘어난 것은 사용자 질문에 모델의 함수 호출과 앱의 함수 결과를 추가한 흐름과 맞는다. 정상 입력의 예상과 실제 결과가 일치했으며 실제 스키마 응답이 앱의 표시 처리까지 연결됐다. 이후 없는 고객과 번호 보충의 실제 결과는 아래 OpenAI 실행 기록에 있다.
+
+
+### OpenAI 연결로 전환한 이유와 공유한 업무 계약
+
+Gemini 정상 고객의 실제 구조화 응답은 앞 절에서 확인했다. 이후 연속 요청 중 503 오류가 발생했다는 실행 상황이 있어, 이미 준비한 OpenAI API 결제를 사용해 보충 실습의 연결 제공자를 바꾸기로 했다. 503이라는 코드만으로 무료 할당량 소진이 원인이라고 확정하지는 않는다. 기존 Gemini 실습과 블로그의 코드·실행 결과는 당시 확인한 근거로 남기고, 이후 결과를 이 절에 이어 구분한다.
+
+현재 실행 진입점은 같은 프로젝트의 [OpenAiCustomerAssistant.java](llm_lab/src/main/java/lab/week06/OpenAiCustomerAssistant.java)다. 새 프로젝트를 만드는 대신 기존 OpenAI Java SDK 의존성과 요청·응답 타입을 사용한다. [CustomerTool.java](llm_lab/src/main/java/lab/week06/CustomerTool.java)는 기존 `GeminiToolLoop.executeCall`의 인자 검사·조회·항목 선택을 옮긴 공통 코드다. Gemini의 기존 메서드도 이 코드를 호출한다. [CustomerAnswer.java](llm_lab/src/main/java/lab/week06/CustomerAnswer.java)는 기존 최종 스키마·지침·사실 대조·후속 처리 규칙을 공유하며, `GeminiStructuredAnswer`는 Gemini 요청 설정과 공통 검사 연결을 맡는다.
+
+이렇게 분리한 이유는 요금제와 상태의 의미, 조회하지 않은 값은 null이라는 계약, 사실 불일치의 보류 기준이 API 제공자에 따라 달라지지 않기 때문이다. 반면 메시지를 보내고 돌려받는 형식은 SDK 계약에 맞춰야 한다.
+
+| 역할 | 기존 Gemini 연결 | OpenAI 연결 |
+|---|---|---|
+| 모델 요청 | `client.models.generateContent` | `client.responses().create` |
+| 도구 요청 | `Content.parts`의 `functionCall` | 응답 `output`의 `function_call` |
+| 실제 조회 결과 반환 | `functionResponse` | `function_call_output`, 같은 `call_id` |
+| 최종 스키마 설정 | `responseJsonSchema` | `text.format`의 `json_schema`, `strict=true` |
+| 다음 대화의 이력 | 원래 `Content` 보관 | 원래 응답 출력 항목을 SDK 입력 형식으로 보관 |
+
+OpenAI 요청은 `store(false)`와 앱이 가진 이력을 사용한다. 함수 호출뿐 아니라 응답에 포함된 reasoning 항목도 함께 보존하고, 실제 함수 결과를 원래 `call_id`에 연결한다. 최종 단계에서는 도구를 제공하지 않고 같은 고객 응답 스키마를 지정한다. 정상 조회는 도구 선택과 최종 구조화 응답의 두 요청이며, 번호 확인도 기존 구조화 모드와 같은 처리 정책을 따른다. 응답이 거절되거나 완성되지 않으면 사실 검사에 앞서 보류한다. 앱이 수용한 최종 출력만 다음 사용자 입력의 이력에 남긴다.
+
+요청은 제한된 횟수 안에서 진행하고 SDK 자동 재시도는 기존처럼 끈다. 제공자를 바꾸는 작업에 별도의 자동 재시도 정책을 함께 추가하지 않았다. 전송 오류는 `PROVIDER_ERROR`와 가능한 HTTP 상태 코드로 확인한다.
+
+#### 대역에서 확인한 연결과 직렬화 차이
+
+[OpenAiCustomerAssistantTest.java](llm_lab/src/test/java/lab/week06/OpenAiCustomerAssistantTest.java)에서 정상 고객·상태만 조회·두 항목·없는 고객을 확인했다. 두 번째 OpenAI 요청에 실제 항목 선택 결과가 같은 호출 ID로 전달되고, 최종 스키마가 적용되며 공통 검사 결과에 따라 표시 또는 번호 확인으로 이어졌다. 번호 없는 질문 뒤 `C-100`을 보완하는 대화에서도 앞서 수용한 확인 응답이 다음 요청에 보존됐다. 잘못된 요금제·거절·불완전 출력·추가 도구 요청·전송 실패는 보류됐고, 기존 Gemini 검사도 함께 통과했다. 상세 대역 출력은 `llm_lab/.local/openai-validation/test-result.txt`에 있다.
+
+OpenAI SDK의 JSON 매퍼로 업무 결과를 출력하면 null인 Map 항목이 생략됐다. 이번 최종 계약에서 `account_status`는 필수 항목이며, 조회하지 않았다는 의미를 null로 표현하므로 생략하면 필드 누락이 된다. `OpenAiCustomerAssistant.json`은 업무 출력의 null을 보존하는 매퍼를 사용하고, SDK 응답 항목을 다음 요청 타입으로 옮기는 작업은 SDK 매퍼에 맡긴다. 전송용 객체의 직렬화와 앱이 보여 줄 업무 결과의 직렬화가 같은 목적을 갖지 않는 사례다.
+
+#### 현재 OpenAI 실행 방법
+
+같은 `llm_lab`의 `OpenAiCustomerAssistant.main`을 IDE에서 실행한다. 당시 실제 실행 모델은 `gpt-4.1-mini`였으며 모델 이름은 실행 설정에서 바꿀 수 있다. 비공유 설정의 `OPENAI_API_KEY`, `OPENAI_MODEL`, `AI_AX_LIVE=1`을 앱이 사용한다. 기존 Gemini 실행 경로도 남아 있다.
+
+| 실행 | Program arguments·콘솔 입력 |
+|---|---|
+| 정상 요금제 | `--tools --structured --text "C-100 고객의 요금제를 알려주세요."` |
+| 없는 고객 | 같은 인자에서 `C-404` 사용 |
+| 번호 보충 | `--chat --structured` 후 콘솔에 “요금제를 알려주세요” → “C-100” → `/exit` |
+| 모델 대역 | 실제 API 인수에 `--offline` 추가 |
+
+`provider`·`mode`·`request.model`로 실제 연결을 구별하고, `tool_results`, `structured_response`, 수용한 `data`, 앱의 `next_action`을 이어 읽는다. OpenAI의 `input_items`와 Gemini의 Content 수가 항상 같아야 하는 것은 아니며, 실제 전달 의미가 대응하는지를 확인한다. 아래 실행 기록에는 각 연결에서 확인된 결과를 구분해 남긴다.
+
+#### 실제 OpenAI 정상 조회와 구조화 응답
+
+입력 “C-100 고객의 요금제를 알려주세요.”의 IDE 출력에서 `provider=OPENAI`, `mode=LIVE`, 모델 `gpt-4.1-mini`를 확인했다. 모델은 `get_customer_context`에 `customer_id=C-100, fields=["plan"]`을 지정했고, 실제 함수 결과는 `{customer_id:C-100, plan:basic}`이었다. 다음 요청의 최종 구조화 응답은 아래와 같았다.
+
+```json
+{
+  "customer_id": "C-100",
+  "plan": "basic",
+  "account_status": null,
+  "needs_follow_up": false,
+  "answer": "고객님의 요금제는 basic 요금제입니다."
+}
+```
+
+`data`에 같은 다섯 필드가 수용됐으며 `next_action=SHOW_ACCOUNT`, `display={customer_id:C-100, plan:basic}`으로 이어졌다. 요금제만 물은 요청이므로 상태를 조회하거나 추측할 필요가 없었고, `account_status=null`은 추가 확인이 필요한 오류로 처리되지 않았다. 실제 조회값과 응답의 요금제 필드, 안내 문장의 `basic`이 일치했다.
+
+`TOOL_SELECTION` 뒤 `STRUCTURED_ANSWER`가 이어지는 두 요청으로 끝났다. 두 번째 요청의 `input_items`가 3인 것은 사용자 질문에 함수 호출과 그 결과를 추가한 흐름과 맞는다. 기존 Gemini 정상 사례와 안내 문구는 달랐지만 요청 항목 선택·사실 보존·정상 안내의 의미는 같았다. 이번 입력에서는 공급자 연결을 바꾼 뒤에도 같은 업무 계약과 후속 처리 기준을 사용할 수 있었다. 실행 시간 자료는 없어 속도 개선까지 판단하지 않는다.
+
+없는 고객의 구조화된 번호 확인 결과는 다음 절에서 정상 사례와 비교한다.
+
+
+#### 실제 OpenAI의 없는 고객 응답과 추가 질문
+
+같은 `gpt-4.1-mini` 연결에 “C-404 고객의 요금제를 알려주세요.”를 입력한 실제 결과다. 모델의 인자는 `customer_id=C-404, fields=["plan"]`으로 계약에 맞았지만, 업무 함수는 `{error:CUSTOMER_NOT_FOUND}`를 반환했다. 유효한 조회 요청을 실행한 결과 고객이 없었던 것이며, 요청 형식 오류나 API 연결 실패와 구별된다.
+
+최종 구조화 응답은 `customer_id=C-404`, `plan=null`, `account_status=null`, `needs_follow_up=true`였다. 안내 문장은 “죄송합니다만, 고객 번호 C-404에 해당하는 정보를 찾을 수 없습니다. 고객 번호를 다시 한 번 확인해 주시겠습니까?”였다. 존재하지 않는 고객의 요금제를 추측하지 않고 조회 실패를 번호 확인 요청으로 연결했다.
+
+`CustomerAnswer.consume`은 고객 번호가 원래 인자와 같은지, 조회값이 없는 두 항목이 null인지, 추가 확인 여부가 업무 오류와 일치하는지 대조한다. 이번 결과는 그 조건을 충족해 `status=MODEL_RESPONSE`, `next_action=ASK_CUSTOMER_ID`로 수용됐고 `display.question`에 실제 확인 문장이 담겼다. `MODEL_RESPONSE`는 고객 조회 성공을 의미하지 않는다. 이번에는 조회 실패를 올바르게 반영한 최종 응답을 수용했다는 뜻이다.
+
+| 같은 요금제 질문 | 실제 업무 결과 | 최종 응답의 요금제·추가 확인 | 후속 처리 |
+|---|---|---|---|
+| C-100 | `plan=basic` | `plan=basic`, `needs_follow_up=false` | `SHOW_ACCOUNT`, 고객 값 표시 |
+| C-404 | `CUSTOMER_NOT_FOUND` | `plan=null`, `needs_follow_up=true` | `ASK_CUSTOMER_ID`, 번호 확인 질문 |
+
+두 실행 모두 도구 선택 뒤 조회 근거를 전달하고 구조화 응답을 받는 경로로 끝났다. 업무 결과가 달라지면 같은 스키마 안의 값과 앱의 후속 행동이 달라진다. 없는 고객이라도 사실에 맞는 확인 질문이면 수용할 수 있고, 형식이 맞아도 없는 고객의 요금제를 채우거나 추가 확인이 필요 없다고 반환하면 사실 대조에서 보류한다. 이 보류 동작의 실행 근거는 앞서 기록한 대역 검사이며, 이번 실제 실행은 추가 질문 분기를 확인한 근거다.
+
+
+#### 실제 OpenAI의 번호 보충 대화
+
+`--chat --structured`, 모델 `gpt-4.1-mini`, `mode=LIVE`로 “요금제를 알려주세요” → “C-100” → `/exit`을 같은 콘솔에 입력한 결과다.
+
+첫 입력에서는 `tool_results`가 비어 있었고, 최종 결과는 `customer_id=""`, `plan=null`, `account_status=null`, `needs_follow_up=true`였다. 고객 번호를 추측해 조회하지 않고 `ASK_CUSTOMER_ID`를 선택했으며, `display.question`에는 “고객 번호를 알려주시면 요금제를 확인해 드리겠습니다.”가 담겼다.
+
+이 첫 입력도 모델 요청은 두 번이었다. 첫 단계는 도구 사용 여부를 판단하고, 다음 단계는 확인 질문을 최종 스키마에 맞춰 반환하는 요청이다. 두 요청의 `input_items`가 모두 1인 것은 첫 자유 문장 초안을 이력에 넣지 않고 같은 사용자 입력에 최종 스키마와 지침을 적용했기 때문이다. 항목 개수가 같아도 요청 설정과 출력 계약은 달랐다.
+
+후속 입력 “C-100”에서는 앞선 요금제 질문과 수용한 구조화 확인 응답을 함께 전달했다. 실제 모델은 `customer_id=C-100, fields=["plan"]`을 요청했고 조회 결과는 `{customer_id:C-100, plan:basic}`이었다. 최종 결과의 `plan=basic`, `account_status=null`, `needs_follow_up=false`가 수용되어 `SHOW_ACCOUNT`로 이어졌다. 안내 문장 “고객님의 요금제는 basic입니다.”도 조회값과 일치했다. 번호만 입력해도 앞선 조회 목적을 이어받은 결과다.
+
+두 번째 입력의 첫 요청에는 이전 질문·확인 응답·새 고객 번호가 들어가 `input_items=3`이었고, 도구 호출과 실제 결과를 더한 최종 요청은 5였다. 각 사용자 입력의 요청 번호는 다시 1부터 시작했다. 최종 안내 뒤 `/exit`으로 대화를 종료했다. 이력은 입력 사이에 유지하면서 실행 횟수는 입력마다 관리하는 구조가 OpenAI 연결에서도 동작했다.
+
+정상 안내·없는 고객의 번호 확인·번호 보충 뒤 정상 안내는 실제 모델 결과로 확인했다. 다른 요금제·거절·불완전 응답의 보류는 앞서 대역으로 확인했다. 같은 최종 응답 계약을 사용하더라도 후속 처리는 실제 조회 근거와 응답의 일치 여부에 따라 달라지며, 자유 안내 문장의 의미까지 필드 검사만으로 보장되지는 않는다.
