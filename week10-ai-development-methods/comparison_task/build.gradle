@@ -1,0 +1,19 @@
+plugins { id 'application' }
+repositories { mavenCentral() }
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release.set(17) }
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    testLogging { events 'passed', 'skipped', 'failed'; exceptionFormat = 'full' }
+}
+application { mainClass = 'lab.week10.Summary' }
+tasks.named('test') { exclude '**/RequirementTest.class' }
+tasks.register('acceptance', Test) {
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    include '**/RequirementTest.class'
+    shouldRunAfter tasks.named('test')
+}

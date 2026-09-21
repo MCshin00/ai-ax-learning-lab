@@ -1,7 +1,7 @@
 {
   "layout_version": 6,
   "created_at": "2026-07-25T10:42:29.915424+00:00",
-  "current_week": 9,
+  "current_week": 10,
   "applied_weeks": [
     1,
     2,
@@ -11,7 +11,8 @@
     6,
     7,
     8,
-    9
+    9,
+    10
   ],
   "references_revealed": [],
   "applied_files": {
@@ -179,10 +180,27 @@
       "week09-dify-workflow/workflow_materials/ready-template.jinja",
       "week09-dify-workflow/workflow_materials/review-template.jinja",
       "week09-dify-workflow/workflow_materials/workflow-setup.md"
+    ],
+    "10": [
+      "week10-ai-development-methods/comparison_task/.gitignore",
+      "week10-ai-development-methods/comparison_task/build.gradle",
+      "week10-ai-development-methods/comparison_task/gradle/wrapper/gradle-wrapper.jar",
+      "week10-ai-development-methods/comparison_task/gradle/wrapper/gradle-wrapper.properties",
+      "week10-ai-development-methods/comparison_task/gradlew",
+      "week10-ai-development-methods/comparison_task/gradlew.bat",
+      "week10-ai-development-methods/comparison_task/README.md",
+      "week10-ai-development-methods/comparison_task/settings.gradle",
+      "week10-ai-development-methods/comparison_task/src/main/java/lab/week10/Priority.java",
+      "week10-ai-development-methods/comparison_task/src/main/java/lab/week10/Summary.java",
+      "week10-ai-development-methods/comparison_task/src/main/java/lab/week10/Title.java",
+      "week10-ai-development-methods/comparison_task/src/test/java/lab/week10/RequirementTest.java",
+      "week10-ai-development-methods/comparison_task/src/test/java/lab/week10/SummaryTest.java",
+      "week10-ai-development-methods/m5-execution.md",
+      "week10-ai-development-methods/m5-task.md"
     ]
   },
-  "updated_at": "2026-09-15T10:08:05.035865+00:00",
-  "source_guide_sha256": "43e852c250db9bba1b76eab9dfcf49fe08544ad27a6dee881c50791baeeb1254",
+  "updated_at": "2026-09-21T08:18:49.806628+00:00",
+  "source_guide_sha256": "84d555d58d385d8e824e17fa51863918a88f57e11d316f47d15ce2df31fefb06",
   "migrated_from_layout_version": 2,
   "layout_migrated_at": "2026-08-12T17:39:12.701181+00:00",
   "layout_migrations": [
