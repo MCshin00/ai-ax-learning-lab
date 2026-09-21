@@ -7,7 +7,24 @@ import java.util.*;
 
 /** 요청 파일의 위치를 기준으로 업무 자료와 검사 명령을 준비한다. */
 public record WorkRequest(Path workspace, Path task, List<Path> context,
-                          List<String> verify, int maxRepairs, int timeoutSeconds) {
+                          List<String> verify, int maxRepairs, int timeoutSeconds,
+                          ExecutionSettings execution) {
+    public record ExecutionSettings(String model, String reasoningEffort) {
+        public ExecutionSettings {
+            if (model == null || !model.matches("[A-Za-z0-9][A-Za-z0-9._-]*")) {
+                throw new IllegalArgumentException("execution.model에 단순 모델 식별자가 필요합니다.");
+            }
+            if (reasoningEffort == null || !Set.of("none", "minimal", "low", "medium", "high",
+                    "xhigh", "max", "ultra").contains(reasoningEffort)) {
+                throw new IllegalArgumentException("execution.reasoningEffort의 설정값을 확인하세요.");
+            }
+        }
+    }
+    // 기존 요청과 직접 생성하는 호출부의 기본 설정 사용을 보존한다.
+    public WorkRequest(Path workspace, Path task, List<Path> context,
+                       List<String> verify, int maxRepairs, int timeoutSeconds) {
+        this(workspace, task, context, verify, maxRepairs, timeoutSeconds, null);
+    }
     public static WorkRequest load(Path file) throws Exception {
         Path requestFile = file.toAbsolutePath().normalize();
         JsonElement parsed = JsonParser.parseString(Files.readString(requestFile, StandardCharsets.UTF_8));
@@ -24,7 +41,19 @@ public record WorkRequest(Path workspace, Path task, List<Path> context,
         String platform = System.getProperty("os.name").startsWith("Windows") ? "windows" : "posix";
         List<String> verify = strings(commands.getAsJsonObject().get(platform), "verify." + platform, true);
         return new WorkRequest(workspace, task, context, verify,
-            integer(data, "maxRepairs", 1, 0, 1), integer(data, "timeoutSeconds", 600, 1, Integer.MAX_VALUE));
+            integer(data, "maxRepairs", 1, 0, 1), integer(data, "timeoutSeconds", 600, 1, Integer.MAX_VALUE),
+            executionSettings(data));
+    }
+    private static ExecutionSettings executionSettings(JsonObject data) {
+        if (!data.has("execution")) return null;
+        JsonElement value = data.get("execution");
+        if (!value.isJsonObject()) throw new IllegalArgumentException("execution은 모델·추론 설정 객체여야 합니다.");
+        JsonObject settings = value.getAsJsonObject();
+        if (!settings.keySet().equals(Set.of("model", "reasoningEffort"))) {
+            throw new IllegalArgumentException("execution에는 model과 reasoningEffort를 함께 지정하세요.");
+        }
+        return new ExecutionSettings(text(settings.get("model"), "execution.model"),
+            text(settings.get("reasoningEffort"), "execution.reasoningEffort"));
     }
     public String prompt() throws Exception {
         if (!Files.isDirectory(workspace)) throw new IllegalArgumentException("실제 작업 폴더가 필요합니다.");

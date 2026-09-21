@@ -16,9 +16,10 @@ public final class HarnessCli {
         String runId = UUID.randomUUID().toString();
         Path directory = reports.toAbsolutePath().normalize().resolve(runId);
         Outcome outcome;
+        WorkRequest request = null;
         try {
             Files.createDirectories(directory);
-            WorkRequest request = WorkRequest.load(requestFile);
+            request = WorkRequest.load(requestFile);
             StepRunner runner = demo ? demoRunner() : processRunner(request, directory);
             outcome = new DevelopmentHarness().run(request, runner);
         } catch (Exception failure) {
@@ -29,6 +30,15 @@ public final class HarnessCli {
         report.addProperty("runId", runId);
         report.addProperty("mode", demo ? "SIMULATED_RESPONSE" : "CODEX_PROCESS");
         report.add("outcome", JSON.toJsonTree(outcome));
+        JsonObject execution = new JsonObject();
+        execution.addProperty("source", request == null ? "UNAVAILABLE"
+            : request.execution() == null ? "DEFAULTS" : "EXPLICIT");
+        if (request != null && request.execution() != null) {
+            execution.addProperty("model", request.execution().model());
+            execution.addProperty("reasoningEffort", request.execution().reasoningEffort());
+        }
+        // 요청 조건이며 서비스가 실제 적용한 모델을 관측한 값은 아니다.
+        report.add("requestedExecution", execution);
         report.addProperty("resultFile", directory.resolve("result.json").toString());
         try {
             Files.writeString(directory.resolve("result.json"), JSON.toJson(report), StandardCharsets.UTF_8);
@@ -41,23 +51,38 @@ public final class HarnessCli {
         return outcome.status() == Status.SUCCEEDED ? 0 : outcome.status() == Status.NEEDS_INPUT ? 2 : 1;
     }
     private static StepRunner processRunner(WorkRequest request, Path directory) {
-        ProcessRunner processes = new ProcessRunner();
+        return processRunner(request, directory, new ProcessRunner()::run, new GradleVerifier()::run);
+    }
+    @FunctionalInterface
+    interface ProcessCall {
+        ProcessRunner.Result run(List<String> command, Path workspace, String input, int timeout) throws Exception;
+    }
+    @FunctionalInterface
+    interface VerifyCall {
+        StepResult run(List<String> command, Path workspace, int timeout, Path reports) throws Exception;
+    }
+    static StepRunner processRunner(WorkRequest request, Path directory, ProcessCall processes, VerifyCall verifier) {
         return (stage, input, attempt) -> {
             if (stage == Stage.VERIFY) {
-                return new GradleVerifier().run(request.verify(), request.workspace(), request.timeoutSeconds(),
+                return verifier.run(request.verify(), request.workspace(), request.timeoutSeconds(),
                     directory.resolve("check-" + attempt));
             }
-            return StepResult.fromProcess(processes.run(codexCommand(directory.resolve("agent-" + attempt + ".txt")),
+            return StepResult.fromProcess(processes.run(codexCommand(directory.resolve("agent-" + attempt + ".txt"), request.execution()),
                 request.workspace(), input, request.timeoutSeconds()));
         };
     }
-    private static List<String> codexCommand(Path messageFile) {
+    static List<String> codexCommand(Path messageFile, WorkRequest.ExecutionSettings execution) {
         List<String> command = new ArrayList<>();
         if (System.getProperty("os.name").startsWith("Windows")) {
             command.addAll(List.of("cmd", "/d", "/c", "codex.cmd"));
         } else command.add("codex");
         command.addAll(List.of("-a", "never", "exec", "--sandbox", "workspace-write",
-            "--ephemeral", "--color", "never", "-o", messageFile.toString(), "-"));
+            "--ephemeral", "--color", "never", "-o", messageFile.toString()));
+        if (execution != null) {
+            command.addAll(List.of("--model", execution.model(), "-c",
+                "model_reasoning_effort=" + execution.reasoningEffort()));
+        }
+        command.add("-");
         return List.copyOf(command);
     }
     private static StepRunner demoRunner() {

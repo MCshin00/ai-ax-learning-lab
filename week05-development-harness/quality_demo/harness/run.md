@@ -35,7 +35,7 @@ macOS·Linux·WSL:
 java -jar build/libs/development-harness.jar harness/refund-work.json
 ```
 
-이 명령은 **실제 Codex 작업**을 실행한다. 설치·로그인과 계정 사용량이 필요하다. 현재 설정된 모델을 사용하며, 파일·명령 도구는 Codex에 맡긴다. 연결한 CLI의 `workspace-write` 범위에서 실행하고 승인 없이 수행할 수 없는 동작은 실패할 수 있다. Windows의 프로젝트 로컬 소켓 설정은 [기존 안내](../windows-gradle.md)를 따른다.
+이 명령은 **실제 Codex 작업**을 실행한다. 설치·로그인과 계정 사용량이 필요하다. 요청에 실행 설정이 없으면 현재 기본 설정을 사용하며, 파일·명령 도구는 Codex에 맡긴다. 연결한 CLI의 `workspace-write` 범위에서 실행하고 승인 없이 수행할 수 없는 동작은 실패할 수 있다. Windows의 프로젝트 로컬 소켓 설정은 [기존 안내](../windows-gradle.md)를 따른다.
 
 다음 명령은 두 운영체제에서 같은 형태로 실행한다. 실행 경계에 정해진 응답을 넣어 검사 실패 → 복구 → 재검사 통과를 확인한다.
 
@@ -60,3 +60,19 @@ java -jar build/libs/development-harness.jar harness/refund-work.json --demo-rep
 `StepRunner`는 도구 호출을 담당하는 작은 연결부다. `StepResult`는 통과·업무 검사 실패·실행 불가·시간 초과와 원래 종료 코드·출력을 엔진에 전달한다. 순서 엔진은 제공 예제의 `Job`이나 상태 전이 표를 사용하지 않으며, 업무 검사 실패일 때만 복구 여부를 판단한다.
 
 요청의 `verify`는 이 프로젝트의 Gradle `test` 명령을 담는다. `GradleVerifier`는 `--rerun-tasks`와 `--no-build-cache`를 붙여 새 검사를 실행하고, 같은 실행 폴더의 `check-1/` 등에 JUnit 결과를 받는다. 새 JUnit 실패 결과와 비정상 종료가 함께 확인될 때 업무 검사 실패로 분류한다. 프로그램을 시작하지 못했거나 새 검사 근거가 없으면 실행 불가로 중단한다. 셸의 종료 코드 1만으로 테스트 실패라고 판단하지 않는다.
+
+## 하위 실행 조건 지정
+
+요청 JSON에 선택적인 `execution` 객체를 넣으면 최초 작업과 허용된 복구 호출에 같은 모델·추론 설정을 전달한다.
+
+```json
+"execution": {"model": "gpt-6-astra", "reasoningEffort": "low"}
+```
+
+`model`과 `reasoningEffort`는 함께 지정한다. 잘못된 형식이나 일부 값만 있는 요청은 준비 단계에서 중단한다. 하네스는 입력 형식을 검사하며 실제 모델 지원 여부와 모델별 추론 설정의 호환성은 연결한 CLI·서비스에서 판정한다.
+
+`HarnessCli`는 `--model`과 `-c model_reasoning_effort=...`로 전달한다. `result.json`의 `requestedExecution`은 명시한 경우 `source: EXPLICIT`과 요청값을, 생략한 경우 `source: DEFAULTS`를 기록한다. 요청을 읽지 못한 경우는 `UNAVAILABLE`이다. 이 필드는 요청 조건이며 서비스의 실제 적용 모델을 관측한 값이 아니다. `--demo-repair`에서도 요청 조건은 기록되지만 실제 모델 호출은 없다.
+
+연결 검사는 IDE의 Gradle `test`에서 `lab.week05.harness.*`를 선택한다. Windows PowerShell은 `.\gradlew.bat test --tests 'lab.week05.harness.*'`, macOS·Linux·WSL은 `./gradlew test --tests 'lab.week05.harness.*'`이다. 검사에서는 실행 경계를 대체해 설정 전달·복구 재사용·기본 설정·준비 실패를 확인하며 실제 모델 실행과 구분한다.
+
+설정 형식은 [Codex 공식 설정 문서](https://developers.openai.com/codex/config-reference/)와 설치된 `codex exec --help`를 참고한다.
