@@ -1,0 +1,20 @@
+plugins { id 'application' }
+repositories { mavenCentral() }
+dependencies {
+    implementation 'dev.langchain4j:langchain4j:1.20.0'
+    implementation 'dev.langchain4j:langchain4j-open-ai:1.20.0'
+    implementation 'io.modelcontextprotocol.sdk:mcp:1.1.4'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+application { mainClass = 'lab.desk.DeskApp' }
+tasks.register('operations', JavaExec) { classpath=sourceSets.main.runtimeClasspath; mainClass='lab.desk.OperationsClient' }
+tasks.register('compare', JavaExec) { classpath=sourceSets.main.runtimeClasspath; mainClass='lab.desk.CompareFlows' }
+tasks.withType(JavaCompile).configureEach { options.encoding='UTF-8'; options.release.set(17); options.compilerArgs.add('-parameters') }
+tasks.withType(JavaExec).configureEach { defaultCharacterEncoding='UTF-8'; jvmArgs '-Dfile.encoding=UTF-8' }
+tasks.named('test') {
+    useJUnitPlatform(); systemProperty 'file.encoding','UTF-8'
+    systemProperty 'server.classpath',sourceSets.main.runtimeClasspath.asPath
+}
+if (project.hasProperty('courseBuildDir')) { layout.buildDirectory=file(project.property('courseBuildDir')) }
