@@ -1,0 +1,28 @@
+plugins { id 'application' }
+repositories { mavenCentral() }
+dependencies {
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.0'
+    implementation 'io.modelcontextprotocol.sdk:mcp:1.1.4'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+application { mainClass = 'lab.harness.HarnessMain' }
+tasks.withType(JavaCompile).configureEach { options.encoding='UTF-8'; options.release.set(17) }
+tasks.withType(Test).configureEach {
+    useJUnitPlatform(); systemProperty 'file.encoding','UTF-8'
+    systemProperty 'server.classpath',sourceSets.main.runtimeClasspath.asPath
+}
+tasks.register('acceptance', Test) {
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    include '**/ExportAcceptanceTest.class'
+}
+tasks.register('harnessJar', Jar) {
+    archiveFileName='harness-kit.jar'
+    manifest { attributes 'Main-Class': 'lab.harness.HarnessMain' }
+    duplicatesStrategy=DuplicatesStrategy.EXCLUDE
+    from sourceSets.main.output
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude 'META-INF/*.SF', 'META-INF/*.RSA', 'META-INF/*.DSA', 'module-info.class'
+}
+if (project.hasProperty('courseBuildDir')) { layout.buildDirectory=file(project.property('courseBuildDir')) }
