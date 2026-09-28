@@ -40,4 +40,34 @@ class McpAssistantTest {
             fail("잘못된 인자는 서버에 보내지 않습니다."); return null;
         }).get("error"));
     }
+
+    @Test void connectionFailureReturnsToTheOriginalModelCallWithItsArguments() throws Exception {
+        var requests = new ArrayList<ResponseCreateParams>();
+        var scripted = McpAssistant.scriptedModel("NOTE-01");
+        Quickstart.Gateway model = request -> {
+            requests.add(request);
+            return scripted.create(request);
+        };
+        var tool = FunctionTool.builder().name("get_product").description("상품 조회").strict(false)
+            .parameters(FunctionTool.Parameters.builder()
+                .putAdditionalProperty("type", com.openai.core.JsonValue.from("object"))
+                .putAdditionalProperty("properties", com.openai.core.JsonValue.from(
+                    Map.of("product_id", Map.of("type", "string"))))
+                .putAdditionalProperty("required", com.openai.core.JsonValue.from(List.of("product_id"))).build()).build();
+        var result = Quickstart.runWithTools("NOTE-01 조회", model, "fixture", List.of(tool), "조회",
+            (name, arguments) -> McpAssistant.executeTool(name, arguments, call -> {
+                throw new IllegalStateException("fixture connection lost");
+            }), 3);
+        assertEquals(2, requests.size());
+        var history = requests.get(1).input().orElseThrow().asResponse();
+        var call = history.get(1).asFunctionCall();
+        var returned = history.get(2).asFunctionCallOutput();
+        assertEquals(call.callId(), returned.callId().orElseThrow());
+        assertEquals("MCP_UNAVAILABLE", Quickstart.JSON.readTree(returned.output().asString()).get("error").asText());
+        var evidence = (Map<?, ?>) ((List<?>) result.get("tool_results")).get(0);
+        assertEquals(call.callId(), evidence.get("call_id"));
+        assertEquals(call.arguments(), evidence.get("arguments"));
+        assertEquals("NOTE-01", Quickstart.JSON.readTree((String) evidence.get("arguments")).get("product_id").asText());
+        assertTrue(result.get("answer").toString().contains("MCP_UNAVAILABLE"));
+    }
 }

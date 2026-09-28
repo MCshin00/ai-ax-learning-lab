@@ -132,7 +132,7 @@ public final class RagApplication {
                         "context", "PARENT_DOCUMENT", "tenant", TENANT, "status_filter", "current"));
     }
 
-    private static Map<String, Object> error(String status, String message, String stage) {
+    static Map<String, Object> error(String status, String message, String stage) {
         var result = new LinkedHashMap<String, Object>();
         result.put("status", status); result.put("answer", message); result.put("failure_stage", stage);
         result.put("model_called", false); result.put("mode", "RETRIEVAL_ONLY");
@@ -140,7 +140,7 @@ public final class RagApplication {
         return result;
     }
 
-    private static Map<String, Object> providerError(RuntimeException exception, String message, String stage) {
+    static Map<String, Object> providerError(RuntimeException exception, String message, String stage) {
         var result = error("PROVIDER_ERROR", message, stage);
         String reason = "UNEXPECTED_ERROR";
         if (exception instanceof com.openai.errors.OpenAIServiceException service) {
@@ -185,15 +185,19 @@ public final class RagApplication {
         return result;
     }
 
-    private static String required(Dependencies dependencies, String name) {
+    static String required(Dependencies dependencies, String name) {
         String value = dependencies.environment().apply(name);
         if (value == null || value.isBlank()) throw new IllegalArgumentException("Missing configuration");
         return value;
     }
 
     public static void run(String[] args, Dependencies dependencies) {
+        if (args.length > 0 && args[0].equals("--compare")) {
+            SearchComparison.run(Arrays.copyOfRange(args, 1, args.length), dependencies);
+            return;
+        }
         if (Arrays.equals(args, new String[]{"--help"})) {
-            System.out.println("RagApplication: --red-team --generate | --prepare | [--evaluate | --query TEXT] [--lexical | --semantic] "
+            System.out.println("RagApplication: --compare [--live [--answer]] [--expand-parent] | --red-team --generate | --prepare | [--evaluate | --query TEXT] [--lexical | --semantic] "
                     + "[--retrieve-only | --generate] [--min-score NUMBER] [--kb DIRECTORY] [--index FILE]");
             return;
         }

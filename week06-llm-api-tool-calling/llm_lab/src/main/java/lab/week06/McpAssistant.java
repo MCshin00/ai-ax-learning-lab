@@ -81,9 +81,17 @@ public final class McpAssistant {
     public static Map<String, Object> run(String query, Catalog catalog, Quickstart.Gateway model, String modelName) {
         var tools = catalog.tools();
         if (tools.isEmpty()) throw new IllegalStateException("상품 조회 도구를 찾지 못했습니다.");
-        return Quickstart.runWithTools(query, model, modelName, tools,
-            "상품은 get_product로 조회하세요. ID가 없으면 물으세요. 상품 조회 실패와 연결 실패를 구별하고 구매를 실행했다고 답하지 마세요.",
+        var result = Quickstart.runWithTools(query, model, modelName, tools,
+            "한국어로 간결하게 답하세요. 상품의 존재 여부, 가격과 재고는 get_product의 실제 결과만 사용하세요. "
+                + "사용자가 상품 ID를 제공했고 아직 조회 결과가 없으면 그 ID 그대로 get_product를 호출하세요. "
+                + "도구 설명에 적힌 상품 번호 목록만 보고 존재 여부를 단정하거나 조회를 생략하지 마세요. "
+                + "조회 결과를 받은 뒤에는 같은 ID를 다시 조회하지 말고 그 결과로 안내하세요. "
+                + "ID가 없으면 물으세요. 상품 부재는 번호 확인을 안내하고, 연결 실패는 조회할 수 없다고 안내하세요. "
+                + "조회 실패 시 가격이나 재고를 추측하지 말고, 구매를 실행했다고 답하지 마세요.",
             catalog::execute, 3);
+        result.put("request", Map.of("model", modelName, "input", query,
+            "tools", tools.stream().map(FunctionTool::name).toList()));
+        return result;
     }
     static String scriptedProduct(String[] args) {
         boolean supplied = Arrays.asList(args).contains("--scripted-product");

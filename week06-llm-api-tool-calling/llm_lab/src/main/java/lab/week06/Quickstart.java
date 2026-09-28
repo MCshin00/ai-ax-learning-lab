@@ -96,7 +96,8 @@ public final class Quickstart {
                 return result("STOPPED", "모델 요청 한도에 도달해 추가 함수를 실행하지 않습니다.", toolResults, turns);
             var call = calls.get(0);
             var toolResult = execute.apply(call.name(), call.arguments());
-            toolResults.add(Map.of("call_id", call.callId(), "name", call.name(), "result", toolResult));
+            toolResults.add(Map.of("call_id", call.callId(), "name", call.name(),
+                    "arguments", call.arguments(), "result", toolResult));
             // Preserve all items, including reasoning. Errors also return to the matching call.
             turn.output().forEach(item -> history.add(JSON.convertValue(item, ResponseInputItem.class)));
             history.add(ResponseInputItem.ofFunctionCallOutput(ResponseInputItem.FunctionCallOutput.builder()

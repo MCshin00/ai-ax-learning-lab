@@ -1,6 +1,6 @@
 # LangChain·LangGraph 배송 문의 실습
 
-`examples/context_window.py`는 대화 기록을 보관하면서 현재 업무에 필요한 메시지만 모델에 보내는 실행입니다. 기본값은 모델 대역이고 `--live`는 실제 연결입니다. `ShippingAgent(retain_history=True)`와 `ShippingPolicy.wrap_model_call`의 선택을 읽고, 현재 문의·호출과 결과 쌍·최신 주문 사실이 유지되는지 Day 5에서 확인합니다.
+`examples/context_window.py`는 대화 기록을 보관하면서 현재 업무에 필요한 메시지만 모델에 보내는 실행입니다. 인수 없이 실행하면 모델 대역이고 `--live`는 OpenAI 실제 연결입니다. `--live --provider gemini`로 기존 Gemini 연결도 선택할 수 있습니다. `ShippingAgent(retain_history=True)`와 `ShippingPolicy.wrap_model_call`의 선택을 읽고, 현재 문의·호출과 결과 쌍·최신 주문 사실이 유지되는지 Day 5에서 확인합니다.
 
 같은 주문 자료로 값 전달·도구 실행·요청 보관을 비교하고, 두 배송 구성에 실제 모델과 번호 정정을 연결합니다. 개념과 Day별 진행은 [주차 README](../README.md)에 있습니다.
 
@@ -76,3 +76,17 @@
 | Day 5 실제 모델의 번호 정정 | `examples/day5_langchain.py`, `examples/day5_langgraph.py` | 같은 배송 구성의 `correct` 호출 |
 
 Gemini 모델은 `shipping/model_boundary.py`에서 연결합니다. 모델 설정 파일은 저장소 루트의 `.local/week07-gemini.env`이며 학습자가 직접 입력합니다. 필요한 연결 의존성은 `requirements-gemini.txt`에 있습니다. `shipping/scenarios.py`는 공통 입력 순서를 제공하며 실행 결과를 저장하는 파일은 아닙니다.
+
+
+## 기록 보관·문맥 선별의 OpenAI 실행
+
+`shipping/openai_boundary.py`는 LangChain의 `ChatOpenAI`로 Responses API를 연결합니다. 도구 호출 메시지는 그대로 보존하고 최종 답변의 텍스트 블록을 기존 앱이 사용하는 문자열로 바꿉니다. 모델 입력은 현재 앱이 선별한 메시지로 구성하며, 이전 응답 ID를 자동으로 사용하는 옵션은 끕니다.
+
+연결 의존성은 `requirements-openai.txt`에 있습니다. IDE에서 기존 가상환경을 선택하고 `examples/context_window.py`의 실행 인수에 `--live`를 지정합니다. VS Code용 로컬 실행 구성도 같은 인수를 사용합니다.
+
+학습 저장소 루트의 `.local/week07-openai.env`에는 `AI_AX_LIVE=1`, `OPENAI_API_KEY`, `OPENAI_MODEL`을 설정합니다. 키는 학습자가 IDE에서 직접 입력합니다. 파일에 키가 없으면 실행 환경의 `OPENAI_API_KEY`를 사용하며, 모델을 지정하지 않으면 `gpt-4.1-mini`를 사용합니다. [OpenAI API 키 설정 안내](https://developers.openai.com/api/docs/quickstart)
+
+출력의 `mode=LIVE`, `provider=openai`로 실행 연결을 구분합니다. `A_CORRECT_O200`에서는 보관 기록과 모델 입력, 현재 조회·답변을 대조하고 `B_SUPPLEMENT_O100`에서는 다른 대화와의 분리를 확인합니다. 다른 Day의 Gemini 실행 파일은 기존 연결을 사용합니다.
+
+
+실행을 마치면 터미널에는 다섯 단계의 상태·현재 주문·답변과 저장 파일 이름을 표시합니다. 전체 `steps`, `stored_messages`, `model_requests`, `model_messages`, `tool_events`는 프로젝트의 `.local/context-window-*.json`에 UTF-8로 저장합니다. 실행마다 다른 파일을 만들어 이전 결과를 보존합니다. VS Code 탐색기에서 마지막에 표시된 파일을 열면 긴 터미널 출력을 복사하지 않고 전체 입력과 결과를 확인할 수 있습니다.
