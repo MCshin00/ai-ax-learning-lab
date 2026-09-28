@@ -27,9 +27,23 @@ RAG는 답변에 필요한 외부 자료를 검색해 생성 입력에 넣는 �
 
 텍스트 임베딩 모델은 텍스트를 숫자 벡터로 바꿉니다. 사전 학습에서 얻은 표현 관계 덕분에 “이중 결제”와 “돈이 두 번 빠져나갔다”처럼 단어가 다른 표현도 가까운 벡터로 나타날 수 있습니다. 이번 자료를 색인에 넣는 과정은 이미 학습된 모델로 벡터를 계산하는 작업이며, 모델을 새로 학습시키거나 단어 관계를 추가로 가르치는 작업은 아닙니다. 유사도가 높다는 사실은 문서가 정답이거나 접근 가능한 자료라는 뜻이 아닙니다.
 
+### RAG와 구현 라이브러리
+
+RAG는 질문에 필요한 자료를 검색해 생성 모델의 입력에 넣는 구성 방식입니다. LangChain과 LangChain4j는 그 구성에 사용할 수 있는 라이브러리이며 RAG의 필수 요소는 아닙니다. LangChain4j는 Java용 별도 프로젝트로, 7주차 Python LangChain과 API가 다릅니다.
+
+이번 실습에서는 **LangChain4j의 벡터 저장소 기능**을 사용합니다. 문서·질문의 임베딩 생성과 답변 생성은 OpenAI Java SDK가 담당하고, `InMemoryEmbeddingStore`는 벡터·문서 조각을 보관하고 가까운 후보를 찾습니다. 문서 분할, 접근 조건, BM25·RRF, 답변에 넣을 근거의 범위는 앱 코드에서 선택합니다. 저장소를 사용한 범위와 모델·도구 실행 전체를 프레임워크로 구성하는 범위를 구분해 읽습니다.
+
+```text
+문서 조각 → OpenAI Java SDK로 임베딩 생성 → LangChain4j 저장소에 벡터·조각 저장
+질문 → OpenAI Java SDK로 임베딩 생성 → 같은 저장소에서 후보 검색
+후보 → 앱이 근거·문맥 선택 → OpenAI Java SDK로 답변 생성 → 출처 검사
+```
+
+예를 들어 `EmbeddingIndex.build`는 생성된 벡터를 `store.add(...)`로 저장하고, `retrieve`는 질문 벡터를 `store.search(...)`에 전달합니다. 검색 결과를 답변에 사용할 문맥으로 고르는 일은 그 다음 앱 단계입니다. [LangChain4j 메모리 벡터 저장소](https://docs.langchain4j.dev/integrations/embedding-stores/in-memory/)
+
 `Retrieval.java`는 토큰·문자 조각의 어휘 기준선이고, `EmbeddingIndex.java`는 실제 임베딩 API와 LangChain4j 저장소를 연결합니다. 어휘 기준선과 뒤에서 비교할 BM25는 서로 다른 구현입니다.
 
-벡터 저장소는 문서 조각의 벡터와 조각을 찾아갈 정보를 함께 보관하고, 질문 벡터와 가까운 후보를 돌려주는 구성요소입니다. `EmbeddingIndex.build`는 벡터·본문·`chunk_id`를 SDK 저장소에 넣고, 별도의 조각 목록에 원문 ID·버전·접근 메타데이터를 보존합니다. `retrieve`는 검색된 `chunk_id`로 그 조각을 찾아 반환합니다. 따라서 저장소를 연결한 뒤에도 어떤 자료를 넣고 어떤 문맥을 답변에 전달할지는 앱이 정해야 합니다.
+벡터 저장소는 문서 조각의 벡터와 조각을 찾아갈 정보를 함께 보관하고, 질문 벡터와 가까운 후보를 돌려주는 구성요소입니다. `EmbeddingIndex.build`는 벡터·본문·`chunk_id`를 LangChain4j 저장소에 넣고, 별도의 조각 목록에 원문 ID·버전·접근 메타데이터를 보존합니다. `retrieve`는 검색된 `chunk_id`로 그 조각을 찾아 반환합니다. 따라서 저장소를 연결한 뒤에도 어떤 자료를 넣고 어떤 문맥을 답변에 전달할지는 앱이 정해야 합니다.
 
 #### 임베딩 API와 로컬 검색의 역할
 
@@ -228,7 +242,7 @@ allowedChunks.stream().filter(c -> c.documentId().equals(hit.documentId())
 |---|---|
 | `../knowledge_base/manifest.json`, 정책 `.md` | 제공 합성 원문과 관리 메타데이터 |
 | `src/main/java/lab/week08/Chunking.java`, `Retrieval.java` | 조각화와 어휘 기준선, 접근 필터 |
-| 같은 패키지의 `EmbeddingIndex.java` | 실제 임베딩 SDK 호출과 저장·복원 |
+| 같은 패키지의 `EmbeddingIndex.java` | OpenAI Java SDK 임베딩 호출과 LangChain4j 저장소의 저장·복원 |
 | `Rerank.java`, `Answering.java` | 후보 순위 조정·근거 선택의 참고 정책 |
 | `ContextChoices.java` | 같은 후보에서 조각만 전달/원문 문맥 전달의 차이를 보이는 예제 |
 | `Pipeline.java`, `Quickstart.java` | 기존 연결 예제, 생성·형식·출처 검사 |
@@ -260,7 +274,7 @@ allowedChunks.stream().filter(c -> c.documentId().equals(hit.documentId())
 
 **실제 키를 읽는 앱과 API 호출은 학습자가 IDE에서 실행합니다.** AI는 환경변수 파일과 키가 저장된 비공유 실행 설정을 읽거나 이를 읽는 프로그램을 실행하지 않습니다. AI의 로컬 검증은 파일 로더와 인증 입력을 가짜 설정으로 대체하고 `Generator`·`Embedder` 대역을 사용합니다. Day 3~5에서는 AI가 연결 코드와 실행 안내를 준비하고, 학습자가 실행한 결과를 함께 해석합니다. 실제 연결이 준비되지 않았으면 구현과 대역 확인까지 진행하고 실제 임베딩·생성·Red Team은 미확인으로 남깁니다.
 
-연결 형식이 필요할 때는 [공식 Java SDK](https://developers.openai.com/api/docs/libraries), [구조화된 출력](https://developers.openai.com/api/docs/guides/structured-outputs), [SDK 저장소의 저장·복원](https://docs.langchain4j.dev/integrations/embedding-stores/in-memory/)을 참고합니다.
+연결 형식이 필요할 때는 [공식 Java SDK](https://developers.openai.com/api/docs/libraries), [구조화된 출력](https://developers.openai.com/api/docs/guides/structured-outputs), [LangChain4j 저장소의 저장·복원](https://docs.langchain4j.dev/integrations/embedding-stores/in-memory/)을 참고합니다.
 
 ## BM25·하이브리드 검색과 개선 위치
 
@@ -361,7 +375,7 @@ BM25는 단어가 맞는지 확인한 뒤 **그 일치가 얼마나 유용한지
 | 추가 질문 | 원래 문의와 이미 확인한 사실 | 아직 필요한 사용자 정보만 요청하는가 |
 | 보류·이관 | 확인된 내용과 미확인 이유 | 근거 없는 결론을 완료로 전달하지 않는가 |
 
-피드백이 “틀렸음”이면 다음 단계가 바꿀 대상을 알기 어렵습니다. “선택한 정책의 소유권 조건이 생성 입력에서 빠짐”처럼 부족한 정보와 근거 위치를 전달해야 합니다. 보완 뒤 같은 기준으로 확인하고 보완 횟수나 모델 호출 상한에 도달하면 남은 문제를 반환합니다. 출처 ID 확인은 전달 범위를, 원문 대조는 의미를 판단합니다. 11주차에서 이 판단을 실제 앱의 추가 검색·답변 보완·질문에 연결합니다.
+피드백이 “틀렸음”이면 다음 단계가 바꿀 대상을 알기 어렵습니다. “선택한 정책의 소유권 조건이 생성 입력에서 빠짐”처럼 부족한 정보와 근거 위치를 전달해야 합니다. 보완 뒤 같은 기준으로 확인하고 보완 횟수나 모델 호출 상한에 도달하면 남은 문제를 반환합니다. 출처 ID 확인은 전달 범위를, 원문 대조는 의미를 판단합니다. 12주차에서 이 판단을 실제 앱의 검색·추가 질문·초안 검토에 연결합니다.
 
 ## Day 1 — 어휘 기준선에서 검색과 답변을 분리하기
 
@@ -461,7 +475,7 @@ golden.json의 네 입력으로 기준선을 확인해주세요. 기대 문서�
 
 ## Day 3 — 자료 준비와 질문 처리 구조 설계·구현하기
 
-**할 일:** 위 제공 요구에서 자료의 포함 범위·조각화·검색·문맥 선택·색인 보관·갱신 시점·반환할 결과의 항목과 형식을 AI와 도출하고 실제 Java 앱으로 구성합니다. 원문과 SDK 저장소·임베딩 호출·생성의 통신 코드는 재사용합니다. `Pipeline → Rerank → Answering`의 각 책임을 자신의 문맥 정책에 맞게 연결합니다. 재정렬을 포함할지는 Day 2에서 확인한 순위 조정의 효과를 근거로 선택합니다.
+**할 일:** 위 제공 요구에서 자료의 포함 범위·조각화·검색·문맥 선택·색인 보관·갱신 시점·반환할 결과의 항목과 형식을 AI와 도출하고 실제 Java 앱으로 구성합니다. 원문과 LangChain4j 저장소·임베딩 호출·생성의 통신 코드는 재사용합니다. `Pipeline → Rerank → Answering`의 각 책임을 자신의 문맥 정책에 맞게 연결합니다. 재정렬을 포함할지는 Day 2에서 확인한 순위 조정의 효과를 근거로 선택합니다.
 
 먼저 IDE에서 `ContextChoices.main`을 실행하거나 아래처럼 후보가 같은 두 문맥을 봅니다. 이 한 번의 관찰을 통해 자신의 질문에 어떤 조건이 함께 전달되어야 하는지 판단합니다.
 
@@ -483,7 +497,7 @@ sh ./gradlew contextExample
 제공 현재 정책을 근거로 문의에 답하는 RAG를 설계하겠습니다.
 어떤 문서를 포함할지, 무엇을 한 조각으로 볼지, 검색 후보에서 어떤 문맥을 모아야
 기한·소유권 조건을 보존할지 실제 원문으로 설명하고 구성을 제안하세요.
-표현이 다른 질문에는 실제 임베딩과 SDK 저장소를 연결하되, 어휘 기준선과 비교할 조건을 정하세요.
+표현이 다른 질문에는 실제 임베딩과 LangChain4j 저장소를 연결하되, 어휘 기준선과 비교할 조건을 정하세요.
 Day 2의 관찰로 후보 수·최소 점수·재정렬의 유지 또는 변경 이유를 설명하세요.
 선택한 설정에서 환불 근거와 자료 밖 질문이 어떻게 처리될지 먼저 예상하세요.
 색인 준비/갱신과 질문 처리의 진입점, 근거 부족·호출 실패·답변을 구별하는 반환 형식도 도출하세요.
