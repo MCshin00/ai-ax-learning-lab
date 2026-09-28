@@ -1,7 +1,7 @@
 {
   "layout_version": 6,
   "created_at": "2026-07-25T10:42:29.915424+00:00",
-  "current_week": 10,
+  "current_week": 11,
   "applied_weeks": [
     1,
     2,
@@ -12,7 +12,8 @@
     7,
     8,
     9,
-    10
+    10,
+    11
   ],
   "references_revealed": [],
   "applied_files": {
@@ -197,10 +198,27 @@
       "week10-ai-development-methods/comparison_task/src/test/java/lab/week10/SummaryTest.java",
       "week10-ai-development-methods/m5-execution.md",
       "week10-ai-development-methods/m5-task.md"
+    ],
+    "11": [
+      "week11-ai-agent-integration/agent_lab/agent.py",
+      "week11-ai-agent-integration/agent_lab/app.py",
+      "week11-ai-agent-integration/agent_lab/business.py",
+      "week11-ai-agent-integration/agent_lab/compare_answers.py",
+      "week11-ai-agent-integration/agent_lab/data/orders.json",
+      "week11-ai-agent-integration/agent_lab/data/policies.json",
+      "week11-ai-agent-integration/agent_lab/data/quality_cases.json",
+      "week11-ai-agent-integration/agent_lab/flow_patterns.py",
+      "week11-ai-agent-integration/agent_lab/model_boundary.py",
+      "week11-ai-agent-integration/agent_lab/offline.py",
+      "week11-ai-agent-integration/agent_lab/pipeline_example.py",
+      "week11-ai-agent-integration/agent_lab/README.md",
+      "week11-ai-agent-integration/agent_lab/requirements.txt",
+      "week11-ai-agent-integration/agent_lab/tests/test_agent.py",
+      "week11-ai-agent-integration/agent_lab/tests/test_patterns_and_comparison.py"
     ]
   },
-  "updated_at": "2026-09-21T08:18:49.806628+00:00",
-  "source_guide_sha256": "84d555d58d385d8e824e17fa51863918a88f57e11d316f47d15ce2df31fefb06",
+  "updated_at": "2026-09-28T07:04:41.491222+00:00",
+  "source_guide_sha256": "d540cfe5bbf829dbc9142352f412012975c8d94291dde45c1dfa556d5215340a",
   "migrated_from_layout_version": 2,
   "layout_migrated_at": "2026-08-12T17:39:12.701181+00:00",
   "layout_migrations": [
