@@ -20,7 +20,7 @@ python3 -m venv .venv
 .venv/bin/python -B -m unittest -v
 ```
 
-제공 검사는 SDK의 manifest·provider·tool 로딩과 실제 Tool 메시지, 핵심 업무 입력을 확인합니다. Dify 접속·실제 모델 추출을 확인하는 검사는 아닙니다. 제작·수정한 경계가 필요할 때 실행하고 매 입력마다 반복하지 않습니다.
+제공 검사는 SDK의 manifest·provider·tool 로딩과 실제 Tool 메시지, 핵심 업무 입력을 확인합니다. Dify 접속·실제 모델 추출을 확인하는 검사는 아닙니다. 도구 등록이나 결과 전달 코드를 제작·수정한 뒤 실행하고 매 입력마다 반복하지 않습니다.
 
 | 파일 | 책임 |
 |---|---|
