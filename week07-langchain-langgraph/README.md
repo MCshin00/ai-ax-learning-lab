@@ -262,7 +262,7 @@ Middleware는 에이전트의 실행 전후나 모델·도구 호출 주변에�
 
 초기 연결 후에는 번호 없는 문의에 다음 호출에서 번호만 보내도록 확장합니다. 이 변경은 출력 문구 수정과 다릅니다. 원래 문의를 보관할 책임, 다음 입력의 식별, 대기·종료 정책을 실행 코드에 연결해야 합니다. 이어 다른 요청도 대기시킨 뒤 역순으로 보충해 문의가 섞이지 않는지 확인합니다.
 
-참고 구현은 `examples/workflow_demo.py --method langchain --case lookup`과 `--case waiting`, `--case empty`로 실행할 수 있습니다. 자기 구현은 선택한 진입점으로 같은 입력을 받게 합니다. 참고 시연의 클래스나 실행 API에 맞추려고 자기 구조를 바꿀 필요는 없습니다.
+참고 구현은 `examples/workflow_demo.py --method langchain --case lookup`과 `--case waiting`, `--case empty`로 실행할 수 있습니다. 자기 구현은 선택한 진입점으로 같은 입력을 받고 조회 결과·추가 질문·종료 상태를 확인합니다.
 
 ```text
 제공 주문 문의를 처리할 LangChain 구성을 현재 작업에 설계·구현하려고 합니다.
