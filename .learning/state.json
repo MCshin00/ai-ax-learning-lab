@@ -259,8 +259,8 @@
       "week11-development-environment/development_harness/src/test/java/lab/harness/HarnessTest.java"
     ]
   },
-  "updated_at": "2026-09-29T08:10:10.543650+00:00",
-  "source_guide_sha256": "d02b923a6b55d5f7733ef5bf618dc8e40a3eecbe0a06a61f0c8d97c582d430d0",
+  "updated_at": "2026-09-29T13:20:50.340355+00:00",
+  "source_guide_sha256": "607184b70ba7685a3a4ef89f0c7106dd524e3fc28f56a6c92a5a5b8d3e12ab3e",
   "migrated_from_layout_version": 2,
   "layout_migrated_at": "2026-08-12T17:39:12.701181+00:00",
   "layout_migrations": [

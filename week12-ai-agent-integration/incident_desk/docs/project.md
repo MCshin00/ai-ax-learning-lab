@@ -9,6 +9,6 @@
 - OperationsClient·OperationsServer·OperationsStore: 업무 MCP와 저장 기능
 - IncidentDeskTest: 모델 대역·임시 자료·실제 로컬 MCP로 수행하는 업무 검사
 
-개발 사례는 data/acceptance-cases.json의 INTAKE, EVIDENCE, SAVE, PARTIAL, REVISION이다.
+개발할 업무 요구는 주차 본문에서 확인한다. data/cases.json의 문의와 판단 기준을 참고해 선택한 구현의 검사 입력과 기대 결과를 정한다.
 Gradle test를 자동 검사에 사용한다. 실제 모델의 표현 해석·검색·답변은 학습자가 IDE에서 --live로 확인한다.
 서비스별 사실과 근거를 보존하고, 새 요구의 입력부터 결과까지 변경한 경로를 확인한다.

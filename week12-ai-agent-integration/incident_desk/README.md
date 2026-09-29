@@ -39,4 +39,4 @@ MCP 도구는 `get_service_status(serviceId)`, `save_work_request(draft)`, `read
 
 ## 개발 환경 연결
 
-주차 본문 Day 1에서 11주차의 JAR로 이 프로젝트의 Hook과 개발 MCP 연결을 준비합니다. `harness.json`은 대역 모델을 사용하는 Gradle `test`를 선택하고, `docs/project.md`는 새 세션에 전달할 구조와 검사 위치를 담습니다. 개발 MCP는 `data/acceptance-cases.json`의 요구 사례를 조회합니다. 업무 앱의 서비스 조회·저장 MCP는 `OperationsClient`가 별도로 연결합니다.
+주차 본문 Day 1에서 11주차에 만든 하네스를 이 앱에 맞춥니다. 지침·Skill의 적용 범위와 Hook의 검사 작업·결과 위치·인계 정보를 선택해 연결합니다. Gradle `test`는 대역 모델과 임시 자료로 검사하고 결과는 `build/test-results/test`에 남깁니다. 현재 업무 요청과 `docs/project.md`를 읽고 필요한 연결 설정을 작성합니다. 앱의 서비스 조회·저장 MCP는 업무 파이프라인에서 입력·결과와 호출 시점을 확인합니다.
