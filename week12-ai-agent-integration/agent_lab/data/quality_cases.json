@@ -1,6 +1,0 @@
-[
-  {"id":"status","turns":["A-102의 현재 상태만 알려 주세요."],"required_tools":["lookup_order"],"unnecessary_tools":["search_policy"],"review":"배송 준비·출고 전 사실만 안내하며 정책 검색을 추가한 이유가 있는지 본다."},
-  {"id":"cancel","turns":["A-102가 아직 배송 전인데 취소할 수 있나요?"],"required_tools":["lookup_order","search_policy"],"unnecessary_tools":[],"review":"POL-CANCEL의 조건을 안내하고 실제 신청 완료로 표현하지 않는다."},
-  {"id":"followup","turns":["취소할 수 있나요?","A-102예요."],"required_tools":["lookup_order","search_policy"],"unnecessary_tools":[],"review":"첫 답은 번호 질문, 두 번째 답은 원래 취소 문의의 처리이며 출처가 있다."},
-  {"id":"partial","turns":["A-102, A-103, A-999를 취소할 수 있는지 각각 알려 주세요."],"required_tools":["lookup_order","search_policy"],"unnecessary_tools":[],"review":"조회 안 된 A-999를 구분하고 나머지 두 주문의 출고 상태와 정책을 섞지 않는다."}
-]

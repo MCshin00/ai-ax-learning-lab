@@ -1,5 +1,0 @@
-[
-  {"order_id": "A-102", "status": "배송 준비", "shipped": false},
-  {"order_id": "A-103", "status": "배송 중", "shipped": true},
-  {"order_id": "A-104", "status": "배송 완료", "shipped": true}
-]
