@@ -1,5 +1,0 @@
-{
-  "verificationTask": "test",
-  "timeoutSeconds": 120,
-  "reportsDirectory": "test-results/test"
-}
