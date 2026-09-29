@@ -8,7 +8,7 @@
 
 기존 업무 검사에는 `VPN 접속`처럼 특수문자가 없는 제목만 들어 있었다. 쉼표 처리가 빠져도 이 검사는 통과하므로, 새 요구를 확인하려면 `VPN, 접속`의 기대 셀 `"VPN, 접속"`을 검사에 추가해야 했다. 이 필요에서 “요구 사례의 입력과 기대 결과를 확인한다”, “변경한 조건을 업무 검사에 반영한다”는 지침을 도출했다.
 
-[제공 지침 예제](development_harness/setup/AGENTS.example.md)를 참고하면서 코드·자료·검사 설정에 맞춰 다음 내용을 [AGENTS.md](development_harness/AGENTS.md)에 반영했다.
+[제공 지침 예제](https://github.com/MCshin00/ai-ax-learning-lab/blob/cdde0815ed00d23556600d7a6fb95cdee2debb20/week11-development-environment/development_harness/setup/AGENTS.example.md)를 참고하면서 코드·자료·검사 설정에 맞춰 다음 내용을 [AGENTS.md](development_harness/AGENTS.md)에 반영했다.
 
 | 지침을 도출한 근거 | 작성한 지침 |
 |---|---|
@@ -18,7 +18,7 @@
 | `acceptance`는 업무 검사를, `test`는 업무와 하네스 검사를 실행한다. | 업무 변경에는 `acceptance`를 사용하고, 하네스나 공통 빌드 설정이 바뀌면 `test`를 실행한다. |
 | 셀 표현을 고친 뒤에도 설명에 “문자열을 그대로 반환한다”가 남으면 다음 변경이 잘못된 설명에서 시작된다. | 기능 변경으로 설명이 달라지면 해당 자료도 갱신한다. |
 
-AGENTS.md에는 이처럼 반복할 행동과 자료 위치를 적었다. CSV 열 순서와 파일별 역할은 [프로젝트 설명](development_harness/docs/project.md)에, `VPN, 접속`과 기대 셀은 [사례 JSON](development_harness/data/acceptance-cases.json)에 두었다. 다른 입력을 처리할 때도 “사례를 찾아 검사한다”는 지침은 유지하고, 달라진 입력과 기대값은 JSON에서 확인할 수 있다.
+AGENTS.md에는 이처럼 반복할 행동과 자료 위치를 적었다. CSV 열 순서와 파일별 역할은 [프로젝트 설명](development_harness/docs/project.md)에, `VPN, 접속`과 기대 셀은 [사례 JSON](https://github.com/MCshin00/ai-ax-learning-lab/blob/cdde0815ed00d23556600d7a6fb95cdee2debb20/week11-development-environment/development_harness/data/acceptance-cases.json)에 두었다. 다른 입력을 처리할 때도 “사례를 찾아 검사한다”는 지침은 유지하고, 달라진 입력과 기대값은 JSON에서 확인할 수 있다.
 
 ### 지침이 실제 작업과 산출물에 반영된 과정
 
