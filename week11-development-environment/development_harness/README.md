@@ -2,7 +2,9 @@
 
 상세 학습은 [주차 본문](../README.md)의 Day 1~5를 따릅니다. Java 17 이상에서 IDE의 Gradle 동기화 후 `test`를 실행합니다. 제공 기능은 단순한 OPEN 문의 CSV 내보내기이며, 확장할 요구는 `data/acceptance-cases.json`에 있습니다.
 
-`src/main/java/lab/export`가 개발할 업무 코드, `lab/harness`가 개발 환경에 연결할 참고 구현입니다. 업무 검사 `acceptance`와 하네스 자체의 검사 `test`를 나눕니다. `harnessJar`는 실제 코딩 도구에 연결할 JAR를 만듭니다.
+`src/main/java/lab/export`가 개발할 업무 코드, `lab/harness`가 개발 환경에 연결할 참고 구현입니다. `acceptance`는 `lab/export` 패키지의 업무 검사를, `test`는 업무 검사와 하네스 검사를 모두 실행합니다. `harnessJar`는 실제 코딩 도구에 연결할 JAR를 만듭니다.
+
+Day 1은 지침을 사용해 쉼표 처리를 구현하고, Day 2는 Skill·MCP로 큰따옴표 요구를 처리합니다. Day 3은 줄바꿈 실패가 Hook을 거쳐 수정되는 과정을 확인합니다. Day 4는 팀 선택·파일 이름 변경을 분담·재개해 통합하고, Day 5는 중복 처리 요구로 전체 환경을 사용합니다. 각 Day에서 실제 입력·결과와 개발에 사용된 지침·자료·검사를 함께 읽습니다.
 
 | 파일 | 사용하는 이유 |
 |---|---|

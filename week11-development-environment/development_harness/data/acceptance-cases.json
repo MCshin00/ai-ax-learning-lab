@@ -1,5 +1,6 @@
 [
-  {"id":"CSV-QUOTE","day":2,"requirement":"쉼표, 큰따옴표, 줄바꿈을 포함한 제목도 한 셀로 보존한다.","input":{"title":"VPN, \"접속\""},"expectedCell":"\"VPN, \"\"접속\"\"\"","decision":"쉼표로 split한 개수 대신 원문 필드가 보존되는 CSV 표현을 확인한다."},
+  {"id":"CSV-COMMA","day":1,"requirement":"쉼표가 포함된 제목을 한 셀로 보존하며 단순 제목도 계속 처리한다.","input":{"title":"VPN, 접속"},"expectedCell":"\"VPN, 접속\"","decision":"제목 안의 쉼표를 열 구분과 구별하도록 셀 전체를 감싼다. 기존 단순 제목과 OPEN 선택·열 순서도 함께 확인한다."},
+  {"id":"CSV-QUOTE","day":2,"requirement":"쉼표와 큰따옴표를 포함한 제목을 한 셀로 보존한다.","input":{"title":"VPN, \"접속\""},"expectedCell":"\"VPN, \"\"접속\"\"\"","decision":"셀 안의 큰따옴표를 두 번 쓰고 셀 전체를 감싼다. 원문 제목과 기대 셀을 대조하고 Day 1의 쉼표·단순 제목도 확인한다."},
   {"id":"CSV-LINE","day":3,"requirement":"제목 내부의 LF는 셀을 따옴표로 감싸 보존한다.","input":{"title":"첫 줄\n다음 줄"},"expectedCell":"\"첫 줄\n다음 줄\"","decision":"개행을 없애면 파일의 행 수는 단순해져도 제목이 변한다."},
   {"id":"TEAM","day":4,"requirement":"지정한 팀의 OPEN 문의만 선택한다. 팀 미지정은 모든 팀이다.","input":{"team":"OPS","tickets":[{"id":"T-1","team":"OPS","status":"OPEN"},{"id":"T-2","team":"APP","status":"OPEN"},{"id":"T-3","team":"OPS","status":"CLOSED"}]},"expectedIds":["T-1"],"decision":"팀 선택은 필터에서, 셀 표현은 CsvCell에서 처리한다."},
   {"id":"FILENAME","day":4,"requirement":"호출자가 전달한 기준 날짜로 tickets-YYYY-MM-DD.csv를 만든다.","input":{"date":"2026-01-15"},"expected":"tickets-2026-01-15.csv","decision":"시계에 직접 의존하지 않으면 같은 입력으로 검사할 수 있다."},
