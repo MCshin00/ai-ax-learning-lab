@@ -26,7 +26,7 @@ Java가 기본이며 실제 LangChain·LangGraph 비교와 Dify Tool Plugin에�
 | 8 | [BM25·임베딩·하이브리드 RAG·평가](week08-rag-evaluation/) |
 | 9 | [Dify·Tool Plugin과 업무 결과 전달](week09-dify-workflow/) |
 | 10 | [다섯 가지 개발 방식 비교와 하네스 v2](week10-ai-development-methods/) |
-| 11 | [개발 하네스 구축과 운영](week11-development-environment/) |
+| 11 | [프로젝트 개발 하네스 구성과 활용](week11-development-environment/) |
 | 12 | [AI 파이프라인·에이전트 통합 구현](week12-ai-agent-integration/) |
 | 13 | [원하는 포트폴리오 구체화와 첫 구현](week13-portfolio-build/) |
 | 14 | [선택한 포트폴리오 완성과 전달](week14-portfolio-evidence/) |

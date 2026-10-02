@@ -1,6 +1,6 @@
 # 현재 학습
 
-## 11주차 · 개발 하네스 구축과 운영
+## 11주차 · 프로젝트 개발 하네스 구성과 활용
 
 - 상세 학습 본문: [week11-development-environment/README.md](week11-development-environment/README.md)
 - 기본 작업 폴더(CWD): [`week11-development-environment/development_harness`](week11-development-environment/development_harness/)
