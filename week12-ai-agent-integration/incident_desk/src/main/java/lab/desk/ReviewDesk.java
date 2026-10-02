@@ -10,9 +10,10 @@ public final class ReviewDesk {
     private final IncidentFlow flow;private final Operations operations;
     private final Map<String,Preview> latest=new HashMap<>();
     public ReviewDesk(IncidentFlow flow,Operations operations){this.flow=flow;this.operations=operations;}
-    public synchronized Preview analyze(String conversationId,String text) {
+    public Preview analyze(String conversationId,String text) {return analyze(conversationId,text,event->{});}
+    public synchronized Preview analyze(String conversationId,String text,java.util.function.Consumer<Object> events) {
         latest.remove(conversationId);
-        var analysis=flow.analyze(conversationId,text);
+        var analysis=flow.analyze(conversationId,text,events);
         var ready=analysis.items().stream().filter(i->i.status().equals("ready")).toList();
         String draft=ready.stream().map(i->i.serviceId()+": "+i.answer()).reduce((a,b)->a+"\n"+b).orElse("");
         var preview=new Preview(UUID.randomUUID().toString(),analysis,draft,!ready.isEmpty());

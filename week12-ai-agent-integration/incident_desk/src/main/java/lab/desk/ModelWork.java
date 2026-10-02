@@ -10,10 +10,11 @@ import java.util.*;
 import java.util.function.BiFunction;
 import static lab.desk.Models.*;
 
-/** 한 요청에서 접수와 도구 재호출이 같은 모델 호출 한도를 사용합니다. */
+/** 한 요청에서 접수·작성·도구 재호출·검색어 재작성이 같은 모델 호출 한도를 사용합니다. */
 public final class ModelWork {
     public interface Reception {Intake receive(String input);}
     public interface Writer {Plan write(String input);}
+    public interface Rewriter {Requeries rewrite(String input);}
     public static final class LimitReached extends RuntimeException {}
     public static final class Budget {int calls; public int calls(){return calls;}}
     private final BiFunction<String,JsonNode,ChatModel> models;
@@ -41,9 +42,40 @@ public final class ModelWork {
     }
     public Plan plan(Intake intake,List<Lookup> facts,boolean agent,Budget budget,
                      Map<String,Source> evidence,List<Object> trace) {
-        var tool=new SearchTool(search,new HashSet<>(intake.serviceIds()),evidence,trace);
+        // 서비스 범위는 검색 결과에서 거르므로 검색어는 접수한 증상 문장입니다.
         if(!agent)for(var fact:facts)if(fact.status().equals("found"))
-            tool.find_runbook(fact.serviceId(),fact.serviceId()+" "+intake.symptom());
+            new SearchTool(search,new HashSet<>(intake.serviceIds()),evidence,trace).find_runbook(fact.serviceId(),intake.symptom());
+        return write(intake,facts,agent,budget,evidence,trace);
+    }
+    /** 교정 검색으로 근거를 찾은 서비스만 이미 모은 근거로 다시 작성합니다. */
+    public Plan replan(Intake intake,List<Lookup> facts,Budget budget,Map<String,Source> evidence,List<Object> trace) {
+        return write(intake,facts,false,budget,evidence,trace);
+    }
+    /** 근거를 찾지 못한 서비스의 검색어를 한 번 다시 쓰고 검색합니다. 새 근거가 생기면 true입니다. */
+    public boolean correct(Intake intake,List<String> serviceIds,Budget budget,Map<String,Source> evidence,List<Object> trace) {
+        var failed=new ArrayList<Object>();
+        for(var entry:trace)if(entry instanceof Map<?,?> m&&"find_runbook".equals(m.get("tool"))&&serviceIds.contains(m.get("serviceId")))
+            failed.add(Map.of("serviceId",m.get("serviceId"),"query",m.get("query")));
+        var input=Json.tree(Map.of("symptom",intake.symptom(),"serviceIds",serviceIds,"failedQueries",failed));
+        var result=AiServices.builder(Rewriter.class).chatModel(limited("rewrite",input,budget))
+            .systemMessageProvider(id->"""
+                운영 문서 검색에서 근거를 찾지 못한 서비스의 검색어를 다시 쓰세요.
+                운영 문서는 서비스 이름(VPN, SSO 통합 로그인, MAIL)과 오류 메시지·증상 용어로 작성되어 있습니다.
+                failedQueries와 다른 표현을 쓰되 원래 증상의 의미를 유지하고, 없는 오류 코드나 사실을 추가하지 마세요.
+                serviceIds의 서비스마다 query를 하나 반환하세요.
+                """).build().rewrite(Json.write(input));
+        var tool=new SearchTool(search,new HashSet<>(serviceIds),evidence,trace);
+        int before=evidence.size();var done=new HashSet<String>();
+        if(result.queries()!=null)for(var q:result.queries()) {
+            if(q==null||!serviceIds.contains(q.serviceId())||!done.add(q.serviceId()))continue;
+            trace.add(Map.of("step","rewrite_query","serviceId",q.serviceId(),"query",String.valueOf(q.query())));
+            tool.find_runbook(q.serviceId(),q.query());
+        }
+        return evidence.size()>before;
+    }
+    private Plan write(Intake intake,List<Lookup> facts,boolean agent,Budget budget,
+                       Map<String,Source> evidence,List<Object> trace) {
+        var tool=new SearchTool(search,new HashSet<>(intake.serviceIds()),evidence,trace);
         var input=Json.tree(Map.of("intake",intake,"facts",facts,"evidence",evidence.values(),"agent",agent));
         var builder=AiServices.builder(Writer.class).chatModel(limited("plan",input,budget))
             .systemMessageProvider(id->"""

@@ -76,6 +76,47 @@ class IncidentDeskTest {
             var ai=ModelSetup.scripted(available);
             var result=new IncidentFlow(store,ai,true).analyze("a","VPN이 자꾸 끊겨요");
             assertEquals("review",result.status());assertTrue(result.items().get(0).sources().isEmpty());
+            // 교정 검색은 한 번만 시도하고, 근거가 없으면 초안을 다시 쓰지 않습니다.
+            assertEquals(1,result.trace().stream().filter(t->Json.write(t).contains("rewrite_query")).count());
+            assertEquals(4,result.modelCalls());
+        }
+    }
+    @Test void correctiveSearchRecoversVocabularyMismatch() {
+        for(boolean agent:List.of(false,true)) {
+            var result=desk(agent).analyze("a","사내망 연결이 자꾸 끊겨요").analysis();
+            assertEquals("ready",result.status());assertEquals("RB-VPN",result.items().get(0).sources().get(0).id());
+            var steps=result.trace().stream().map(Json::write).toList();
+            int rewrite=steps.indexOf(steps.stream().filter(s->s.contains("rewrite_query")).findFirst().orElseThrow());
+            assertTrue(steps.get(rewrite-1).contains("no_evidence"));assertTrue(steps.get(rewrite+1).contains("RB-VPN"));
+            assertEquals(agent?5:4,result.modelCalls());
+        }
+    }
+    @Test void httpStreamsStagesBeforeResultAndSavesSeparately()throws Exception {
+        try(var server=new DeskServer(desk(true),0)) {
+            var http=java.net.http.HttpClient.newHttpClient();String base="http://127.0.0.1:"+server.port();
+            java.util.function.BiFunction<String,String,java.net.http.HttpResponse<String>> post=(path,body)->{
+                try{return http.send(java.net.http.HttpRequest.newBuilder(java.net.URI.create(base+path))
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body)).build(),java.net.http.HttpResponse.BodyHandlers.ofString());}
+                catch(Exception e){throw new IllegalStateException(e);}
+            };
+            var stream=post.apply("/inquiries/stream",Json.write(Map.of("conversationId","a","text","사내망 연결이 자꾸 끊겨요")));
+            assertTrue(stream.headers().firstValue("Content-Type").orElse("").startsWith("text/event-stream"));
+            var events=Arrays.stream(stream.body().split("\n\n")).filter(e->!e.isBlank()).toList();
+            assertTrue(events.get(0).startsWith("event: stage")&&events.get(0).contains("\"intake\""));
+            assertTrue(events.stream().anyMatch(e->e.contains("rewrite_query")));
+            var last=events.get(events.size()-1);assertTrue(last.startsWith("event: result"));
+            var preview=Json.read(last.substring(last.indexOf("data: ")+6));
+            assertEquals("ready",preview.path("analysis").path("status").asText());assertFalse(Files.exists(requests));
+            var saved=post.apply("/requests",Json.write(Map.of("conversationId","a","previewId",preview.path("id").asText(),
+                "requestId","http-1","text","사내망(VPN) 연결 끊김. 오류 메시지 확인 요청.")));
+            assertEquals("saved",Json.read(saved.body()).path("status").asText());
+            var needsInput=post.apply("/inquiries",Json.write(Map.of("conversationId","b","text","접속이 안 돼요")));
+            assertEquals(200,needsInput.statusCode());assertEquals("needs_input",Json.read(needsInput.body()).path("analysis").path("status").asText());
+            assertEquals(400,post.apply("/inquiries","not json").statusCode());
+            assertEquals(400,post.apply("/inquiries/stream",Json.write(Map.of("conversationId","a"))).statusCode());
+            var get=http.send(java.net.http.HttpRequest.newBuilder(java.net.URI.create(base+"/inquiries")).GET().build(),
+                java.net.http.HttpResponse.BodyHandlers.ofString());
+            assertEquals(405,get.statusCode());
         }
     }
     @Test void lookupFailureRetainsOtherService() {

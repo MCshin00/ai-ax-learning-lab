@@ -3,7 +3,8 @@
 직원의 문의를 서비스별 상태·운영 문서·대응 초안으로 만들고, 담당자가 검토한 뒤 작업 요청으로 저장한다.
 
 - DeskApp: 대화 식별자와 문의, 검토 후 저장을 받는 콘솔
-- IncidentFlow: 접수·상태 조회·검색·응답 연결
+- DeskServer: 같은 검토·저장을 HTTP로 공개하고 처리 단계를 SSE로 전달
+- IncidentFlow: 접수·상태 조회·검색·응답 연결, 근거가 없을 때 한 번의 교정 검색
 - ModelWork와 EvidenceSearch: 모델 호출·도구 선택·검색
 - ReviewDesk: 검토본과 저장 조건
 - OperationsClient·OperationsServer·OperationsStore: 업무 MCP와 저장 기능
