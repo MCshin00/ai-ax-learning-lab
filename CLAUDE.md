@@ -9,6 +9,7 @@ AI 도구로 실제 작업을 수행하고 결과를 확인·수정하는 학습
   - 과정 관리 문서의 동기화: `README.md`, `LEARNING_GUIDE.md`, `CURRENT_WEEK.md`, 주차 `README.md`, `.learning/state.json`
   - 학습 결과: 실습 코드·Skill·지침·학습 노트
 - 호환성을 깨는 변경은 본문이나 footer에 `BREAKING CHANGE: 한국어 설명`을 남깁니다.
+- 커밋 메시지와 PR 본문에 `Co-Authored-By` 등 AI 기여자 표기를 넣지 않습니다.
 - 커밋 전에 diff와 커밋 메시지에 로컬 절대경로·민감정보가 없는지 확인합니다.
 
 ## 경로와 민감정보
