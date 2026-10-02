@@ -229,7 +229,10 @@
       "week12-ai-agent-integration/incident_desk/src/test/java/lab/desk/IncidentDeskTest.java",
       "week12-ai-agent-integration/incident_desk/harness.json",
       "week12-ai-agent-integration/incident_desk/docs/project.md",
-      "week12-ai-agent-integration/incident_desk/data/acceptance-cases.json"
+      "week12-ai-agent-integration/incident_desk/data/acceptance-cases.json",
+      "week12-ai-agent-integration/incident_desk/http/inquiry.json",
+      "week12-ai-agent-integration/incident_desk/http/save.json",
+      "week12-ai-agent-integration/incident_desk/src/main/java/lab/desk/DeskServer.java"
     ],
     "11": [
       "week11-development-environment/development_harness/.gitignore",
@@ -259,8 +262,8 @@
       "week11-development-environment/development_harness/src/test/java/lab/harness/HarnessTest.java"
     ]
   },
-  "updated_at": "2026-09-30T07:44:30.653503+00:00",
-  "source_guide_sha256": "fce9eee628ccca6646c42e75f55cc460319dccbb1f1d7049acd6834bd97f6a25",
+  "updated_at": "2026-10-02T14:32:06.290291+00:00",
+  "source_guide_sha256": "a0ab0c5b0f391481e48840867a64958e0316b88e5a6aabbceb3cb31a3eab4f4f",
   "migrated_from_layout_version": 2,
   "layout_migrated_at": "2026-08-12T17:39:12.701181+00:00",
   "layout_migrations": [
