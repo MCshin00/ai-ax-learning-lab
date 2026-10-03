@@ -51,8 +51,13 @@ public final class ModelWork {
     public Plan replan(Intake intake,List<Lookup> facts,Budget budget,Map<String,Source> evidence,List<Object> trace) {
         return write(intake,facts,false,budget,evidence,trace);
     }
-    /** 근거를 찾지 못한 서비스의 검색어를 한 번 다시 쓰고 검색합니다. 새 근거가 생기면 true입니다. */
-    public boolean correct(Intake intake,List<String> serviceIds,Budget budget,Map<String,Source> evidence,List<Object> trace) {
+    /** 모델이 검색하지 않은 서비스를 앱이 접수한 증상으로 한 번 검색합니다. 모델 호출은 쓰지 않습니다. */
+    public void search(String serviceId,String query,Map<String,Source> evidence,List<Object> trace) {
+        trace.add(Map.of("step","app_search","serviceId",serviceId,"query",query));
+        new SearchTool(search,Set.of(serviceId),evidence,trace).find_runbook(serviceId,query);
+    }
+    /** 검색 결과가 근거 없음뿐인 서비스의 검색어를 한 번 다시 쓰고 검색합니다. */
+    public void correct(Intake intake,List<String> serviceIds,Budget budget,Map<String,Source> evidence,List<Object> trace) {
         var failed=new ArrayList<Object>();
         for(var entry:trace)if(entry instanceof Map<?,?> m&&"find_runbook".equals(m.get("tool"))&&serviceIds.contains(m.get("serviceId")))
             failed.add(Map.of("serviceId",m.get("serviceId"),"query",m.get("query")));
@@ -65,13 +70,12 @@ public final class ModelWork {
                 serviceIds의 서비스마다 query를 하나 반환하세요.
                 """).build().rewrite(Json.write(input));
         var tool=new SearchTool(search,new HashSet<>(serviceIds),evidence,trace);
-        int before=evidence.size();var done=new HashSet<String>();
+        var done=new HashSet<String>();
         if(result.queries()!=null)for(var q:result.queries()) {
             if(q==null||!serviceIds.contains(q.serviceId())||!done.add(q.serviceId()))continue;
             trace.add(Map.of("step","rewrite_query","serviceId",q.serviceId(),"query",String.valueOf(q.query())));
             tool.find_runbook(q.serviceId(),q.query());
         }
-        return evidence.size()>before;
     }
     private Plan write(Intake intake,List<Lookup> facts,boolean agent,Budget budget,
                        Map<String,Source> evidence,List<Object> trace) {

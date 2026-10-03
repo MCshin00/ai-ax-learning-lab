@@ -26,7 +26,7 @@ b|VPN과 급여 시스템이 안 돼요
 
 대역 모드의 다른 입력은 `data/cases.json`과 `ScriptedModels.java`에 있습니다. 실제 모델에서는 자유로운 표현으로 실행합니다. 참고 앱의 접수·초안·도구 기록은 콘솔에 JSON으로 출력되며, 사람이 검토할 본문은 `text`입니다. `analysis.items`에서 저장 대상인 `ready` 항목과 미처리 항목을 함께 확인합니다. `<검토ID>`에는 초안 출력의 최상위 `id`를 넣습니다. `/save`는 그 검토본에 대해 입력한 본문을 저장하며, 정정 전에 만들어진 오래된 검토 ID는 거절합니다.
 
-`사내망 연결이 자꾸 끊겨요`는 증상 문장으로 근거를 찾지 못해 검색어를 한 번 다시 쓰는 사례입니다. 출력의 `trace`에서 `no_evidence` → `rewrite_query` → 다시 찾은 출처 순서를 확인합니다.
+`사내망 연결이 자꾸 끊겨요`는 증상 문장으로 근거를 찾지 못해 검색어를 한 번 다시 쓰는 사례입니다. 출력의 `trace`에서 `no_evidence` → `rewrite_query` → 다시 찾은 출처 순서를 확인합니다. 검색 호출 자체가 실패한 `unavailable`은 검색어를 바꾸지 않고 검색 실패로 안내합니다. 에이전트가 검색 도구를 부르지 않았다면 앱이 접수한 증상으로 한 번 검색하며 `trace`에 `app_search`로 남습니다.
 
 ## HTTP API
 
@@ -54,7 +54,7 @@ curl -N -X POST http://127.0.0.1:8080/inquiries/stream -H 'Content-Type: applica
 
 ## 구현을 읽는 순서
 
-`DeskApp` → `ReviewDesk.analyze` → `IncidentFlow.analyze`에서 접수·서비스 조회·검색·초안 검사 경로를 따라갑니다. `ModelWork`의 AI Services가 구조화 출력과 검색 도구 실행을 연결합니다. 근거를 찾지 못한 서비스는 `IncidentFlow`가 `ModelWork.correct`로 검색어를 한 번 다시 쓰고, 새 근거가 생긴 서비스만 `replan`으로 다시 작성합니다. `EvidenceSearch`는 실제 메모리 벡터 저장소를 사용합니다. `DeskServer`는 같은 `ReviewDesk`를 HTTP로 공개하고, `IncidentFlow`가 기록하는 처리 단계를 SSE 이벤트로 보냅니다. 검토 이후에는 `ReviewDesk.save` → MCP `save_work_request` → `OperationsStore.save`로 이어집니다.
+`DeskApp` → `ReviewDesk.analyze` → `IncidentFlow.analyze`에서 접수·서비스 조회·검색·초안 검사 경로를 따라갑니다. `ModelWork`의 AI Services가 구조화 출력과 검색 도구 실행을 연결합니다. 근거를 찾지 못한 서비스는 `IncidentFlow`가 검색 기록을 확인합니다. 유효한 검색이 없으면 `ModelWork.search`로 최초 검색을 보완하고, 검색 장애 없이 근거를 찾지 못한 서비스만 `ModelWork.correct`로 검색어를 한 번 다시 씁니다. 새 근거가 생긴 서비스만 `replan`으로 다시 작성하며, 검색 장애로 끝난 서비스는 처리가 중간에 멈춰도 검색 실패로 안내합니다. `EvidenceSearch`는 실제 메모리 벡터 저장소를 사용합니다. `DeskServer`는 같은 `ReviewDesk`를 HTTP로 공개하고, `IncidentFlow`가 기록하는 처리 단계를 SSE 이벤트로 보냅니다. 검토 이후에는 `ReviewDesk.save` → MCP `save_work_request` → `OperationsStore.save`로 이어집니다.
 
 MCP 도구는 `get_service_status(serviceId)`, `save_work_request(draft)`, `read_work_request(id)`입니다. 저장 입력 `draft`에는 `requestId`, `text`, 서비스별 `facts`, `sources`가 들어갑니다. 저장 시 서비스와 문서의 현재 내용을 대조합니다. 같은 요청 ID·본문·근거로 재시도하면 같은 저장 건을 반환하고, 같은 ID에 다른 내용이면 충돌합니다. 여러 프로세스가 원본 상태를 갱신하는 DB에 적용할 때는 변경 확인과 쓰기를 같은 트랜잭션으로 처리합니다.
 

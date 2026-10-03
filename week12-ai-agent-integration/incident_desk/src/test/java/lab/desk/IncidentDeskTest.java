@@ -6,6 +6,14 @@ import java.nio.file.*;
 import java.util.*;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.output.Response;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.function.BiFunction;
 import static org.junit.jupiter.api.Assertions.*;
 import static lab.desk.Models.*;
 
@@ -90,6 +98,84 @@ class IncidentDeskTest {
             assertTrue(steps.get(rewrite-1).contains("no_evidence"));assertTrue(steps.get(rewrite+1).contains("RB-VPN"));
             assertEquals(agent?5:4,result.modelCalls());
         }
+    }
+    /** 지정한 검색어를 임베딩할 때만 장애를 냅니다. 색인 준비는 정상입니다. */
+    static EmbeddingModel failingOn(Set<String> queries) {
+        var base=ScriptedModels.embeddings();
+        return new EmbeddingModel(){@Override public Response<List<Embedding>> embedAll(List<TextSegment> segments) {
+            if(segments.size()==1&&queries.contains(segments.get(0).text()))throw new IllegalStateException("검색 장애");
+            return base.embedAll(segments);
+        }};
+    }
+    IncidentFlow flow(BiFunction<String,JsonNode,ChatModel> models,EmbeddingModel embeddings,boolean agent) {
+        return new IncidentFlow(store,new ModelWork(models,new EvidenceSearch(embeddings,sources),"TEST"),agent);
+    }
+    static AiMessage findRunbook(String id,String serviceId,String query) {
+        return AiMessage.from(ToolExecutionRequest.builder().id(id).name("find_runbook")
+            .arguments(Json.write(Map.of("serviceId",serviceId,"query",query))).build());
+    }
+    @Test void searchFailureIsReportedWithoutRewriting() {
+        for(boolean agent:List.of(false,true)) {
+            var result=flow(ScriptedModels::model,failingOn(Set.of("VPN 연결 끊김")),agent).analyze("a","VPN이 자꾸 끊겨요");
+            assertEquals("review",result.status());assertTrue(result.items().get(0).answer().contains("검색에 실패"));
+            assertTrue(result.trace().stream().noneMatch(t->Json.write(t).contains("rewrite_query")));
+            assertEquals(agent?3:2,result.modelCalls());
+        }
+    }
+    @Test void failureDuringCorrectionIsReportedAsSearchFailure() {
+        for(boolean agent:List.of(false,true)) {
+            var result=flow(ScriptedModels::model,failingOn(Set.of("VPN 연결 오류")),agent).analyze("a","사내망 연결이 자꾸 끊겨요");
+            assertEquals("review",result.status());assertTrue(result.items().get(0).answer().contains("검색에 실패"));
+            assertEquals(1,result.trace().stream().filter(t->Json.write(t).contains("rewrite_query")).count());
+            assertEquals(agent?4:3,result.modelCalls());
+        }
+    }
+    @Test void appSearchesWhenAgentSkipsTheTool() {
+        // 에이전트 경로이지만 모델이 검색 도구를 부르지 않고 초안만 반환합니다.
+        BiFunction<String,JsonNode,ChatModel> skipping=(stage,input)->ScriptedModels.model(stage,
+            stage.equals("plan")?((ObjectNode)input.deepCopy()).put("agent",false):input);
+        for(var c:List.of(Map.entry("VPN이 자꾸 끊겨요",3),Map.entry("사내망 연결이 자꾸 끊겨요",4))) {
+            var events=new ArrayList<String>();
+            var result=flow(skipping,ScriptedModels.embeddings(),true).analyze("a",c.getKey(),e->events.add(Json.write(e)));
+            // 처리 단계도 앱 검색 → 검색 결과 → 다시 작성 순서로 전달됩니다.
+            int app=indexOf(events,"app_search");
+            assertTrue(app>=0&&events.get(app+1).contains("find_runbook"));
+            assertTrue(events.subList(app,events.size()).stream().anyMatch(e->e.contains("\"draft\"")));
+            assertEquals("ready",result.status());assertEquals("RB-VPN",result.items().get(0).sources().get(0).id());
+            assertTrue(result.trace().stream().anyMatch(t->Json.write(t).contains("app_search")));
+            assertEquals(c.getValue()==4,result.trace().stream().anyMatch(t->Json.write(t).contains("rewrite_query")));
+            assertEquals(c.getValue(),result.modelCalls());
+        }
+    }
+    static int indexOf(List<String> events,String text) {
+        for(int i=0;i<events.size();i++)if(events.get(i).contains(text))return i;return -1;
+    }
+    @Test void searchFailureIsReportedWhenCorrectionHitsCallLimit() {
+        // 첫 초안까지 5회를 쓰고 검색어 재작성이 6번째 호출입니다. SSO는 새 근거를 찾아 다시 작성하려다 한도에 걸립니다.
+        BiFunction<String,JsonNode,ChatModel> busy=(stage,input)->!stage.equals("plan")?ScriptedModels.model(stage,input):
+            ScriptedModels.sequence(List.of(findRunbook("s1","VPN","접속 끊김"),findRunbook("s2","SSO","접속 끊김"),
+                findRunbook("s3","VPN","접속 끊김"),AiMessage.from(Json.write(new Plan(List.of())))));
+        var result=flow(busy,failingOn(Set.of("VPN 연결 오류")),true).analyze("a","VPN이 끊기고 통합 로그인도 느려요");
+        assertEquals("limit_reached",result.status());assertEquals(6,result.modelCalls());
+        assertTrue(result.items().get(0).answer().contains("검색에 실패"));
+        assertFalse(result.items().get(1).answer().contains("검색에 실패"));
+    }
+    @Test void searchFailureIsReportedWhenFirstDraftHitsCallLimit() {
+        // 첫 검색이 장애로 끝난 뒤 모델이 같은 검색만 반복해 첫 초안을 완성하기 전에 한도에 걸립니다.
+        BiFunction<String,JsonNode,ChatModel> looping=(stage,input)->stage.equals("intake")?ScriptedModels.model(stage,input):
+            ScriptedModels.sequence(java.util.stream.IntStream.range(0,8).mapToObj(i->findRunbook("s"+i,"VPN","장애 검색어")).toList());
+        var result=flow(looping,failingOn(Set.of("장애 검색어")),true).analyze("a","VPN이 자꾸 끊겨요");
+        assertEquals("limit_reached",result.status());assertEquals(6,result.modelCalls());
+        assertTrue(result.items().get(0).answer().contains("검색에 실패"));
+    }
+    @Test void evidenceFoundAfterSearchFailureStaysReady() {
+        var plan=new Plan(List.of(new Proposal("VPN","VPN 연결 오류 안내",List.of("RB-VPN"))));
+        BiFunction<String,JsonNode,ChatModel> retrying=(stage,input)->stage.equals("intake")?ScriptedModels.model(stage,input):
+            ScriptedModels.sequence(List.of(findRunbook("s1","VPN","장애 검색어"),findRunbook("s2","VPN","VPN 연결 끊김"),AiMessage.from(Json.write(plan))));
+        var result=flow(retrying,failingOn(Set.of("장애 검색어")),true).analyze("a","VPN이 자꾸 끊겨요");
+        assertEquals("ready",result.status());assertEquals("VPN 연결 오류 안내",result.items().get(0).answer());
+        assertTrue(result.trace().stream().map(Json::write).anyMatch(t->t.contains("unavailable")));
+        assertTrue(result.trace().stream().map(Json::write).noneMatch(t->t.contains("rewrite_query")||t.contains("app_search")));
     }
     @Test void httpStreamsStagesBeforeResultAndSavesSeparately()throws Exception {
         try(var server=new DeskServer(desk(true),0)) {

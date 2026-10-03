@@ -4,7 +4,7 @@ import java.util.*;
 import java.util.function.Consumer;
 import static lab.desk.Models.*;
 
-/** 접수 → 사실 조회 → 근거와 초안 → 근거가 없으면 한 번 교정 검색. 저장 기능은 이 처리 경로에 없습니다. */
+/** 접수 → 사실 조회 → 근거와 초안 → 근거가 없으면 미검색 보완·한 번 교정 검색. 저장 기능은 이 처리 경로에 없습니다. */
 public final class IncidentFlow {
     private final Operations operations;private final ModelWork ai;private final boolean agent;
     private final Map<String,Intake> sessions=new HashMap<>();
@@ -16,6 +16,7 @@ public final class IncidentFlow {
     public synchronized Analysis analyze(String conversationId,String text,Consumer<Object> events) {
         if(conversationId==null||conversationId.isBlank()||text==null||text.isBlank())throw new IllegalArgumentException("대화 ID와 문의가 필요합니다.");
         var budget=new ModelWork.Budget();var trace=new ObservedTrace(events);var items=new ArrayList<Item>();
+        var evidence=new LinkedHashMap<String,Source>();
         try {
             var intake=ai.intake(text,sessions.get(conversationId),budget);
             if(intake.serviceIds()==null||intake.symptom()==null||intake.question()==null
@@ -34,23 +35,33 @@ public final class IncidentFlow {
                 items.add(new Item(id,found.status(),found.service(),List.of(),found.service()==null?"상태를 확인하지 못했습니다.":found.service().detail()));
             }
             if(facts.stream().noneMatch(f->f.status().equals("found")))return result(conversationId,"unresolved","",items,trace,budget);
-            var evidence=new LinkedHashMap<String,Source>();
             events.accept(Map.of("step","draft"));
             var proposed=proposals(ai.plan(intake,facts,agent,budget,evidence,trace),intake.serviceIds());
             for(int i=0;i<items.size();i++)if(items.get(i).facts()!=null)items.set(i,checked(items.get(i),proposed.get(items.get(i).serviceId()),evidence));
-            // 근거 자체를 찾지 못한 서비스만 검색어를 바꿔 한 번 더 찾습니다. 근거가 있는데 초안이 맞지 않으면 사람이 검토합니다.
-            var retry=items.stream().filter(i->i.facts()!=null&&i.status().equals("review")
-                &&evidence.values().stream().noneMatch(s->s.serviceId().equals(i.serviceId()))).map(Item::serviceId).toList();
-            if(!retry.isEmpty()&&ai.correct(intake,retry,budget,evidence,trace)) {
-                events.accept(Map.of("step","draft","serviceIds",retry));
-                var again=proposals(ai.replan(new Intake(retry,intake.symptom(),""),
-                    facts.stream().filter(f->retry.contains(f.serviceId())).toList(),budget,evidence,trace),retry);
-                for(int i=0;i<items.size();i++)if(retry.contains(items.get(i).serviceId()))
+            // 근거 자체가 없는 서비스만 보완합니다. 근거가 있는데 초안이 맞지 않으면 사람이 검토합니다.
+            var missing=items.stream().filter(i->i.facts()!=null&&i.status().equals("review")&&!hasEvidence(evidence,i.serviceId()))
+                .map(Item::serviceId).toList();
+            // 에이전트가 검색하지 않았다면 앱이 접수한 증상으로 먼저 검색합니다.
+            for(String id:missing)if(!intake.symptom().isBlank()&&searched(trace,id).stream().allMatch("invalid_input"::equals))
+                ai.search(id,intake.symptom(),evidence,trace);
+            // 검색어를 바꾸는 것은 근거 없음일 때뿐입니다. 검색 장애는 다시 써도 해결되지 않습니다.
+            var rewrite=missing.stream().filter(id->!hasEvidence(evidence,id)
+                &&searched(trace,id).contains("no_evidence")&&!searched(trace,id).contains("unavailable")).toList();
+            if(!rewrite.isEmpty())ai.correct(intake,rewrite,budget,evidence,trace);
+            var recovered=missing.stream().filter(id->hasEvidence(evidence,id)).toList();
+            if(!recovered.isEmpty()) {
+                events.accept(Map.of("step","draft","serviceIds",recovered));
+                var again=proposals(ai.replan(new Intake(recovered,intake.symptom(),""),
+                    facts.stream().filter(f->recovered.contains(f.serviceId())).toList(),budget,evidence,trace),recovered);
+                for(int i=0;i<items.size();i++)if(recovered.contains(items.get(i).serviceId()))
                     items.set(i,checked(items.get(i),again.get(items.get(i).serviceId()),evidence));
             }
+            markSearchFailures(items,evidence,trace);
             long ready=items.stream().filter(i->i.status().equals("ready")).count();
             return result(conversationId,ready==items.size()?"ready":ready>0?"partial":"review","",items,trace,budget);
         }catch(RuntimeException e) {
+            // 교정 도중 호출 한도나 응답 오류로 멈춰도 이미 확인한 검색 실패는 안내에 반영합니다.
+            markSearchFailures(items,evidence,trace);
             return result(conversationId,ModelWork.limit(e)?"limit_reached":"processing_failed",
                 "초안 작성을 마치지 못했습니다. 확인된 상태와 미처리 항목을 함께 확인하세요.",items,trace,budget);
         }
@@ -63,6 +74,26 @@ public final class IncidentFlow {
                 throw new IllegalArgumentException("대상별 결과를 확인하세요.");
         }
         return proposed;
+    }
+    /** 근거 없이 남은 서비스 중 검색 호출이 실패한 서비스는 근거 부족과 다른 안내를 남깁니다. 첫 초안 전에 멈추면 상태는 아직 found입니다. */
+    private static void markSearchFailures(List<Item> items,Map<String,Source> evidence,List<Object> trace) {
+        for(int i=0;i<items.size();i++) {
+            var item=items.get(i);
+            if(item.facts()!=null&&List.of("found","review").contains(item.status())&&!hasEvidence(evidence,item.serviceId())
+                &&searched(trace,item.serviceId()).contains("unavailable"))
+                items.set(i,new Item(item.serviceId(),"review",item.facts(),List.of(),
+                    "현재 상태는 확인했습니다. 운영 문서 검색에 실패해 대응 방법을 확인하지 못했습니다. 운영팀 확인이 필요합니다."));
+        }
+    }
+    private static boolean hasEvidence(Map<String,Source> evidence,String serviceId) {
+        return evidence.values().stream().anyMatch(s->s.serviceId().equals(serviceId));
+    }
+    /** 이 서비스에 대한 운영 문서 검색 결과의 상태 목록입니다. 비어 있으면 검색하지 않은 것입니다. */
+    private static List<String> searched(List<Object> trace,String serviceId) {
+        var statuses=new ArrayList<String>();
+        for(var entry:trace)if(entry instanceof Map<?,?> m&&"find_runbook".equals(m.get("tool"))&&serviceId.equals(m.get("serviceId"))
+            &&m.get("result") instanceof EvidenceSearch.Result r)statuses.add(r.status());
+        return statuses;
     }
     /** 출처가 실제 검색 결과에 있고 같은 서비스의 문서일 때만 ready입니다. */
     private static Item checked(Item item,Proposal p,Map<String,Source> evidence) {
