@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "authority": "trusted-ingestion-config",
+  "documents": {
+    "refund-operations-handbook.md": {
+      "document_id": "refund-operations-handbook",
+      "status": "current",
+      "tenant_id": "public",
+      "trust": "trusted",
+      "version": "1",
+      "policy_family": "refund"
+    }
+  }
+}

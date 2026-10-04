@@ -22,6 +22,10 @@ tasks.register('contextExample', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'lab.week08.ContextChoices'
 }
+tasks.register('chunkingExample', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'lab.week08.ChunkingComparison'
+}
 tasks.register('evaluate', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'lab.week08.Evaluation'

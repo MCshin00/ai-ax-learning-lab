@@ -259,7 +259,7 @@ return "get_product로 " + id + "를 조회하고 가격과 재고를 설명하�
 
 - 실행 설정은 어떤 프로그램을 시작할지, `get_product`는 받은 ID를 어떻게 처리할지를 맡는다. 그래서 연결 경로 문제와 조회 입력 문제를 서로 다른 위치에서 살펴볼 수 있다.
 - `Product`는 결과의 형태, `CATALOG`는 실제 값을 맡는다. 배송일처럼 새 필드를 추가하는 일과 기존 가격을 고치는 일의 수정 범위가 다르다. 현재 반환 필드만으로 배송일이나 재고 수량을 설명할 수는 없다.
-- 데이터와 요청 문구가 나뉘어 있어 사실의 변경과 설명 방식의 변경을 구별할 수 있다. 예를 들어 `CATALOG`의 노트 가격만 3500원으로 바꾸고 서버를 새로 실행하면 Tool 결과의 가격이 달라질 것으로 예상한다. 가격을 포함하지 않는 Resource·Prompt의 문자열은 그대로일 것이다. 이는 코드에 근거한 예상이며 이번에는 가격을 수정하거나 이 변경을 실행하지 않았다.
+- 데이터와 요청 문구가 나뉘어 있어 사실의 변경과 설명 방식의 변경을 구별할 수 있다. 예를 들어 `CATALOG`의 노트 가격만 3500원으로 바꾸고 서버를 새로 실행하면 Tool 결과의 가격이 달라질 것으로 예상한다. 가격을 포함하지 않는 Resource·Prompt의 문자열은 그대로일 것이다.
 - 반환된 결과의 변경이 원자료에 영향을 주지 않도록 분리해야 한다. 현재 상품 결과는 수정할 수 없고 조회 목록도 수정할 수 없으며, 편집·저장 미리보기는 내부 스냅샷과 별도로 반환된다. 이는 공유 상태의 뜻하지 않은 변경을 막는 원리다.
 
 ## Day 3–4 — 예산·재고 조회 구현과 검증
@@ -636,7 +636,7 @@ return store.preview(requestId, catalog.reviewPurchase(items, budget));
 | 기존 Codex 연결 | `java -cp "build/install/learning-catalog/lib/*" lab.week03.CatalogServer` | `get_product`, `find_products`, `review_purchase` |
 | 저장 실습용 Inspector | `java -cp "build/install/learning-catalog/lib/*" lab.week03.InspectorServer` | 기존 세 도구와 `preview_purchase_draft`, `save_purchase_draft` |
 
-기본 진입점의 실제 stdio 테스트에서는 세 도구만 목록에 나타났고 저장 도구 이름을 직접 호출해도 오류였다. 이는 이 실행 구성에서 저장 도구가 제공되지 않는다는 근거이며, 사람이 Inspector에서 내용을 확인했다는 근거와는 구분한다.
+기본 진입점의 실제 stdio 테스트에서는 세 도구만 목록에 나타났고 저장 도구 이름을 직접 호출해도 오류였다. 이는 이 실행 구성에서 저장 도구가 제공되지 않는다는 근거다.
 
 #### 같은 요청과 충돌을 구별하는 방법
 
@@ -675,7 +675,7 @@ Windows PowerShell: `.\gradlew.bat test`
 
 macOS·Linux·WSL: `bash ./gradlew test`
 
-결과: **31개 중 30개 통과, 1개 건너뜀**. 건너뛴 검사는 실제 심볼릭 링크 생성이며 Windows의 링크 생성 권한 부족(`WinError 1314`) 때문이었다. 이를 링크를 통한 경로 우회까지 실제 검증한 것으로 기록하지 않는다.
+결과: **31개 중 30개 통과, 1개 건너뜀**. 건너뛴 검사는 실제 심볼릭 링크 생성이며 Windows의 링크 생성 권한 부족(`WinError 1314`) 때문이었다.
 
 [저장 기능 테스트](learning_lab_server/src/test/java/lab/week03/DraftStoreTest.java)는 임시 폴더에서 다음 결과를 확인했다.
 
@@ -734,7 +734,7 @@ stdio 저장 검사는 테스트용 임시 루트를 주입한 Inspector 서버�
 
 **Inspector에서 직접 미리보고 저장하는 경로의 Day 5 기본 제작·실행을 확인했다.** 정상 저장·두 종류의 재요청·예산 변경 충돌·이전 미리보기 거부·저장 보류·직접 수정 보존·입력 오류를 실제 호출과 파일로 대조했다. 저장 실패와 다른 요청이 차지한 파일의 보존은 앞 절의 임시 폴더 검사 결과를 함께 사용한다.
 
-기본 Codex 연결의 도구는 `get_product`, `find_products`, `review_purchase` 세 개였다. 기본 서버의 stdio 도구 목록·저장 호출 거부와 실제 Inspector 저장 결과가 이 구성과 일치했다. Host 자체의 사람 승인 기능을 통한 쓰기 실행은 미확인이다. 기본 구현 당시 자동 검사는 31개 중 30개 통과·Windows 링크 생성 권한으로 1개 건너뜀이었으며, 아래 심화에는 확장 후 검사 결과를 구분해 기록한다.
+기본 Codex 연결의 도구는 `get_product`, `find_products`, `review_purchase` 세 개였다. 기본 서버의 stdio 도구 목록·저장 호출 거부와 실제 Inspector 저장 결과가 이 구성과 일치했다. 기본 구현 당시 자동 검사는 31개 중 30개 통과·Windows 링크 생성 권한으로 1개 건너뜀이었으며, 아래 심화에는 확장 후 검사 결과를 구분해 기록한다.
 
 ### 7. 선택 심화 구현 — 기존 초안 편집과 중단 복구·취소
 

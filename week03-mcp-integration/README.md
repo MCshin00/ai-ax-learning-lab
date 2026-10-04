@@ -85,7 +85,26 @@ flowchart LR
 
 **MCP Inspector**는 서버의 기능 목록을 보고 직접 입력을 보내 응답을 확인하는 도구입니다. 이번에는 브라우저 화면을 사용합니다. Codex처럼 모델이 조회를 선택하는 대신 학습자가 Tool과 인자를 고르므로, 같은 서버의 응답을 먼저 확인할 수 있습니다. [Inspector 실행 안내](https://modelcontextprotocol.io/docs/2026-07-28/tools/inspector)
 
-**stdio**는 표준 입력·출력 스트림으로 로컬 프로세스와 메시지를 주고받는 연결 방식입니다. Inspector나 Codex에 “어떤 명령으로 서버를 시작할지”를 알려 주면, 해당 프로그램을 실행해 통신합니다. 원격 서버의 주소로 연결하는 **Streamable HTTP**와 달리 이번 설정에는 서버 실행 명령과 프로젝트 경로를 넣습니다. Inspector의 브라우저 화면을 여는 로컬 URL은 상품조회 MCP의 HTTP 서버 주소와는 역할이 다릅니다. [Codex의 MCP 연결 방식](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
+**stdio**는 표준 입력·출력 스트림으로 로컬 프로세스와 메시지를 주고받는 연결 방식입니다. Inspector나 Codex에 “어떤 명령으로 서버를 시작할지”를 알려 주면, 해당 프로그램을 실행해 통신합니다. HTTP 주소로 연결하는 **Streamable HTTP**와 달리 이번 설정에는 서버 실행 명령과 프로젝트 경로를 넣습니다. Inspector의 브라우저 화면을 여는 로컬 URL은 상품조회 MCP의 HTTP 서버 주소와는 역할이 다릅니다. [Codex의 MCP 연결 방식](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
+
+### stdio와 Streamable HTTP: 서버 프로세스를 누가 시작하나요?
+
+stdio 연결에서는 Host나 클라이언트가 서버 프로그램을 하위 프로세스로 직접 시작하고, 그 프로세스의 표준 입력·출력으로 메시지를 주고받습니다. Streamable HTTP 연결에서는 서버가 클라이언트와 따로 실행되어 있고 클라이언트가 주소로 접속합니다. 서버 프로세스 하나가 여러 클라이언트의 연결을 받을 수 있습니다.
+
+| | stdio | Streamable HTTP |
+|---|---|---|
+| 서버 프로세스를 시작하는 쪽 | 연결하는 Host·클라이언트 | 클라이언트와 따로 실행됨 |
+| 연결 설정에 넣는 것 | 실행 명령과 작업 폴더 | 서버 주소. 필요하면 인증 정보 |
+| 서버 프로세스 하나에 붙는 클라이언트 | 그 프로세스를 시작한 클라이언트 | 여러 클라이언트가 붙을 수 있음 |
+| 서버 쪽에 더 필요한 것 | HTTP 접속 지점을 운영하지 않음 | 접속 지점의 운영, 접속한 상대의 구분, 공개 범위에 맞는 인증 |
+
+Tool의 이름·입력·결과 정의는 두 방식에서 같습니다. 달라지는 것은 프로세스를 시작하는 방식과 연결 설정입니다.
+
+전송 방식이 서버와 자료의 위치를 정하지는 않습니다. stdio로 시작한 서버가 원격 데이터베이스나 API를 조회할 수 있고, Streamable HTTP 서버를 자기 컴퓨터에서 실행할 수도 있습니다. 자주 쓰는 배치는 두 가지입니다. 혼자 쓰는 도구는 stdio로 자기 컴퓨터에서 시작합니다. 여러 사람이 같은 서버를 써야 하면 Streamable HTTP 서버를 한곳에서 실행하고 주소로 접속하게 합니다. 예를 들어 사내 API 문서를 검색하는 MCP 서버를 팀원 모두의 AI 개발 도구에 연결한다면, 문서가 바뀔 때 서버 한 곳만 갱신하면 되는 두 번째 배치가 맞습니다.
+
+MCP 연결과 업무 앱의 HTTP API는 서로 다른 통로입니다. MCP 연결은 Host가 Tool을 발견하고 호출하는 데 쓰고, 업무 앱의 HTTP API는 화면이나 다른 시스템이 그 앱에 요청하는 데 씁니다. 12주차 앱에는 둘이 함께 있습니다. 운영 도구와는 MCP(stdio)로, 담당자 화면과는 HTTP API와 SSE로 연결합니다. 이 SSE는 앱이 처리 단계를 화면에 보내는 것이며 MCP 메시지가 아닙니다. Streamable HTTP도 응답을 SSE로 보낼 수 있지만 그 안에 담기는 것은 MCP 메시지입니다. [MCP 전송 규격](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
+
+이번 주 실습은 stdio로 진행합니다.
 
 Day 1에서는 빌드와 서버 실행을 구분합니다. IDE의 Gradle 창에서 `installDist`를 실행하면 코드와 의존성을 `build/install/learning-catalog/`에 준비합니다. Inspector의 `npx`는 점검 화면을 시작하고, 뒤의 `java -Dfile.encoding=UTF-8 -cp "build/install/learning-catalog/lib/*" lab.week03.CatalogServer`는 MCP 서버 프로세스를 시작합니다. Node.js는 Inspector에, JDK는 서버에 사용됩니다.
 

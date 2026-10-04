@@ -223,7 +223,7 @@ if (calls.isEmpty()) {
 
 ### 대역으로 확인한 응답 보존
 
-정상 고객의 실제 모델 호출은 위 IDE 출력으로 확인했다. 없는 고객의 안내와 반복 종료는 대역으로 확인했으며, 이 대역 결과가 실제 Gemini의 선택이나 답변을 확인한 것은 아니다. 실제 콘솔 출력에는 원래 모델 Content와 서명 전문이 없으므로, 해당 항목의 보존은 구현과 대역 검사에 근거해 설명한다.
+정상 고객의 실제 모델 호출은 위 IDE 출력으로 확인했다. 없는 고객의 안내와 반복 종료는 대역으로 확인했다. 실제 콘솔 출력에는 원래 모델 Content와 서명 전문이 없어, 해당 항목의 보존은 구현과 대역 검사로 확인했다.
 
 [GeminiToolLoopTest.java](llm_lab/src/test/java/lab/week06/GeminiToolLoopTest.java)의 `normalAndMissingCustomerReturnActualResultsWithOriginalModelContent`는 다음 모델 요청을 받는 지점에서 원래 Content 객체, 호출 ID와 실제 조회값이 전달되는지 검사한다. 자세한 검사 결과는 `llm_lab/build/reports/tests/test/index.html`, 메인 클래스의 대역 실행 결과는 `llm_lab/.local/day2-normal.json`과 `llm_lab/.local/day2-unknown.json`에 있다.
 
@@ -318,7 +318,7 @@ call.id().ifPresent(functionResponse::id);
 | `C-100 고객의 계정 상태를 알려주세요.` | `["status"]` | `customer_id=C-100, status=active` |
 | `C-100 고객의 요금제와 계정 상태를 알려주세요.` | `["plan","status"]` | `customer_id=C-100, plan=basic, status=active` |
 
-세 경우 모두 모델 경계 요청 두 번과 조회 한 번으로 안내가 반환됐다. 요금제 대역에는 상태 값이, 상태 대역에는 요금제 값이 전달되지 않았다. 두 항목 대역에서는 두 값이 모두 전달돼 선택한 계약의 예상과 일치했다. 대역 안내는 각각 반환된 값으로 구성하며, 실제 모델의 항목 선택·답변을 확인한 결과와 구분한다.
+세 경우 모두 모델 경계 요청 두 번과 조회 한 번으로 안내가 반환됐다. 요금제 대역에는 상태 값이, 상태 대역에는 요금제 값이 전달되지 않았다. 두 항목 대역에서는 두 값이 모두 전달돼 선택한 계약의 예상과 일치했다. 대역 안내는 각각 반환된 값으로 구성한다.
 
 [GeminiToolLoopTest.java](llm_lab/src/test/java/lab/week06/GeminiToolLoopTest.java)의 `eachRequestedFieldSetIsProjectedBeforeTheNextModelRequest`는 두 번째 모델 요청을 받는 지점에서 실제 `functionResponse.response`를 기대 결과와 비교한다. 이 검사는 화면에서 필드를 숨긴 것만으로 통과할 수 없으며, SDK 경계로 전달한 필드 자체를 확인한다.
 
@@ -379,7 +379,7 @@ if (index == MAX_REQUESTS) {
 
 [GeminiToolLoopTest.java](llm_lab/src/test/java/lab/week06/GeminiToolLoopTest.java)의 `normalAndMissingCustomerReturnActualResultsWithOriginalModelContent`는 고객 부재가 원래 응답·호출 ID와 함께 다음 요청에 전달되는지 확인한다. `projectionPreservesErrorsAndDoesNotMutateBusinessData`는 필드 선택에서 오류와 원자료가 보존되는지, `repeatedCallsStopBeforeThirdExecution`는 모델 요청 세 번·조회 두 번 뒤 중단하는지 확인한다.
 
-대역은 실제 앱의 검사·조회·이력·종료 분기를 실행한다. 이 근거로 오류 전달과 한도는 확인할 수 있지만 실제 모델의 반복 성향이나 문장 품질을 판단할 수는 없다. Day 3의 정상 항목 선택과 안내는 별도의 실제 모델 결과다.
+대역은 실제 앱의 검사·조회·이력·종료 분기를 실행한다. 이 근거로 오류 전달과 한도를 확인했다. Day 3의 정상 항목 선택과 안내는 별도의 실제 모델 결과다.
 
 ## Day 5 — 파생 질문을 이어받는 대화 이력
 
@@ -393,7 +393,7 @@ if (index == MAX_REQUESTS) {
 
 Day 5에는 `GeminiQuickstart`의 `--chat` 경로를 추가해 `GeminiChat`의 콘솔 입력과 기존 모델 연결을 사용했다. Program arguments에는 모드를 넣고 실제 질문은 실행된 콘솔에 입력한다. Gradle 실행에서도 입력을 받도록 `standardInput = System.in`을 연결했다. `--chat --offline`은 같은 대화 코드의 모델 경계만 대역으로 바꾼다.
 
-다음 코드 발췌는 구조화 응답 옵션과 공통 코드 분리 전, Day 5 실행 당시의 구조를 보여 준다. 현재 진입점은 링크한 파일에서 확인하며 당시 결과를 현재 코드의 모든 옵션에 대한 실행 근거로 해석하지 않는다.
+다음 코드 발췌는 구조화 응답 옵션과 공통 코드 분리 전, Day 5 실행 당시의 구조를 보여 준다. 현재 진입점은 링크한 파일에서 확인한다.
 
 ### 콘솔 반복문 밖에서 이력을 만들고 같은 객체를 전달하기
 
@@ -604,7 +604,7 @@ Gemini 정상 고객의 실제 구조화 응답은 앞 절에서 확인했다. �
 
 OpenAI 요청은 `store(false)`와 앱이 가진 이력을 사용한다. 함수 호출뿐 아니라 응답에 포함된 reasoning 항목도 함께 보존하고, 실제 함수 결과를 원래 `call_id`에 연결한다. 최종 단계에서는 도구를 제공하지 않고 같은 고객 응답 스키마를 지정한다. 정상 조회는 도구 선택과 최종 구조화 응답의 두 요청이며, 번호 확인도 기존 구조화 모드와 같은 처리 정책을 따른다. 응답이 거절되거나 완성되지 않으면 사실 검사에 앞서 보류한다. 앱이 수용한 최종 출력만 다음 사용자 입력의 이력에 남긴다.
 
-요청은 제한된 횟수 안에서 진행하고 SDK 자동 재시도는 기존처럼 끈다. 제공자를 바꾸는 작업에 별도의 자동 재시도 정책을 함께 추가하지 않았다. 전송 오류는 `PROVIDER_ERROR`와 가능한 HTTP 상태 코드로 확인한다.
+요청은 제한된 횟수 안에서 진행하고 SDK 자동 재시도는 기존처럼 끈다. 전송 오류는 `PROVIDER_ERROR`와 가능한 HTTP 상태 코드로 확인한다.
 
 #### 대역에서 확인한 연결과 직렬화 차이
 
@@ -641,7 +641,7 @@ OpenAI SDK의 JSON 매퍼로 업무 결과를 출력하면 null인 Map 항목이
 
 `data`에 같은 다섯 필드가 수용됐으며 `next_action=SHOW_ACCOUNT`, `display={customer_id:C-100, plan:basic}`으로 이어졌다. 요금제만 물은 요청이므로 상태를 조회하거나 추측할 필요가 없었고, `account_status=null`은 추가 확인이 필요한 오류로 처리되지 않았다. 실제 조회값과 응답의 요금제 필드, 안내 문장의 `basic`이 일치했다.
 
-`TOOL_SELECTION` 뒤 `STRUCTURED_ANSWER`가 이어지는 두 요청으로 끝났다. 두 번째 요청의 `input_items`가 3인 것은 사용자 질문에 함수 호출과 그 결과를 추가한 흐름과 맞는다. 기존 Gemini 정상 사례와 안내 문구는 달랐지만 요청 항목 선택·사실 보존·정상 안내의 의미는 같았다. 이번 입력에서는 공급자 연결을 바꾼 뒤에도 같은 업무 계약과 후속 처리 기준을 사용할 수 있었다. 실행 시간 자료는 없어 속도 개선까지 판단하지 않는다.
+`TOOL_SELECTION` 뒤 `STRUCTURED_ANSWER`가 이어지는 두 요청으로 끝났다. 두 번째 요청의 `input_items`가 3인 것은 사용자 질문에 함수 호출과 그 결과를 추가한 흐름과 맞는다. 기존 Gemini 정상 사례와 안내 문구는 달랐지만 요청 항목 선택·사실 보존·정상 안내의 의미는 같았다. 이번 입력에서는 공급자 연결을 바꾼 뒤에도 같은 업무 계약과 후속 처리 기준을 사용할 수 있었다.
 
 없는 고객의 구조화된 번호 확인 결과는 다음 절에서 정상 사례와 비교한다.
 
@@ -733,6 +733,6 @@ MCP는 앱과 별도 서버가 도구 목록·입력 계약을 주고받고 도�
 | 지침 보완 전 | 없음 | 이번 서버 조회 결과 없음 |
 | 지침 보완 후 | `get_product(MISSING-01)` | 서버의 상품 부재 오류와 가능한 상품 번호 |
 
-두 답변의 결론은 비슷하지만, 보완 후에는 모델의 호출 요청 → 실제 MCP 조회 → 오류 반환 → 안내가 연결됐다. `tool_error`는 서버 조회의 업무 결과이고 `MODEL_RESPONSE`는 그 결과를 받은 모델의 안내 응답이 완료됐다는 앱 분류라 함께 나타날 수 있다. 이번 재실행은 선택한 지침이 해당 입력에서 기대한 경로로 이어졌다는 근거이며, 모든 입력의 호출을 강제한다는 보장은 아니다.
+두 답변의 결론은 비슷하지만, 보완 후에는 모델의 호출 요청 → 실제 MCP 조회 → 오류 반환 → 안내가 연결됐다. `tool_error`는 서버 조회의 업무 결과이고 `MODEL_RESPONSE`는 그 결과를 받은 모델의 안내 응답이 완료됐다는 앱 분류라 함께 나타날 수 있다. 이번 재실행에서 선택한 지침은 해당 입력에서 기대한 경로로 이어졌다.
 
 서버가 상품 사실과 업무 오류를 제공하고, 앱이 공개할 기능·호출 대응·실행 한도를 관리한다. 정상 조회뿐 아니라 상품 부재에서도 이 경로가 이어져야 서버의 판단을 근거로 안내할 수 있다.
