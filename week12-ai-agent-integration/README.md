@@ -380,6 +380,42 @@ curl -N -X POST http://127.0.0.1:8080/inquiries/stream -H 'Content-Type: applica
 기능 변경은 아래에서 구성할 외부 실행 관리자가 이 이슈를 받아 시작하도록 준비해 줘.
 ```
 
+### 선택 — 이슈가 참고할 API 명세를 코드와 실제 응답으로 확인하기
+
+외부에서 시작한 Codex는 이슈 본문과 저장소의 문서를 근거로 작업합니다. 명세가 빠져 있으면 코드를 더 확인해야 하고, 확인 없이 구현하면 추측이 들어갈 수 있습니다. `incident_desk/README.md`의 HTTP API 표는 `POST /inquiries`의 입력 항목과 “업무 상태는 `analysis.status`로 전달”한다는 것까지 알려 줍니다. 요청이 잘못됐을 때 무엇이 돌아오는지는 표에 없습니다. 이번 후속 요구는 `analysis.status`에 `partial` 같은 값이 나오는 경우를 늘리므로, 이 API를 쓰는 쪽이 어느 항목을 읽어야 하는지가 명세에 있어야 합니다.
+
+11주차 Day 2에서 읽은 “명세를 개발 자료로 쓰기 전에 실제 응답과 대조한다”를 이 API 하나에 적용합니다. 순서는 **README의 명세 → 코드에서 빠진 부분 보충 → 실제 응답과 대조 → 확인한 명세를 이슈의 참고자료로 사용**입니다.
+
+`DeskServer.inquiry`와 `accept`를 읽으면 다음을 추론할 수 있습니다.
+
+| 요청 | 코드에서 읽은 응답 | README 표에 있는가 |
+|---|---|---|
+| 올바른 본문 | HTTP 200과 검토본. 추가 정보가 필요한 문의도 200이며 구분은 `analysis.status` | 있음 |
+| 필수 항목 누락, JSON이 아닌 본문 | HTTP 400. 최상위 `status`가 `invalid_request`, 안내는 `message` | 없음 |
+| POST가 아닌 메서드 | HTTP 405와 `Allow: POST`. 최상위 `status`가 `method_not_allowed` | 없음 |
+
+여기까지는 코드를 읽고 세운 초안입니다. `DeskServer`를 실행한 상태에서 `incident_desk` 폴더에서 실제로 요청을 보내 대조합니다. `-i`는 상태 코드와 헤더를 함께 출력합니다. Windows PowerShell에서는 `curl` 대신 `curl.exe`를 씁니다.
+
+```bash
+curl -i -X POST http://127.0.0.1:8080/inquiries -H "Content-Type: application/json" --data-binary "@http/inquiry.json"
+curl -i -X POST http://127.0.0.1:8080/inquiries -H "Content-Type: application/json" --data-binary "{}"
+curl -i -X POST http://127.0.0.1:8080/inquiries -H "Content-Type: application/json" --data-binary "hello"
+curl -i http://127.0.0.1:8080/inquiries
+```
+
+대조할 때는 두 가지를 봅니다. 첫째, 업무 상태와 요청 오류가 서로 다른 위치에 있습니다. 정상 응답의 상태는 `analysis.status`에, 오류 응답의 상태는 최상위 `status`에 있습니다. 화면이나 다른 시스템이 HTTP 상태 코드를 보지 않고 한 항목만 읽으면 둘 중 하나를 놓칩니다. 둘째, 코드를 읽을 때는 눈에 띄지 않던 동작이 응답에서 보이는지 확인합니다. 항목이 빠진 요청과 JSON이 아닌 요청의 `message`를 나란히 읽고, 요청한 쪽이 두 원인을 구별할 수 있는지 판단합니다.
+
+코드에서 읽은 내용과 실제 응답이 같으면 확인한 요청과 응답을 명세에 더합니다. 다르면 실제 응답을 기준으로 명세를 고치고, 코드가 의도와 다르게 동작한 것이라면 그 수정을 이슈에 포함합니다. 확인한 명세는 `incident_desk/README.md`의 표에 반영하고, 이슈 본문에서 그 위치를 참고자료로 가리킵니다.
+
+```text
+POST /inquiries의 명세를 DeskServer 코드에서 읽어 정상 요청·잘못된 요청·다른 메서드의 응답을 표로 정리해 주세요.
+README의 HTTP API 표에 이미 있는 내용과 없는 내용을 구분하세요.
+내가 DeskServer를 실행해 보낼 요청을 알려 주고, 실제 응답을 붙여 주면 코드에서 읽은 내용과 대조해 주세요.
+확인한 명세를 README에 반영하고, 개발 이슈 본문에서 그 위치를 참고자료로 가리키게 해주세요.
+```
+
+**남길 결과·완료 판단:** 선택 활동이며 주차 완료 기준에는 들어가지 않습니다. 진행했다면 코드에서 읽은 명세, 실제 응답과 대조한 결과, 이슈가 참고하는 명세의 위치를 남깁니다.
+
 ### 개발 이슈에서 작업을 시작하는 외부 실행 관리자
 
 **이슈 감지**는 지정한 저장소에서 실행 조건에 맞는 개발 요청을 찾는 일입니다. 일정 간격으로 목록을 읽는 방식을 폴링이라고 합니다. **작업 접수**는 발견한 이슈를 실행 대상으로 기록하는 단계입니다. 실행하기 전에 접수 상태를 저장하면 다음 조회에서 같은 이슈를 다시 보더라도 새 작업으로 시작하지 않을 수 있습니다.
