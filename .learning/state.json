@@ -1,7 +1,7 @@
 {
   "layout_version": 7,
   "created_at": "2026-07-25T10:42:29.915424+00:00",
-  "current_week": 11,
+  "current_week": 12,
   "applied_weeks": [
     1,
     2,
@@ -262,7 +262,7 @@
       "week11-development-environment/development_harness/src/test/java/lab/harness/HarnessTest.java"
     ]
   },
-  "updated_at": "2026-10-06T13:10:31.148822+00:00",
+  "updated_at": "2026-10-06T13:35:07.800902+00:00",
   "source_guide_sha256": "91d4f6c3a0e2e8421c35638d0f3b8b6b4590e9b9dc504e9f35aef430c093b457",
   "migrated_from_layout_version": 2,
   "layout_migrated_at": "2026-08-12T17:39:12.701181+00:00",

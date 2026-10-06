@@ -1,11 +1,11 @@
 # 현재 학습
 
-## 11주차 · 프로젝트 개발 하네스 구성과 활용
+## 12주차 · AI 파이프라인·에이전트 통합 구현
 
-- 상세 학습 본문: [week11-development-environment/README.md](week11-development-environment/README.md)
-- 기본 작업 폴더(CWD): [`week11-development-environment/development_harness`](week11-development-environment/development_harness/)
+- 상세 학습 본문: [week12-ai-agent-integration/README.md](week12-ai-agent-integration/README.md)
+- 기본 작업 폴더(CWD): [`week12-ai-agent-integration/incident_desk`](week12-ai-agent-integration/incident_desk/)
 - 결과와 기록: 주차 README에서 지정한 파일 또는 기존 학습 노트
-- 개인 기록: `week11-development-environment/.local/` (Git 제외)
+- 개인 기록: `week12-ai-agent-integration/.local/` (Git 제외)
 
 개념 설명·실습 순서·복사할 요청문은 주차 README에서 읽습니다. 이 문서는 현재 위치와 다음 명령만 안내합니다.
 
