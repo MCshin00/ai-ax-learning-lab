@@ -9,6 +9,7 @@ import static lab.week08.Models.*;
 public final class ChunkingComparison {
     static final Path EXAMPLE = Path.of("..", "chunking_example");
     static final String TENANT = "tenant-alpha";
+    static final int FUSION_CANDIDATES = 8;
     /** 질문과, 답에 필요한 조건을 원문에서 그대로 가져온 표현입니다. */
     record Case(String query, List<String> conditions) {}
     static final List<Case> CASES = List.of(
@@ -67,6 +68,14 @@ public final class ChunkingComparison {
     }
 
     @FunctionalInterface interface Search { List<RetrievedChunk> find(String query, int topK) throws Exception; }
+
+    /** Day 3의 RRF로 두 검색의 순위를 합칩니다. 검색마다 후보를 8개까지 받아 합친 뒤 상위 후보만 남깁니다. */
+    static Search hybrid(Search lexical, Search semantic) {
+        return (query, topK) -> {
+            int depth = Math.max(topK, FUSION_CANDIDATES);
+            return HybridSearch.fuse(lexical.find(query, depth), semantic.find(query, depth), topK);
+        };
+    }
 
     /** 상위 후보의 본문을 이어 붙인 것이 모델에 전달할 근거입니다. 조건이 그 안에 남았는지 함께 표시합니다. */
     static Map<String, Object> result(Case item, Search search, int topK) throws Exception {
@@ -132,7 +141,13 @@ public final class ChunkingComparison {
                 for (var item : cases) {
                     var searches = new LinkedHashMap<String, Object>();
                     searches.put("bm25", result(item, bm25::retrieve, topK));
-                    if (live) searches.put("embedding", result(item, (query, k) -> index.retrieve(query, k, 0.0), topK));
+                    if (live) {
+                        // 질문 임베딩은 한 번만 호출하고, 같은 순위를 임베딩 결과와 결합에 함께 씁니다.
+                        var semantic = index.retrieve(item.query(), Math.max(topK, FUSION_CANDIDATES), 0.0);
+                        Search embedding = (query, k) -> semantic.subList(0, Math.min(k, semantic.size()));
+                        searches.put("embedding", result(item, embedding, topK));
+                        searches.put("hybrid", result(item, hybrid(bm25::retrieve, embedding), topK));
+                    }
                     queries.put(item.query(), searches);
                 }
             }

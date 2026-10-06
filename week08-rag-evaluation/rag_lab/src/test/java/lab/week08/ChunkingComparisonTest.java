@@ -57,6 +57,28 @@ class ChunkingComparisonTest {
         assertTrue(context(withPath, item, 4).contains("이중 결제 환불 > 접수 기한\n\n접수 기간은 결제일로부터 30일"));
     }
 
+    @Test void hybridBringsTogetherTheTwoSectionsEachSearchFoundAlone() throws Exception {
+        var item = ChunkingComparison.CASES.get(1);
+        var withPath = ChunkingComparison.sectionsWithPath(handbook());
+        // 의미 검색 대역입니다. 이름이 같은 접수 기한 절을 먼저 돌려주고 이중 결제의 예외는 네 번째에 둡니다.
+        var order = List.of("이중 결제 환불 > 접수 기한", "미제공 서비스 환불 > 접수 기한", "구독 해지 환불 > 접수 기한", "이중 결제 환불 > 예외");
+        var ranked = new ArrayList<RetrievedChunk>();
+        for (String path : order)
+            ranked.add(new RetrievedChunk(withPath.stream().filter(c -> c.text().startsWith("절 경로: 결제·환불 운영 안내서 > " + path + "\n")).findFirst().orElseThrow(), 1.0 - ranked.size() * 0.01));
+        ChunkingComparison.Search semantic = (query, k) -> ranked.subList(0, Math.min(k, ranked.size()));
+        try (var bm25 = new Bm25Index(withPath, ChunkingComparison.TENANT)) {
+            String lexicalOnly = (String) ChunkingComparison.result(item, bm25::retrieve, 3).get("context");
+            String semanticOnly = (String) ChunkingComparison.result(item, semantic, 3).get("context");
+            String fused = (String) ChunkingComparison.result(item, ChunkingComparison.hybrid(bm25::retrieve, semantic), 3).get("context");
+            // 후보 3개에서 BM25는 기한을, 의미 검색 대역은 예외를 놓칩니다. 순위를 합치면 두 절이 함께 남습니다.
+            assertTrue(!lexicalOnly.contains("결제일로부터 30일") && lexicalOnly.contains("이의 제기가 이미 접수된 경우"));
+            assertTrue(semanticOnly.contains("결제일로부터 30일") && !semanticOnly.contains("이의 제기가 이미 접수된 경우"));
+            assertTrue(fused.contains("결제일로부터 30일") && fused.contains("이의 제기가 이미 접수된 경우"));
+            // 한쪽 검색에서만 1위였던 서비스 장애의 보상 방식은 결합 후보에서 빠집니다.
+            assertTrue(lexicalOnly.contains("서비스 장애 보상 > 보상 방식") && !fused.contains("서비스 장애 보상 > 보상 방식"));
+        }
+    }
+
     @Test void candidateCountIsValidatedWhenOptionsAreRead() {
         assertThrows(IllegalArgumentException.class, () -> ChunkingComparison.topK(new String[]{"--top", "0"}));
         assertEquals(4, ChunkingComparison.topK(new String[]{"--top", "4"}));
