@@ -16,7 +16,9 @@
     11,
     12
   ],
-  "references_revealed": [],
+  "references_revealed": [
+    12
+  ],
   "applied_files": {
     "1": [
       "week01-codex-prompt-comparison/ticket-title-normalizer/build.gradle",
@@ -262,8 +264,8 @@
       "week11-development-environment/development_harness/src/test/java/lab/harness/HarnessTest.java"
     ]
   },
-  "updated_at": "2026-10-06T13:35:07.800902+00:00",
-  "source_guide_sha256": "91d4f6c3a0e2e8421c35638d0f3b8b6b4590e9b9dc504e9f35aef430c093b457",
+  "updated_at": "2026-10-07T11:14:23.242597+00:00",
+  "source_guide_sha256": "81e83436aa85a5f55174dd152cb7ac9a28aaf4f4045ca3b10d467473641787c8",
   "migrated_from_layout_version": 2,
   "layout_migrated_at": "2026-08-12T17:39:12.701181+00:00",
   "layout_migrations": [
@@ -293,5 +295,39 @@
       "completed_at": "2026-09-28T13:09:21.661017+00:00"
     }
   ],
-  "layout_migrated_file_count": 325
+  "layout_migrated_file_count": 325,
+  "reference_file_hashes": {
+    "12": {
+      "week12-ai-agent-integration/references/incident_desk/.gitignore": "0a09dd31d2f16ade47eeb614c864ba76e001553a49d6bf3dcecbc1443d745f6f",
+      "week12-ai-agent-integration/references/incident_desk/build.gradle": "8a3c180926d4315545eb039999547f079a36edfcc8a678dc9ea32b59d86bef93",
+      "week12-ai-agent-integration/references/incident_desk/data/cases.json": "9cfcd5fa08b9c792eaf0de41a1ed3a58b46f93a946c6ed06ad10a9a08b331385",
+      "week12-ai-agent-integration/references/incident_desk/data/runbooks.json": "5828a7764d4b339e2eb2fde1214e0a0abadea9f1b49642ece5a0e955923cf911",
+      "week12-ai-agent-integration/references/incident_desk/data/services.json": "aba685c89b76290c39ea66da675d4225b996382df5c91c449aa1095746fecf55",
+      "week12-ai-agent-integration/references/incident_desk/docs/project.md": "41eb15b7e2125d9e7e46019b2a8e15c6f70d28796ce12378a5bdf14459f6ecb5",
+      "week12-ai-agent-integration/references/incident_desk/gradle/wrapper/gradle-wrapper.jar": "497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7",
+      "week12-ai-agent-integration/references/incident_desk/gradle/wrapper/gradle-wrapper.properties": "556f4aa5f360e35fca77b010b306307765d4f4915a82a612035cd5cfb7a587cb",
+      "week12-ai-agent-integration/references/incident_desk/gradlew": "a5a5c199ba02189ae8c46a334223371a20599d9c298ef65e7540ede4a3f72d59",
+      "week12-ai-agent-integration/references/incident_desk/gradlew.bat": "d539676c48b596afda64c963ec8f7ee56c7b3fe7e3b81d1dbe2d1a1e3dd9e9f8",
+      "week12-ai-agent-integration/references/incident_desk/http/inquiry.json": "463dfea035783ca3145633702de94e2900128fb9d51d2d392bef69d8bd6ff086",
+      "week12-ai-agent-integration/references/incident_desk/http/save.json": "febc5613e9052b03ebdc1ff0a16d9c65f91a23d59b2d1e175aef8a2fd3eb9543",
+      "week12-ai-agent-integration/references/incident_desk/README.md": "ea8dd6b68471415cef8257bf98c38f0a33cbf3ba74895899fba4ce37599a3a26",
+      "week12-ai-agent-integration/references/incident_desk/settings.gradle": "d440a4b40f40a058eda2cd7a5f0cfd2a386961ad2a890128df5c20e4e50bf7df",
+      "week12-ai-agent-integration/references/incident_desk/src/main/java/lab/desk/CompareFlows.java": "baa8d27e57676d8cbd6957c0ab60316437d728bd2105c682a8f46a891aaf2d90",
+      "week12-ai-agent-integration/references/incident_desk/src/main/java/lab/desk/DeskApp.java": "ffcf8a7df18e0a4818027fdb6ddbc5e84b13f42c7e686dfee9b4a2b7bf19542d",
+      "week12-ai-agent-integration/references/incident_desk/src/main/java/lab/desk/DeskServer.java": "a1d743b70f24ff515f0ce0046fe6f9c1d7413c65b06bf98c21e2065ad9912f17",
+      "week12-ai-agent-integration/references/incident_desk/src/main/java/lab/desk/EvidenceSearch.java": "794dcf152002cc552dc4879e5dd05e301432d009c44a75672d52f0ed5863ad6e",
+      "week12-ai-agent-integration/references/incident_desk/src/main/java/lab/desk/IncidentFlow.java": "53a8402e4a46b1824d1536f8cf24d8e049e1df39db119dc1e7d20681227045c8",
+      "week12-ai-agent-integration/references/incident_desk/src/main/java/lab/desk/Json.java": "cb4d4bc87b12cea577d7d0a2acf482f338f43d23e8513582d2e49aa4a872f51d",
+      "week12-ai-agent-integration/references/incident_desk/src/main/java/lab/desk/Models.java": "e4964c4c63a632858501f7879bcc04a280ea0db8393f42ac2d8fd4bf051a8a96",
+      "week12-ai-agent-integration/references/incident_desk/src/main/java/lab/desk/ModelSetup.java": "69dfbaf6198908b196847b86c5c7b5759188f75dc91bddd4437663b727259ac1",
+      "week12-ai-agent-integration/references/incident_desk/src/main/java/lab/desk/ModelWork.java": "01e38f0dd53d31302cea3d7b543303d368ed16ba2792bad8855e89760930131a",
+      "week12-ai-agent-integration/references/incident_desk/src/main/java/lab/desk/Operations.java": "8b046b36afeac246f347acb75ea4b6f6e978093cfeb2c84dc1726c417436d76e",
+      "week12-ai-agent-integration/references/incident_desk/src/main/java/lab/desk/OperationsClient.java": "b32f6b05f247e2aa2c814def57fbd464be85846ad623c18bf20d8baa6e170a21",
+      "week12-ai-agent-integration/references/incident_desk/src/main/java/lab/desk/OperationsServer.java": "a7610dfbe8d6626872937679b51319b8a8887f2c578ba58f8c6fc8c8a9089426",
+      "week12-ai-agent-integration/references/incident_desk/src/main/java/lab/desk/OperationsStore.java": "f873536f536a133f840d6671694867457ab480c30145aae8c96ba0a4f78356e3",
+      "week12-ai-agent-integration/references/incident_desk/src/main/java/lab/desk/ReviewDesk.java": "cd4861a34de9314e4f98bde105b188c2b36b2d73c520c111ee0a1ec4b740309d",
+      "week12-ai-agent-integration/references/incident_desk/src/main/java/lab/desk/ScriptedModels.java": "2cc2d84e1d706bf71ca8770162ecb75586e50f00d7e939b0ba0d32ce474807c5",
+      "week12-ai-agent-integration/references/incident_desk/src/test/java/lab/desk/IncidentDeskTest.java": "9bfadc148145390cafa1cf133716238203e6c58b5679a92dd64c88183f0025f8"
+    }
+  }
 }

@@ -3,7 +3,7 @@
 ## 12주차 · AI 파이프라인·에이전트 통합 구현
 
 - 상세 학습 본문: [week12-ai-agent-integration/README.md](week12-ai-agent-integration/README.md)
-- 기본 작업 폴더(CWD): [`week12-ai-agent-integration/incident_desk`](week12-ai-agent-integration/incident_desk/)
+- 기본 작업 폴더(CWD): [`week12-ai-agent-integration/inquiry_desk`](week12-ai-agent-integration/inquiry_desk/)
 - 결과와 기록: 주차 README에서 지정한 파일 또는 기존 학습 노트
 - 개인 기록: `week12-ai-agent-integration/.local/` (Git 제외)
 
@@ -14,4 +14,6 @@
 아래 명령은 별도 과정 패키지와 `course.py`를 가진 과정 작성자·관리자용이며, `course.py`가 있는 폴더에서 실행합니다. 이 저장소만 Fork하거나 clone한 학습자는 실행할 필요가 없습니다. 현재 공개된 주차 자료로 학습하고, 다음 주차 자료가 저장소에 반영되면 업데이트를 받아 이어갑니다.
 
 - 진행 상태 확인: `python course.py status "../ai-ax-learning-lab"`
+- 공개된 참고 구현: [`week12-ai-agent-integration/references/`](week12-ai-agent-integration/references/)
+- 실습 완료 후 참고 구현 확인: `python course.py reference "../ai-ax-learning-lab"`
 - 완료 기준을 통과한 뒤 다음 주차 시작: `python course.py next "../ai-ax-learning-lab"`
