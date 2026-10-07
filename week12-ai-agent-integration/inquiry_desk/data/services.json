@@ -1,0 +1,5 @@
+[
+  {"id":"VPN","state":"normal","detail":"현재 공통 장애 공지는 없다. 개인 접속 환경은 별도 확인한다.","revision":1},
+  {"id":"SSO","state":"incident","detail":"일부 계정에서 로그인 지연이 발생해 운영팀이 확인 중이다. 복구 시각은 미정이다.","revision":1},
+  {"id":"MAIL","state":"normal","detail":"현재 공통 장애 공지는 없다.","revision":1}
+]
