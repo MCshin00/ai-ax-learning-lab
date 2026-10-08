@@ -144,7 +144,9 @@ Codex는 등록의 내용이 바뀌면 사람이 다시 검토해 신뢰하기 �
 
 마지막 판정은 `.local/harness/last-hook-event.json`에 남는다. `check_status`는 검사의 판정이고 `hook_action`은 Hook이 세션에 한 일(`none`, `fix_once`, `stopped`, `skipped`)이다. 검사 제한 시간은 `StopHook.TEST_TIMEOUT`의 120초이고, 등록의 150초는 프로그램 시작과 기록까지 포함한 바깥 제한이다. 작업자의 제한 시간은 Hook의 검사와 한 번의 수정까지 포함해 잡는다.
 
-종료 Hook 프로그램은 세 번째 인수로 소켓 폴더(프로젝트의 `.local/sock`)를 받을 수 있다. Windows에서 Gradle이 프로세스 사이 연결용 소켓을 기본 위치에 만들지 못하는 환경을 위한 것이다. 공유하는 등록은 이 인수를 넘기지 않는다.
+Windows에서 Gradle이 프로세스 사이 연결용 소켓을 기본 위치에 만들지 못하는 환경이 있다. 그런 환경에서 시작한 세션은 종료 Hook 안의 Gradle이 `Unable to establish loopback connection`으로 끝나 실행 불가가 된다. 세션을 시작하는 쪽의 환경에 `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=<경로가 짧은 폴더>`를 넣으면 Hook과 Gradle이 그 값을 이어받는다. 실행 관리로 작업자를 시작할 때는 설정의 `workerEnvironment`에 넣는다. 종료 Hook 프로그램은 세 번째 인수로 소켓 폴더(프로젝트의 `.local/sock`)를 받을 수도 있는데, 공유하는 등록은 이 인수를 넘기지 않는다.
+
+작업 폴더를 지울 때는 Hook의 빌드 폴더가 깊어 Windows의 경로 길이 제한에 걸릴 수 있다.
 
 ### 실행
 
