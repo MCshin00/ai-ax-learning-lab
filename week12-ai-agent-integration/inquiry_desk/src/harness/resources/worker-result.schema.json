@@ -1,0 +1,54 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "summary", "questions", "changed_files", "checks", "unchecked", "pr_body"],
+  "properties": {
+    "status": { "type": "string", "enum": ["done", "stopped"] },
+    "summary": { "type": "string" },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["input", "options"],
+        "properties": {
+          "input": { "type": "string" },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["choice", "result"],
+              "properties": { "choice": { "type": "string" }, "result": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "changed_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "role"],
+        "properties": { "path": { "type": "string" }, "role": { "type": "string" } }
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["what", "command", "result", "evidence"],
+        "properties": {
+          "what": { "type": "string" },
+          "command": { "type": "string" },
+          "result": { "type": "string", "enum": ["pass", "fail", "not_run"] },
+          "evidence": { "type": "string" }
+        }
+      }
+    },
+    "unchecked": { "type": "array", "items": { "type": "string" } },
+    "pr_body": { "type": "string" }
+  }
+}

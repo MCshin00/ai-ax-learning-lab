@@ -21,6 +21,9 @@ sourceSets {
     }
 }
 dependencies {
+    // 종료·시작 Hook은 파일 하나로 실행하므로 JDK만 쓴다. 작업자 실행 관리(lab.harness.run)는 기록 파일에 JSON을 쓴다.
+    harnessImplementation 'com.fasterxml.jackson.core:jackson-databind:2.20.0'
+    harnessTestImplementation 'com.fasterxml.jackson.core:jackson-databind:2.20.0'
     harnessTestImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
     harnessTestRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
@@ -36,4 +39,12 @@ tasks.register('harnessTest', Test) {
     classpath = sourceSets.harnessTest.runtimeClasspath
 }
 tasks.named('check') { dependsOn tasks.named('harnessTest') }
+// 작업자 실행 관리를 Gradle 밖에서 실행할 수 있게 클래스와 라이브러리를 한 폴더에 모은다.
+tasks.register('installWorkerRun', Sync) {
+    description = '작업자 실행 관리의 실행 파일을 build/worker-run에 모은다.'
+    group = 'harness'
+    from(sourceSets.harness.runtimeClasspath.filter { it.name.endsWith('.jar') }) { into 'lib' }
+    from(sourceSets.harness.output) { into 'classes' }
+    into layout.buildDirectory.dir('worker-run')
+}
 if (project.hasProperty('courseBuildDir')) { layout.buildDirectory=file(project.property('courseBuildDir')) }
