@@ -12,24 +12,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SessionStartHookTest {
     @TempDir Path projectRoot;
 
-    @Test void withoutCheckpointReturnsProjectDescription() throws Exception {
+    @Test void returnsTheProjectDescriptionOnStartupAndResume() throws Exception {
         write("docs/project.md", "현재 처리와 검사 위치");
+
+        for (String source : new String[] {"startup", "resume"}) {
+            String context = SessionStartHook.context(event(source), projectRoot);
+            assertTrue(context.contains("프로젝트 설명 (docs/project.md):\n현재 처리와 검사 위치"));
+            assertTrue(context.contains("docs/adr/"));
+        }
+    }
+
+    @Test void passesTheAppPartAndPointsToTheRest() throws Exception {
+        write("docs/project.md", "# 앱\r\n\r\n## 업무 요구\r\n요구 여섯 가지\r\n\r\n## 개발 환경\r\n실행 관리의 긴 설명\r\n");
+        // 예전에 쓰던 인계 메모가 남아 있어도 전달하지 않는다.
+        write(".local/harness/checkpoint.md", "지난 작업의 메모");
 
         String context = SessionStartHook.context(event("startup"), projectRoot);
 
-        assertTrue(context.contains("프로젝트 설명 (docs/project.md):\n현재 처리와 검사 위치"));
-        assertFalse(context.contains("인계 메모"));
-    }
-
-    @Test void withCheckpointReturnsBothAndRequiresCurrentCodeComparison() throws Exception {
-        write("docs/project.md", "현재 처리와 검사 위치");
-        write(".local/harness/checkpoint.md", "Hook 검사 완료, 앱 구현 남음");
-
-        String context = SessionStartHook.context(event("resume"), projectRoot);
-
-        assertTrue(context.contains("현재 처리와 검사 위치"));
-        assertTrue(context.contains("Hook 검사 완료, 앱 구현 남음"));
-        assertTrue(context.contains("현재 코드와 검사 결과를 대조해 남은 작업을 찾으세요"));
+        assertTrue(context.contains("요구 여섯 가지"));
+        assertFalse(context.contains("실행 관리의 긴 설명"));
+        assertFalse(context.contains("지난 작업의 메모"));
+        assertTrue(context.contains("docs/project.md의 뒷부분"));
     }
 
     @Test void wrongEventDoesNotReadProjectFiles() {

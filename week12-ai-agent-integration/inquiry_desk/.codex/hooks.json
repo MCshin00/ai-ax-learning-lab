@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "java '-Dfile.encoding=UTF-8' src/harness/java/lab/harness/StopHook.java .local/harness/last-hook-event.json .",
+            "timeout": 150
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "^(startup|resume)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "java '-Dfile.encoding=UTF-8' src/harness/java/lab/harness/SessionStartHook.java .",
+            "timeout": 10,
+            "additionalContextLimit": 8000
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -9,13 +9,16 @@ import java.util.regex.Pattern;
 public final class SessionStartHook {
     private static final Pattern EVENT_NAME = Pattern.compile("\"hook_event_name\"\\s*:\\s*\"([^\"]*)\"");
     private static final Pattern SOURCE = Pattern.compile("\"source\"\\s*:\\s*\"([^\"]*)\"");
+    static final String REST_STARTS_AT = "## 개발 환경";
 
     private SessionStartHook() {}
 
     public static void main(String[] args) throws IOException {
         if (args.length != 1) throw new IllegalArgumentException("Usage: SessionStartHook <project-root>");
         String event = new String(System.in.readAllBytes(), StandardCharsets.UTF_8);
-        System.out.print(context(event, Path.of(args[0])));
+        // 표준 출력의 기본 문자 집합이 UTF-8이 아닌 환경에서도 한글이 깨지지 않게 바이트로 쓴다.
+        System.out.write(context(event, Path.of(args[0])).getBytes(StandardCharsets.UTF_8));
+        System.out.flush();
     }
 
     static String context(String event, Path projectRoot) throws IOException {
@@ -29,17 +32,12 @@ public final class SessionStartHook {
 
         Path root = projectRoot.toAbsolutePath().normalize();
         Path project = root.resolve("docs/project.md");
-        String description = Files.readString(project, StandardCharsets.UTF_8);
-        StringBuilder context = new StringBuilder("프로젝트 설명 (docs/project.md):\n")
-            .append(description.strip()).append('\n');
-
-        Path checkpoint = root.resolve(".local/harness/checkpoint.md");
-        if (Files.isRegularFile(checkpoint)) {
-            context.append("\n인계 메모는 작업 당시의 기록입니다. 현재 코드와 검사 결과를 대조해 남은 작업을 찾으세요.\n")
-                .append("인계 메모 (.local/harness/checkpoint.md):\n")
-                .append(Files.readString(checkpoint, StandardCharsets.UTF_8).strip()).append('\n');
-        }
-        return context.toString();
+        String description = Files.readString(project, StandardCharsets.UTF_8).replace("\r\n", "\n");
+        // 업무 요구·처리 순서·지금 구현된 것·제공 자료까지 전달한다. 개발 환경 절부터는 필요할 때 파일에서 읽게 한다.
+        int cut = description.indexOf("\n" + REST_STARTS_AT);
+        String head = cut < 0 ? description : description.substring(0, cut);
+        return "프로젝트 설명 (docs/project.md):\n" + head.strip() + "\n\n"
+            + "개발 환경과 작업자 실행 관리의 설명은 docs/project.md의 뒷부분에, 정해진 결정과 이유는 docs/adr/에 있습니다.\n";
     }
 
     private static String value(Pattern pattern, String event) {
