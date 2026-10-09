@@ -15,7 +15,7 @@ import static lab.inquiry.status.LookupResult.Cause.*;
 import static lab.inquiry.status.LookupResult.Outcome.*;
 
 /** MCP와 운영 JSON의 공통 계약. 내부 레코드의 자동 직렬화에는 의존하지 않는다. */
-final class StatusWire {
+public final class StatusWire {
     static final String TOOL_NAME = "get_service_status";
     static final String DESCRIPTION = "서비스 ID로 현재 서비스 상태를 조회한다. 자료에 없는 서비스는 NOT_FOUND로 돌려준다.";
     static final ObjectMapper JSON = new ObjectMapper();
@@ -35,7 +35,7 @@ final class StatusWire {
         } catch (IOException e) { throw new IllegalStateException("응답 형식 선언을 읽지 못했습니다.", e); }
     }
 
-    static Map<String, Object> fields(LookupResult result) {
+    public static Map<String, Object> fields(LookupResult result) {
         Map<String, Object> value = new LinkedHashMap<>();
         value.put("outcome", result.outcome().name());
         if (result.serviceId() != null) value.put("serviceId", result.serviceId());

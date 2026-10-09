@@ -20,7 +20,8 @@
 | 구간 | 상태 |
 |---|---|
 | 상태 조회 | 별도 stdio MCP 서버가 `get_service_status`를 공개한다. 인수, 파일 전체, 찾는 ID의 행 순으로 판단하며 다른 행의 오류가 온전한 조회 결과를 가리지 않는다. 앱 클라이언트와 운영 도구가 같은 서버를 호출한다 |
-| 접수, 검색, 초안, 출처 검사, 검토·저장, HTTP | 없음 |
+| 접수 | OpenAI Java SDK의 엄격한 JSON Schema로 서비스·증상·오류를 받는다. 대화별 이전 결과를 이어 보내고, 서비스가 없으면 질문하며 있으면 `StatusClient`로 모두 조회한다 |
+| 검색, 초안, 출처 검사, 검토·저장, HTTP | 없음 |
 
 ## 제공 자료
 
@@ -50,6 +51,40 @@ IDE에서 `lab.inquiry.status.OperationsMain`을 실행하고 작업 폴더를 �
 서버를 직접 연결할 때의 진입점은 `lab.inquiry.status.StatusServerMain`, 인수는 `[자료 폴더]`이며 생략하면 `data`다. 운영 도구는 선택한 자료 폴더로 이 서버를 시작한다. 서버의 표준 출력은 MCP 메시지 전용이다.
 
 `src/test/java/lab/inquiry/status/`의 `ServerPlanTest`는 실제 서버 연결에서 임시 자료를 바꿔 서버가 돌려주는 결과를 확인한다. `ClientPlanTest`는 클라이언트가 응답을 읽는 규칙을 준비한 값으로 확인하고, 시작 실패·무응답·서비스별 결과 분리는 실제 프로세스로 확인한다. `OperationsPlanTest`는 진입점을 실행해 표준 출력·표준 오류·종료 코드를 확인한다. 대표 응답은 구조화된 내용과 텍스트 내용을 글자 그대로 비교하고, 오류 응답까지 선언한 응답 형식과 직접 대조한다. `PlanSupport`는 연결·응답 대조·프로세스 실행을 돕고, `ProtocolFixture`는 무응답을, `UnavailableOperationsMain`은 시작 실패를 재현한다.
+
+## 자연어 문의 접수
+
+`src/main/java/lab/inquiry/intake/`는 발언 한 줄을 접수하고 현재 상태와 함께 돌려주는 구현이다. 결정과 이유는 [0007](adr/0007-intake-model-connection.md), [0008](adr/0008-intake-result-and-service-existence.md), [0009](adr/0009-conversation-state-and-missing-target.md)에 있다.
+
+| 파일 | 맡은 일 |
+|---|---|
+| `IntakeMain.java` | 실행 인수와 모델 환경변수를 읽고 SDK 클라이언트·상태 클라이언트를 연결한다. 표준 입력 한 줄마다 결과 JSON 한 줄을 출력한다 |
+| `IntakeModel.java` | 이름 대응표와 질문·접수 지침, 엄격한 스키마를 지정한 모델 요청, 완료·거절·응답 형식 검사와 중복 서비스 제거. `Call` 한 곳에서 모델 호출을 검사 대역으로 바꾼다 |
+| `Intake.java` | 서비스 목록, 증상, 오류 메시지를 담는 내부 값 |
+| `IntakeSession.java` | 첫 `\|`로 대화 ID와 발언을 나누고 대화별 현재 결과·발언 원문을 메모리에 보관한다. 유효한 접수 결과의 서비스를 순서대로 조회하고 성공한 접수만 상태에 반영한다 |
+| `IntakeWire.java` | 접수 결과의 공개 JSON 필드와 순서, 없는 값의 생략. 상태 항목은 기존 `StatusWire.fields`로 변환한다 |
+
+모델 요청에는 지침과 이전 접수 결과(있을 때), 새 발언만 들어간다. 이전 발언 원문은 보관만 한다. 모델은 이전 결과에 새 발언을 반영한 전체 결과를 돌려주며, 코드는 형식을 검사하고 같은 서비스를 처음 나온 순서로 하나만 남긴다. 이름 대응표는 지침과 질문이 함께 쓰고 조회 대상을 걸러 내지 않는다. 예를 들어 `VPN`과 `급여 시스템`을 받으면 둘 다 조회하여 `FOUND`와 `NOT_FOUND`를 함께 전달한다.
+
+결과는 `READY`, `NEEDS_INPUT`, `FAILED`다. 서비스가 없으면 정해 둔 질문을 보내고 조회하지 않는다. 한 서비스의 조회 실패는 그 서비스의 `statuses` 항목에 남으며 전체 접수는 `READY`다. 모델 호출 실패는 `MODEL_UNAVAILABLE`, 완료되지 않은 응답·거절·형식 불일치는 `INVALID_OUTPUT`, 잘못된 입력 줄은 `INVALID_INPUT`으로 돌려준다. `FAILED` 발언은 현재 접수 결과와 원문 목록을 바꾸지 않는다. 재호출은 하지 않는다.
+
+공개 결과의 형태는 대표 응답을 글자 그대로 비교하는 검사로 고정한다. 모델 응답에는 `services`, `symptom`, `errorMessage`가 모두 필수이고 뒤의 두 값은 `null`일 수 있다. 공개 결과에서는 없는 필드를 생략한다. 모델 호출은 OpenAI Java SDK 4.60.0의 Chat Completions를 직접 사용하고, 제한 시간은 30초, SDK 자동 재시도는 0회다.
+
+IDE에서 `lab.inquiry.intake.IntakeMain`을 실행한다. 작업 폴더는 프로젝트 루트 `inquiry_desk`, 인수는 생략하거나 `--data-dir <자료 폴더>`다. IDE의 비공유 실행 설정에 `OPENAI_API_KEY`와 `OPENAI_MODEL`을 넣는다. 모델은 엄격한 JSON Schema 출력을 지원하는 것을 지정한다. 환경변수 파일을 읽는 로더는 없으며, 설정이 없으면 표준 오류에 없는 변수 이름을 출력하고 종료 코드 2로 끝난다. 입력 종료는 코드 0이다. Gradle의 기본 실행 진입점은 상태 조회 운영 도구다.
+
+IDE 콘솔에서 다음을 한 줄씩 입력한다.
+
+```text
+a|접속이 안 돼요
+a|VPN이고 인증서 만료 메시지가 나와요
+a|인증서 만료 메시지가 나와요
+b|인증서 만료 메시지가 나와요
+c|급여 시스템이 안 돼요
+```
+
+실제 모델에서는 a의 셋째 발언까지 VPN과 오류가 남는지, b는 별도 대화로 질문하는지, c는 직원의 표현 그대로 조회하여 `NOT_FOUND`가 나오는지 확인한다. 표현 해석과 정정도 `d|통합인증이 느려요`, `e|사내망 연결이 자꾸 끊겨요`, `f|인터넷이 안 돼요`, `g|VPN이 자꾸 끊겨요` → `g|VPN이 아니라 통합 로그인 문제예요`로 확인한다.
+
+`src/test/java/lab/inquiry/intake/IntakePlanTest.java`는 승인된 대표 경우마다 검사 하나와 세 결과 구분의 JSON 문자열 비교 검사를 둔다. 모델 응답은 대역이며, 요청에 지정한 스키마와 이전 결과·새 발언은 값으로 확인한다. 입력 줄과 출력은 `IntakeMain.process`를 거친다. `src/test/java/lab/inquiry/status/IntakeStatusSupport.java`는 검사 클래스패스에서 기존 상태 서버를 실제로 시작하고, `tools/call`마다 임시 파일에 표시 한 줄을 남겨 조회 횟수를 센다. 서비스가 없는 첫 발언은 0회, 같은 서비스가 두 번 적힌 경우는 1회인지 확인한다. 환경변수가 없는 진입점은 해당 변수를 제거한 별도 프로세스로 확인한다. 실제 모델의 해석은 자동 검사에서 확인하지 않는다.
 
 ## 개발 환경
 
