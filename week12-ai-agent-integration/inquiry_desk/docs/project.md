@@ -19,7 +19,7 @@
 
 | 구간 | 상태 |
 |---|---|
-| 상태 조회 | `src/main/java/lab/inquiry/status/`에 이전 구현이 있다. 결정 [0004](adr/0004-declared-response-shape.md)~[0006](adr/0006-status-lookup-inputs.md)보다 먼저 만들어져 응답 형식 선언, 변환 위치, 응답을 읽는 방식, 자료를 행 단위로 판단하는 방식이 결정과 다르다. 승인된 계획에 따라 새로 구현한다 |
+| 상태 조회 | 별도 stdio MCP 서버가 `get_service_status`를 공개한다. 인수, 파일 전체, 찾는 ID의 행 순으로 판단하며 다른 행의 오류가 온전한 조회 결과를 가리지 않는다. 앱 클라이언트와 운영 도구가 같은 서버를 호출한다 |
 | 접수, 검색, 초안, 출처 검사, 검토·저장, HTTP | 없음 |
 
 ## 제공 자료
@@ -29,6 +29,27 @@
 | `data/services.json` | VPN·SSO·MAIL의 상태·설명·변경 번호 `revision`. 서비스 상태 화면을 대신한다 |
 | `data/runbooks.json` | 서비스별 운영 문서의 ID·제목·본문 |
 | `data/cases.json` | 확인할 문의와 판단 기준. 앱이 읽지 않고, 검사의 입력과 기대 결과를 정할 때 쓴다 |
+
+## 서비스 상태 조회
+
+`src/main/java/lab/inquiry/status/`는 상태 조회의 구현이다.
+
+| 파일 | 맡은 일 |
+|---|---|
+| `ServiceCatalog.java` | 인수를 먼저 확인하고 매번 `services.json`을 읽는다. 요청 ID의 중복·행 유효성을 판단하며, ID를 읽지 못한 행이 있으면 없는 서비스를 확정하지 않는다 |
+| `LookupResult.java` | 서비스별 결과 값과 원인 값. 실패도 예외가 아닌 값으로 앱에 전달한다 |
+| `StatusWire.java` | 도구 선언, 공개 JSON의 필드·순서와 MCP 내용 변환, 구조화된 응답 해석. 텍스트 내용은 해석하지 않는다 |
+| `StatusServerMain.java` | `get_service_status` 도구 하나를 별도 프로세스의 표준 입출력으로 공개한다 |
+| `StatusClient.java` | 서버 시작·목록·순차 조회·종료. 응답 제한 시간은 10초다. 응답 확인은 `StatusWire.decode`에 맡기며 통신 실패는 `MCP_UNAVAILABLE`로 돌려준다 |
+| `OperationsMain.java` | 담당자가 도구 목록이나 서비스별 결과를 JSON 한 줄로 확인하는 진입점 |
+
+응답 형식은 `src/main/resources/lab/inquiry/status/status-output-schema.json`에 있다. `oneOf`로 결과 구분별 필수 필드와 서버의 원인 값을 선언한다. `StatusWire.decode`는 모르는 응답 필드를 무시하고, 구조·결과 구분·오류 표시·필수 필드와 타입·요청 대상을 확인한 뒤 원인 값을 해석한다. 형식이 어긋나면 `INVALID_RESPONSE`, 모르는 원인은 `UNKNOWN`으로 받고 `receivedCode`에 보존한다. 상태값의 목록과 변경 번호의 범위는 자료를 읽는 서버가 확인한다.
+
+IDE에서 `lab.inquiry.status.OperationsMain`을 실행하고 작업 폴더를 프로젝트 루트로 둔다. 인수가 없으면 도구 목록, `get VPN`이면 VPN 조회 결과를 출력한다. 다른 자료 폴더는 `--data-dir <자료 폴더> get VPN`으로 지정한다. `FOUND`·`NOT_FOUND`의 종료 코드는 0, 조회·입력 오류는 1이다. 실행 인수의 형태가 틀리면 표준 오류에 사용법을 쓰고 2로 끝난다. 빈 서비스 ID는 서버에 넘겨 `INVALID_INPUT`을 받는다.
+
+서버를 직접 연결할 때의 진입점은 `lab.inquiry.status.StatusServerMain`, 인수는 `[자료 폴더]`이며 생략하면 `data`다. 운영 도구는 선택한 자료 폴더로 이 서버를 시작한다. 서버의 표준 출력은 MCP 메시지 전용이다.
+
+`src/test/java/lab/inquiry/status/`의 `ServerPlanTest`는 실제 서버 연결에서 임시 자료를 바꿔 서버가 돌려주는 결과를 확인한다. `ClientPlanTest`는 클라이언트가 응답을 읽는 규칙을 준비한 값으로 확인하고, 시작 실패·무응답·서비스별 결과 분리는 실제 프로세스로 확인한다. `OperationsPlanTest`는 진입점을 실행해 표준 출력·표준 오류·종료 코드를 확인한다. 대표 응답은 구조화된 내용과 텍스트 내용을 글자 그대로 비교하고, 오류 응답까지 선언한 응답 형식과 직접 대조한다. `PlanSupport`는 연결·응답 대조·프로세스 실행을 돕고, `ProtocolFixture`는 무응답을, `UnavailableOperationsMain`은 시작 실패를 재현한다.
 
 ## 개발 환경
 
