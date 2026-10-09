@@ -54,7 +54,7 @@ IDE에서 `lab.inquiry.status.OperationsMain`을 실행하고 작업 폴더를 �
 
 ## 자연어 문의 접수
 
-`src/main/java/lab/inquiry/intake/`는 발언 한 줄을 접수하고 현재 상태와 함께 돌려주는 구현이다. 결정과 이유는 [0007](adr/0007-intake-model-connection.md), [0008](adr/0008-intake-result-and-service-existence.md), [0009](adr/0009-conversation-state-and-missing-target.md)에 있다.
+`src/main/java/lab/inquiry/intake/`는 발언 한 줄을 접수하고 현재 상태와 함께 돌려주는 구현이다. 결정과 이유는 [0007](adr/0007-intake-model-connection.md), [0008](adr/0008-intake-result-and-service-existence.md), [0009](adr/0009-conversation-state-and-missing-target.md), [0010](adr/0010-intake-instructions-and-service-scope.md)에 있다.
 
 | 파일 | 맡은 일 |
 |---|---|
@@ -64,7 +64,9 @@ IDE에서 `lab.inquiry.status.OperationsMain`을 실행하고 작업 폴더를 �
 | `IntakeSession.java` | 첫 `\|`로 대화 ID와 발언을 나누고 대화별 현재 결과·발언 원문을 메모리에 보관한다. 유효한 접수 결과의 서비스를 순서대로 조회하고 성공한 접수만 상태에 반영한다 |
 | `IntakeWire.java` | 접수 결과의 공개 JSON 필드와 순서, 없는 값의 생략. 상태 항목은 기존 `StatusWire.fields`로 변환한다 |
 
-모델 요청에는 지침과 이전 접수 결과(있을 때), 새 발언만 들어간다. 이전 발언 원문은 보관만 한다. 모델은 이전 결과에 새 발언을 반영한 전체 결과를 돌려주며, 코드는 형식을 검사하고 같은 서비스를 처음 나온 순서로 하나만 남긴다. 이름 대응표는 지침과 질문이 함께 쓰고 조회 대상을 걸러 내지 않는다. 예를 들어 `VPN`과 `급여 시스템`을 받으면 둘 다 조회하여 `FOUND`와 `NOT_FOUND`를 함께 전달한다.
+모델 요청에는 지침과 이전 접수 결과(있을 때), 새 발언만 들어간다. 이전 발언 원문은 보관만 한다. 모델은 이전 결과에 새 발언을 반영한 전체 결과를 돌려주며, 코드는 형식을 검사하고 같은 서비스를 처음 나온 순서로 하나만 남긴다. 이름을 ID로 바꾸는 일은 모델이 맡는다.
+
+이름 대응표는 `IntakeModel.NAMES` 한 곳에 ID별 이름 목록으로 두고 접수 지침과 질문이 함께 쓴다. 질문에는 ID마다 첫 이름을 쓴다. 대응표는 조회 대상을 걸러 내지 않는다. 예를 들어 `VPN`과 `급여 시스템`을 받으면 둘 다 조회하여 `FOUND`와 `NOT_FOUND`를 함께 전달한다. 접수 규칙과 예는 `IntakeModel.INSTRUCTIONS`에 있다.
 
 결과는 `READY`, `NEEDS_INPUT`, `FAILED`다. 서비스가 없으면 정해 둔 질문을 보내고 조회하지 않는다. 한 서비스의 조회 실패는 그 서비스의 `statuses` 항목에 남으며 전체 접수는 `READY`다. 모델 호출 실패는 `MODEL_UNAVAILABLE`, 완료되지 않은 응답·거절·형식 불일치는 `INVALID_OUTPUT`, 잘못된 입력 줄은 `INVALID_INPUT`으로 돌려준다. `FAILED` 발언은 현재 접수 결과와 원문 목록을 바꾸지 않는다. 재호출은 하지 않는다.
 
@@ -80,9 +82,25 @@ a|VPN이고 인증서 만료 메시지가 나와요
 a|인증서 만료 메시지가 나와요
 b|인증서 만료 메시지가 나와요
 c|급여 시스템이 안 돼요
+d|통합인증이 느려요
+e|사내망 연결이 자꾸 끊겨요
+f|인터넷이 안 돼요
+g|VPN이 자꾸 끊겨요
+g|VPN이 아니라 통합 로그인 문제예요
+k|VPN이랑 급여 시스템이 안 돼요
 ```
 
-실제 모델에서는 a의 셋째 발언까지 VPN과 오류가 남는지, b는 별도 대화로 질문하는지, c는 직원의 표현 그대로 조회하여 `NOT_FOUND`가 나오는지 확인한다. 표현 해석과 정정도 `d|통합인증이 느려요`, `e|사내망 연결이 자꾸 끊겨요`, `f|인터넷이 안 돼요`, `g|VPN이 자꾸 끊겨요` → `g|VPN이 아니라 통합 로그인 문제예요`로 확인한다.
+실제 모델에서 볼 것은 다음과 같다.
+
+| 입력 | 기대 |
+|---|---|
+| a의 셋째 발언 | VPN과 오류 메시지가 남는다 |
+| b | 별도 대화로 보고 질문한다. 오류 메시지는 `errorMessage`에 적힌다 |
+| c | `급여 시스템`을 그대로 적고 조회해 `NOT_FOUND`가 나온다 |
+| d | `SSO`로 적힌다 |
+| e, f | 서비스 없이 질문한다 |
+| g의 둘째 발언 | 서비스가 `SSO`로 바뀌고 증상은 남는다 |
+| k | `VPN`과 `급여 시스템`이 함께 적힌다 |
 
 `src/test/java/lab/inquiry/intake/IntakePlanTest.java`는 승인된 대표 경우마다 검사 하나와 세 결과 구분의 JSON 문자열 비교 검사를 둔다. 모델 응답은 대역이며, 요청에 지정한 스키마와 이전 결과·새 발언은 값으로 확인한다. 입력 줄과 출력은 `IntakeMain.process`를 거친다. `src/test/java/lab/inquiry/status/IntakeStatusSupport.java`는 검사 클래스패스에서 기존 상태 서버를 실제로 시작하고, `tools/call`마다 임시 파일에 표시 한 줄을 남겨 조회 횟수를 센다. 서비스가 없는 첫 발언은 0회, 같은 서비스가 두 번 적힌 경우는 1회인지 확인한다. 환경변수가 없는 진입점은 해당 변수를 제거한 별도 프로세스로 확인한다. 실제 모델의 해석은 자동 검사에서 확인하지 않는다.
 
