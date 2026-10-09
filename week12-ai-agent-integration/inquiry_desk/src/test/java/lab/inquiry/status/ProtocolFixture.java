@@ -22,8 +22,8 @@ public final class ProtocolFixture {
                             "capabilities", Map.of("tools", Map.of()), "serverInfo", Map.of("name", "fixture", "version", "1"));
                     case "tools/list" -> result = Map.of("tools", List.of(StatusWire.tool()));
                     case "tools/call" -> {
-                        if (args[0].equals("stall")) { Thread.sleep(60_000); continue; }
-                        throw new AssertionError(args[0]);
+                        Thread.sleep(60_000);
+                        continue;
                     }
                     default -> throw new AssertionError(request.path("method"));
                 }

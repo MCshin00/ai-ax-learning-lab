@@ -66,8 +66,7 @@ public final class StatusClient implements AutoCloseable {
         var previous = connection;
         connection = null;
         if (previous != null) {
-            try { previous.closeGracefully(); }
-            catch (RuntimeException ignored) { /* 정리 실패가 원래 결과를 덮지 않는다. */ }
+            previous.closeGracefully();
         }
     }
 

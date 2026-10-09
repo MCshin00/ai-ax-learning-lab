@@ -45,9 +45,9 @@ final class PlanSupport {
         catch (RuntimeException e) { client.closeGracefully(); throw e; }
     }
 
-    static ServerParameters fixture(String mode) {
+    static ServerParameters fixture() {
         return ServerParameters.builder(java()).args("-Dfile.encoding=UTF-8", "-cp",
-                System.getProperty("inquiry.test.classpath"), ProtocolFixture.class.getName(), mode).build();
+                System.getProperty("inquiry.test.classpath"), ProtocolFixture.class.getName()).build();
     }
 
     static void assertWire(CallToolResult response, String expected, boolean isError) {

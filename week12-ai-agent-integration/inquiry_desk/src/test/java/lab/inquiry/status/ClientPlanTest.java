@@ -43,7 +43,7 @@ class ClientPlanTest {
         }
     }
     @Test void C2_realProcessDoesNotAnswerWithinTenSeconds() {
-        try (var client = new StatusClient(fixture("stall"))) {
+        try (var client = new StatusClient(fixture())) {
             assertNull(client.listTools().failure()); // 초기화가 끝난 뒤 조회 응답만 지연한다.
             long start = System.nanoTime();
             var result = client.get("VPN");
