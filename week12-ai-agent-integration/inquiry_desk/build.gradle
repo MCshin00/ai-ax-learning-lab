@@ -2,6 +2,7 @@ plugins { id 'application' }
 application { mainClass = 'lab.inquiry.status.OperationsMain' }
 repositories { mavenCentral() }
 dependencies {
+    implementation 'com.openai:openai-java:4.60.0'
     implementation 'io.modelcontextprotocol.sdk:mcp:1.1.4'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.0'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
