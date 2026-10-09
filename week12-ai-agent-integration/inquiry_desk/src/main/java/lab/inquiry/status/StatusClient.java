@@ -1,6 +1,5 @@
 package lab.inquiry.status;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.ServerParameters;
@@ -9,96 +8,67 @@ import io.modelcontextprotocol.json.McpJsonDefaults;
 import io.modelcontextprotocol.spec.McpSchema.*;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
-/** 앱 코드가 호출하는 순차 조회 클라이언트. 연결 실패도 서비스 ID와 함께 반환한다. */
+import static lab.inquiry.status.LookupResult.Cause.*;
+
+/** 순서대로 호출하는 앱 클라이언트. 실패도 해당 서비스의 값으로 돌려준다. */
 public final class StatusClient implements AutoCloseable {
+    private static final Duration TIMEOUT = Duration.ofSeconds(10);
     private final ServerParameters server;
-    private final Duration timeout;
-    private McpSyncClient client;
-    private boolean closed;
+    private McpSyncClient connection;
 
-    public StatusClient(Path dataDirectory) {
-        this(serverParameters(dataDirectory, System.getProperty("java.class.path")), Duration.ofSeconds(10));
+    public StatusClient(Path directory) {
+        this(serverParameters(directory, System.getProperty("java.class.path")));
     }
 
-    StatusClient(ServerParameters server, Duration timeout) {
-        this.server = Objects.requireNonNull(server);
-        this.timeout = Objects.requireNonNull(timeout);
-    }
+    StatusClient(ServerParameters server) { this.server = server; }
 
     static ServerParameters serverParameters(Path directory, String classpath) {
         return ServerParameters.builder(Path.of(System.getProperty("java.home"), "bin", "java").toString())
-                .args("-Dfile.encoding=UTF-8", "-cp", classpath, StatusServer.class.getName(),
-                        directory.toAbsolutePath().normalize().toString()).build();
+                .args("-Dfile.encoding=UTF-8", "-cp", classpath, StatusServerMain.class.getName(),
+                        directory.toAbsolutePath().toString()).build();
     }
 
-    private McpSyncClient connection() {
-        if (closed) throw new IllegalStateException("종료한 연결입니다.");
-        if (client == null) {
-            client = McpClient.sync(new StdioClientTransport(server, McpJsonDefaults.getMapper()))
-                    .requestTimeout(timeout).initializationTimeout(timeout).build();
-            try {
-                client.initialize();
-            } catch (RuntimeException error) {
-                disconnect();
-                throw error;
-            }
+    private McpSyncClient connect() {
+        if (connection == null) {
+            connection = McpClient.sync(new StdioClientTransport(server, McpJsonDefaults.getMapper()))
+                    .requestTimeout(TIMEOUT).initializationTimeout(TIMEOUT)
+                    .build();
+            connection.initialize();
         }
-        return client;
+        return connection;
     }
 
-    public StatusResult get(String serviceId) {
-        if (serviceId == null || serviceId.isBlank()) return StatusResult.invalid(serviceId);
-        CallToolResult response;
+    public LookupResult get(String serviceId) {
         try {
-            response = connection().callTool(new CallToolRequest(StatusServer.TOOL_NAME, Map.of("serviceId", serviceId)));
-        } catch (RuntimeException error) {
+            var response = connect().callTool(new CallToolRequest(StatusWire.TOOL_NAME,
+                    Collections.singletonMap("serviceId", serviceId)));
+            return StatusWire.decode(serviceId, response);
+        } catch (RuntimeException e) {
             disconnect();
-            return StatusResult.unavailable(serviceId, StatusResult.ErrorCode.MCP_UNAVAILABLE,
-                    "MCP 서버와 통신할 수 없습니다.");
-        }
-        return decode(serviceId, response);
-    }
-
-    static StatusResult decode(String serviceId, CallToolResult response) {
-        try {
-            StatusResult result = StatusJson.MAPPER.convertValue(response.structuredContent(), StatusResult.class);
-            if (result == null || !serviceId.equals(result.serviceId())
-                    || result.isError() != Boolean.TRUE.equals(response.isError())) throw new IllegalArgumentException();
-            return result;
-        } catch (RuntimeException error) {
-            return StatusResult.unavailable(serviceId, StatusResult.ErrorCode.INVALID_RESPONSE,
-                    "MCP 조회 응답이 약속한 형식과 다릅니다.");
+            return LookupResult.failed(serviceId, MCP_UNAVAILABLE);
         }
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record ToolListing(List<Tool> tools, StatusResult.ErrorCode code, String message) {}
+    public record ToolList(List<Tool> tools, LookupResult failure) {}
 
-    public ToolListing listTools() {
-        try {
-            return new ToolListing(List.copyOf(connection().listTools().tools()), null, null);
-        } catch (RuntimeException error) {
+    public ToolList listTools() {
+        try { return new ToolList(List.copyOf(connect().listTools().tools()), null); }
+        catch (RuntimeException e) {
             disconnect();
-            return new ToolListing(List.of(), StatusResult.ErrorCode.MCP_UNAVAILABLE,
-                    "MCP 도구 목록을 조회할 수 없습니다.");
+            return new ToolList(List.of(), LookupResult.failed(null, MCP_UNAVAILABLE));
         }
     }
 
     private void disconnect() {
-        McpSyncClient previous = client;
-        client = null;
+        var previous = connection;
+        connection = null;
         if (previous != null) {
-            try { previous.closeGracefully(); }
-            catch (RuntimeException ignored) { /* 종료 실패가 원래 조회 결과를 덮어쓰지 않게 한다. */ }
+            previous.closeGracefully();
         }
     }
 
-    @Override public void close() {
-        closed = true;
-        disconnect();
-    }
+    @Override public void close() { disconnect(); }
 }

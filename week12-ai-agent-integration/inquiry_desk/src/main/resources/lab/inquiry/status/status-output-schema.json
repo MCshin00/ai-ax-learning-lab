@@ -1,0 +1,39 @@
+{
+  "type": "object",
+  "oneOf": [
+    {
+      "properties": {
+        "outcome": {"const": "FOUND"},
+        "serviceId": {"type": "string"},
+        "state": {"type": "string"},
+        "detail": {"type": "string"},
+        "revision": {"type": "integer"}
+      },
+      "required": ["outcome", "serviceId", "state", "detail", "revision"]
+    },
+    {
+      "properties": {
+        "outcome": {"const": "NOT_FOUND"},
+        "serviceId": {"type": "string"}
+      },
+      "required": ["outcome", "serviceId"]
+    },
+    {
+      "properties": {
+        "outcome": {"const": "UNAVAILABLE"},
+        "serviceId": {"type": "string"},
+        "code": {"type": "string", "enum": ["DATA_UNREADABLE", "DATA_INVALID"]},
+        "message": {"type": "string"}
+      },
+      "required": ["outcome", "serviceId", "code", "message"]
+    },
+    {
+      "properties": {
+        "outcome": {"const": "INVALID_INPUT"},
+        "code": {"type": "string", "enum": ["INVALID_ARGUMENTS"]},
+        "message": {"type": "string"}
+      },
+      "required": ["outcome", "code", "message"]
+    }
+  ]
+}

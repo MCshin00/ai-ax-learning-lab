@@ -1,9 +1,7 @@
 plugins { id 'application' }
-application { mainClass = 'lab.inquiry.status.OperationsClient' }
+application { mainClass = 'lab.inquiry.status.OperationsMain' }
 repositories { mavenCentral() }
 dependencies {
-    implementation 'dev.langchain4j:langchain4j:1.20.0'
-    implementation 'dev.langchain4j:langchain4j-open-ai:1.20.0'
     implementation 'io.modelcontextprotocol.sdk:mcp:1.1.4'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.0'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
@@ -31,6 +29,7 @@ tasks.withType(Test).configureEach { useJUnitPlatform(); systemProperty 'file.en
 tasks.named('test', Test) {
     // Gradle 검사 JVM의 클래스패스 대신 실제 서버 실행에 필요한 앱 클래스패스를 전달한다.
     systemProperty 'inquiry.server.classpath', sourceSets.main.runtimeClasspath.asPath
+    systemProperty 'inquiry.test.classpath', sourceSets.test.runtimeClasspath.asPath
 }
 tasks.register('harnessTest', Test) {
     description = '종료 판정과 시작 문맥 Hook을 검사한다.'
