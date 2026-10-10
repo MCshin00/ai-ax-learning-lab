@@ -12,24 +12,17 @@ public final class FakeWorker {
             case "done" -> Files.writeString(Path.of(args[1]), result("done", args[2] + ":" + readAll(), "[]"), StandardCharsets.UTF_8);
             case "stopped" -> Files.writeString(Path.of(args[1]), result("stopped", args[2] + ":" + readAll(),
                 "[{\"input\":\"vpn\",\"options\":[{\"choice\":\"구별\",\"result\":\"없음\"}]}]"), StandardCharsets.UTF_8);
-            // 끝났다고 하지만 약속한 항목이 빠진 결과.
-            case "partial" -> { readAll(); Files.writeString(Path.of(args[1]), "{\"status\":\"done\"}"); }
+            // 멈췄지만 질문이 없는 결과.
+            case "partial" -> { readAll(); Files.writeString(Path.of(args[1]), result("stopped", "", "[]")); }
             case "silent" -> readAll();
             // 끝났다는 결과를 쓰고, 끝나기 직전에 중단 요청 파일을 만든다. 인수: done-then-stop <결과 파일> <표시> <중단 요청 파일>
             case "done-then-stop" -> {
                 Files.writeString(Path.of(args[1]), result("done", args[2] + ":" + readAll(), "[]"), StandardCharsets.UTF_8);
                 Files.writeString(Path.of(args[3]), "", StandardCharsets.UTF_8);
             }
-            case "fail" -> System.exit(7);
             case "hang" -> Thread.sleep(600_000);
             // 하위 프로세스를 하나 띄우고 그 번호를 파일에 남긴 뒤 둘 다 끝나지 않는다.
             case "family" -> { spawn(args[1]); Thread.sleep(600_000); }
-            // 신호 파일이 생긴 뒤에 하위 프로세스를 띄운다. 부모가 먼저 기록된 다음에 하위 프로세스가 생기는 경우다.
-            case "late-family" -> {
-                while (!Files.exists(Path.of(args[2]))) Thread.sleep(50);
-                spawn(args[1]);
-                Thread.sleep(600_000);
-            }
             // 질문을 남기고 멈춘 결과를 쓴 뒤 0이 아닌 코드로 끝난다.
             case "stopped-fail" -> {
                 Files.writeString(Path.of(args[1]), result("stopped", args[2] + ":" + readAll(),

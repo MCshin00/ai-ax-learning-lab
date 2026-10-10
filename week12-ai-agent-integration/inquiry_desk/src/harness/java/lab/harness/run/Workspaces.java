@@ -13,11 +13,6 @@ import java.util.concurrent.TimeUnit;
 public interface Workspaces {
     Path prepare(String taskId) throws Exception;
 
-    /** 작업 폴더를 만들던 프로세스의 종료를 확인하지 못했다. 그 프로세스가 같은 폴더를 계속 만들고 있을 수 있다. */
-    final class StillRunning extends Exception {
-        public StillRunning(String message) { super(message); }
-    }
-
     /**
      * 기준 커밋에서 작업별 브랜치와 worktree를 만든다. Hook 등록(.codex/hooks.json)은 경로를 프로젝트 기준
      * 상대경로로만 적어 Git으로 공유하므로 새 폴더에도 그대로 있고, 그 폴더의 코드를 검사한다.
@@ -85,16 +80,12 @@ public interface Workspaces {
                 try { finished = process.waitFor(120, TimeUnit.SECONDS); }
                 catch (InterruptedException stopped) { interrupted = true; finished = false; }
                 if (!finished) {
-                    // 끝나지 않은 git을 두고 돌아가면 다음 접수와 같은 폴더를 함께 만들 수 있으므로 사라진 것까지 확인한다.
                     List<ProcessHandle> all = new ArrayList<>(process.descendants().toList());
                     all.add(process.toHandle());
                     String what = "git " + String.join(" ", arguments);
-                    boolean gone;
-                    try { gone = ProcessRunner.FORCE.terminate(all, Duration.ofSeconds(10)); }
-                    catch (RuntimeException broken) { gone = false; }
-                    if (interrupted) Thread.currentThread().interrupt();
-                    if (!gone) throw new StillRunning(what + "이(가) 끝나지 않았고 종료도 확인하지 못했습니다.");
-                    throw new IllegalStateException(what + "이(가) 끝나지 않아 종료했습니다.");
+                    try { ProcessRunner.FORCE.terminate(all, Duration.ofSeconds(10)); }
+                    finally { if (interrupted) Thread.currentThread().interrupt(); }
+                    throw new IllegalStateException(what + "이(가) 끝나지 않아 종료를 요청했습니다.");
                 }
                 output = Files.readString(log, StandardCharsets.UTF_8).strip();
                 if (process.exitValue() == 0) return output;

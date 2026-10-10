@@ -112,8 +112,8 @@ class WorkerRunCliTest {
         Process manager = cli(config("hang", WorkerRunManagerTest.fake("hang")), "start", "killed", request.toString());
         TaskLedger ledger = new TaskLedger(temp.resolve("tasks"));
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
-        // 프로세스 기록이 생기고 시작 표시가 지워진 뒤에 끝낸다. 그 사이에 끝내면 표시가 남아 사람의 확인이 필요한 다른 경우가 된다.
-        while (ledger.attempts("killed") == 0 || ledger.processes("killed", 1).isEmpty() || ledger.launchPending("killed", 1)) {
+        // stop이 사용할 작업자 프로세스 기록이 생긴 뒤 실행 관리를 끝낸다.
+        while (ledger.attempts("killed") == 0 || ledger.processes("killed", 1).isEmpty()) {
             assertTrue(System.nanoTime() < deadline, "작업자의 프로세스 기록이 생기지 않았습니다.");
             Thread.sleep(50);
         }
@@ -134,6 +134,11 @@ class WorkerRunCliTest {
         assertEquals(1, finished(cli(next, "stop", "killed")));
         assertEquals(ProcessRunner.Liveness.GONE, workers.get(0).liveness());
         assertTrue(ledger.attempt("killed", 1).terminationConfirmed());
+        assertNotNull(ledger.lock("killed"));
+        assertEquals(1, finished(cli(next, "start", "killed", request.toString())));
+        assertEquals(1, ledger.attempts("killed"));
+        assertEquals(1, finished(cli(next, "release", "killed", "1")));
+        assertNull(ledger.lock("killed"));
 
         assertEquals(0, finished(cli(next, "start", "killed", request.toString())));
         assertEquals(2, ledger.attempts("killed"));
