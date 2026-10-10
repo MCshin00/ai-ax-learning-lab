@@ -24,6 +24,9 @@ public final class IntakeModel {
             new ServiceName("MAIL", List.of("메일")));
     static final String QUESTION = "어느 서비스의 문제인가요? "
             + NAMES.stream().map(service -> service.names().get(0)).collect(Collectors.joining(", ")) + " 중에서 알려 주세요.";
+    static final String NOT_FOUND_QUESTION = "말씀하신 서비스는 조회 자료에서 찾지 못했습니다. "
+            + NAMES.stream().map(service -> service.names().get(0)).collect(Collectors.joining(", "))
+            + " 가운데 해당하는 서비스가 있으면 알려 주세요. 다른 시스템이라면 이 도구로는 상태를 확인할 수 없으니 담당자에게 문의해 주세요.";
     static final String INSTRUCTIONS = """
             직원의 문의를 services, symptom, errorMessage 세 필드의 접수 결과로 정리하세요.
 
