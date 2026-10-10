@@ -2,6 +2,7 @@ package lab.inquiry;
 
 import lab.inquiry.intake.IntakeModel;
 import lab.inquiry.intake.IntakeSession;
+import lab.inquiry.intake.IntakeWire;
 import lab.inquiry.status.LookupResult;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -43,7 +44,7 @@ final class InquirySession {
         var accepted = intake.accept(line);
         var evidence = new ArrayList<Evidence>();
         var notices = new ArrayList<Notice>();
-        if (accepted.failure() != null || accepted.intake().services().isEmpty()) {
+        if (accepted.failure() != null || IntakeWire.needsInput(accepted)) {
             return new Result(accepted, evidence, null, notices, modelCalls);
         }
         var value = accepted.intake();

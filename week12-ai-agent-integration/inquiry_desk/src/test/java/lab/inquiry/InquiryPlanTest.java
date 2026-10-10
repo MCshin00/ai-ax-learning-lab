@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import static org.junit.jupiter.api.Assertions.*;
 
 class InquiryPlanTest {
@@ -54,17 +55,21 @@ class InquiryPlanTest {
     }
 
     private InquirySession session(Path directory, Object... replies) {
+        return session(directory, id -> switch (id) {
+            case "급여 시스템", "사내망" -> LookupResult.absent(id);
+            case "SSO" -> LookupResult.failed(id, LookupResult.Cause.DATA_INVALID);
+            default -> LookupResult.found(id, "normal", DETAIL, 1);
+        }, replies);
+    }
+
+    private InquirySession session(Path directory, Function<String, LookupResult> statuses, Object... replies) {
         int[] next = {0};
         return new InquirySession("test-model", request -> {
             requests.add(request);
             Object reply = replies[next[0]++];
             if (reply instanceof OpenAIException failure) throw failure;
             return reply instanceof ChatCompletion response ? response : completion((String) reply);
-        }, id -> switch (id) {
-            case "급여 시스템" -> LookupResult.absent(id);
-            case "SSO" -> LookupResult.failed(id, LookupResult.Cause.DATA_INVALID);
-            default -> LookupResult.found(id, "normal", DETAIL, 1);
-        }, directory);
+        }, statuses, directory);
     }
 
     private InquirySession session(Object... replies) { return session(Path.of("data"), replies); }
@@ -249,6 +254,21 @@ class InquiryPlanTest {
         assertTrue(result.has("draft"));
         assertEquals(2, result.get("modelCalls").asInt());
     }
+    @Test void f16_allServicesNotFound() throws Exception {
+        String output = line(session(intake(List.of("사내망"), "연결이 자꾸 끊김", null)), "s9|사내망 연결이 자꾸 끊겨요");
+        assertEquals("{\"outcome\":\"NEEDS_INPUT\",\"conversationId\":\"s9\",\"intake\":{\"services\":[\"사내망\"],\"symptom\":\"연결이 자꾸 끊김\"},\"statuses\":[{\"outcome\":\"NOT_FOUND\",\"serviceId\":\"사내망\"}],\"question\":\"말씀하신 서비스는 조회 자료에서 찾지 못했습니다. VPN, 통합 로그인, 메일 가운데 해당하는 서비스가 있으면 알려 주세요. 다른 시스템이라면 이 도구로는 상태를 확인할 수 없으니 담당자에게 문의해 주세요.\"}", output);
+        assertEquals(1, requests.size());
+    }
+
+    @Test void f17_allStatusesUnavailable() throws Exception {
+        var session = session(Path.of("data"), id -> LookupResult.failed(id, LookupResult.Cause.DATA_INVALID), CONNECTION, draft("RB-VPN"));
+        var result = JSON.readTree(line(session, "a|VPN이 자꾸 끊겨요"));
+        assertEquals("READY", result.get("outcome").asText());
+        assertEquals(List.of("RB-VPN"), ids(result.at("/evidence/0")));
+        assertTrue(result.has("draft"));
+        assertFalse(result.has("question"));
+    }
+
     @Test void missingEnvironmentExitsTwo() throws Exception {
         var builder = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(),
                 "-Dfile.encoding=UTF-8", "-cp", System.getProperty("inquiry.server.classpath"), InquiryMain.class.getName());
