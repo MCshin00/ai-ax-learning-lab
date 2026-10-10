@@ -169,7 +169,6 @@ public final class StopHook {
             Path wrapper = projectRoot.resolve(windows ? "gradlew.bat" : "gradlew");
             if (!Files.isRegularFile(wrapper)) return new RunResult(-1, false, "Gradle wrapper가 없습니다");
             try {
-                Files.createDirectories(logFile.getParent());
                 ProcessBuilder command = new ProcessBuilder(wrapper.toString(), "test", "--rerun-tasks", "--no-daemon",
                     "-PcourseBuildDir=" + buildDir);
                 command.directory(projectRoot.toFile());

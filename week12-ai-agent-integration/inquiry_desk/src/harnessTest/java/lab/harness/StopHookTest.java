@@ -75,7 +75,6 @@ class StopHookTest {
     }
 
     private void assertNotChecked(String lastMessage) throws IOException {
-        Files.deleteIfExists(recordFile());
         String response = StopHook.process(eventWith(lastMessage), recordFile(), projectRoot(), null,
             (root, build, log, socket, timeout) -> { throw new AssertionError("검사를 실행하면 안 됩니다: " + lastMessage); },
             "question", NOW);
