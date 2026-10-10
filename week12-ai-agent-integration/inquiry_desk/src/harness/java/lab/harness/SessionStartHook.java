@@ -33,7 +33,7 @@ public final class SessionStartHook {
         Path root = projectRoot.toAbsolutePath().normalize();
         Path project = root.resolve("docs/project.md");
         String description = Files.readString(project, StandardCharsets.UTF_8).replace("\r\n", "\n");
-        // 업무 요구·처리 순서·지금 구현된 것·제공 자료까지 전달한다. 개발 환경 절부터는 필요할 때 파일에서 읽게 한다.
+        // ## 개발 환경 앞까지 전달한다. 개발 환경 절부터는 필요할 때 파일에서 읽게 한다.
         int cut = description.indexOf("\n" + REST_STARTS_AT);
         String head = cut < 0 ? description : description.substring(0, cut);
         return "프로젝트 설명 (docs/project.md):\n" + head.strip() + "\n\n"

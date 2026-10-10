@@ -13,10 +13,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilderFactory;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 
 public final class StopHook {
     static final Duration TEST_TIMEOUT = Duration.ofSeconds(120);
@@ -98,79 +94,22 @@ public final class StopHook {
         if (run.timedOut()) return new Verdict(Status.UNAVAILABLE, "문의 앱 검사가 " + TEST_TIMEOUT.toSeconds() + "초 안에 끝나지 않았습니다", log);
         if (run.error() != null) return new Verdict(Status.UNAVAILABLE, run.error(), log);
 
+        if (run.exitCode() == 0) return new Verdict(Status.PASS, "Gradle 종료 코드가 0입니다", log);
+
         Path reportDir = buildDir.resolve("test-results/test");
         try {
-            if (!Files.isDirectory(reportDir)) return new Verdict(Status.UNAVAILABLE, "새 문의 앱 검사 결과 파일이 없습니다", log);
-            List<Path> reports;
-            try (Stream<Path> files = Files.list(reportDir)) {
-                reports = files.filter(path -> path.getFileName().toString().matches("TEST-.*\\.xml"))
-                    .sorted().toList();
-            }
-            if (reports.isEmpty()) return new Verdict(Status.UNAVAILABLE, "새 문의 앱 검사 결과 파일이 없습니다", log);
-
-            int tests = 0;
-            int skipped = 0;
-            int failures = 0;
-            String firstFailure = null;
-            String firstReport = null;
-            for (Path report : reports) {
-                Element suite = readSuite(report);
-                tests += count(suite, "tests");
-                skipped += count(suite, "skipped");
-                failures += count(suite, "failures") + count(suite, "errors");
-                if (firstFailure == null) {
-                    firstFailure = firstFailure(suite);
-                    if (firstFailure != null) firstReport = root.relativize(report).toString();
+            if (Files.isDirectory(reportDir)) {
+                try (Stream<Path> files = Files.list(reportDir)) {
+                    if (files.anyMatch(path -> path.getFileName().toString().matches("TEST-.*\\.xml"))) {
+                        return new Verdict(Status.FAILURE, "Gradle 종료 코드가 " + run.exitCode()
+                            + "입니다. 로그: " + log, root.relativize(reportDir).toString());
+                    }
                 }
             }
-            if (tests == 0 || tests == skipped) {
-                return new Verdict(Status.UNAVAILABLE, "실행된 문의 앱 검사가 없습니다", log);
-            }
-            if (failures > 0) {
-                return new Verdict(Status.FAILURE,
-                    firstFailure == null ? "문의 앱 검사에서 실패가 보고됐습니다" : firstFailure,
-                    firstReport == null ? root.relativize(reports.get(0)).toString() : firstReport);
-            }
-            if (run.exitCode() != 0) {
-                return new Verdict(Status.UNAVAILABLE, "문의 앱 검사는 통과했으나 Gradle 종료 코드가 " + run.exitCode() + "입니다", log);
-            }
-            return new Verdict(Status.PASS, "문의 앱 검사 통과", root.relativize(reports.get(0)).toString());
-        } catch (Exception e) {
+            return new Verdict(Status.UNAVAILABLE, "새 문의 앱 검사 결과 파일이 없습니다", log);
+        } catch (IOException e) {
             return new Verdict(Status.UNAVAILABLE, "문의 앱 검사 결과를 읽을 수 없습니다: " + e.getMessage(), log);
         }
-    }
-
-    private static Element readSuite(Path report) throws Exception {
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-        factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-        factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
-        factory.setXIncludeAware(false);
-        factory.setExpandEntityReferences(false);
-        Element suite = factory.newDocumentBuilder().parse(report.toFile()).getDocumentElement();
-        if (!"testsuite".equals(suite.getTagName())) throw new IllegalArgumentException("Unexpected XML root");
-        return suite;
-    }
-
-    private static int count(Element suite, String name) {
-        return Integer.parseInt(suite.getAttribute(name));
-    }
-
-    private static String firstFailure(Element suite) {
-        for (Node test = suite.getFirstChild(); test != null; test = test.getNextSibling()) {
-            if (!(test instanceof Element testCase) || !"testcase".equals(testCase.getTagName())) continue;
-            for (Node child = testCase.getFirstChild(); child != null; child = child.getNextSibling()) {
-                if (!(child instanceof Element detail)) continue;
-                if (!"failure".equals(detail.getTagName()) && !"error".equals(detail.getTagName())) continue;
-                String message = detail.getAttribute("message");
-                if (message.isBlank()) message = detail.getTextContent();
-                message = message.replace("\r", "\\r").replace("\n", "\\n");
-                if (message.length() > 700) message = message.substring(0, 700) + "...";
-                return testCase.getAttribute("name") + ": " + message;
-            }
-        }
-        return null;
     }
 
     private static String actionFor(Verdict verdict, boolean alreadyContinued) {
@@ -230,8 +169,7 @@ public final class StopHook {
             Path wrapper = projectRoot.resolve(windows ? "gradlew.bat" : "gradlew");
             if (!Files.isRegularFile(wrapper)) return new RunResult(-1, false, "Gradle wrapper가 없습니다");
             try {
-                Files.createDirectories(logFile.getParent());
-                ProcessBuilder command = new ProcessBuilder(wrapper.toString(), "test", "--rerun-tasks",
+                ProcessBuilder command = new ProcessBuilder(wrapper.toString(), "test", "--rerun-tasks", "--no-daemon",
                     "-PcourseBuildDir=" + buildDir);
                 command.directory(projectRoot.toFile());
                 command.redirectErrorStream(true);

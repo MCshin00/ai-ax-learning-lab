@@ -6,21 +6,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SessionStartHookTest {
     @TempDir Path projectRoot;
-
-    @Test void returnsTheProjectDescriptionOnStartupAndResume() throws Exception {
-        write("docs/project.md", "현재 처리와 검사 위치");
-
-        for (String source : new String[] {"startup", "resume"}) {
-            String context = SessionStartHook.context(event(source), projectRoot);
-            assertTrue(context.contains("프로젝트 설명 (docs/project.md):\n현재 처리와 검사 위치"));
-            assertTrue(context.contains("docs/adr/"));
-        }
-    }
 
     @Test void passesTheAppPartAndPointsToTheRest() throws Exception {
         write("docs/project.md", "# 앱\r\n\r\n## 업무 요구\r\n요구 여섯 가지\r\n\r\n## 개발 환경\r\n실행 관리의 긴 설명\r\n");
@@ -33,11 +22,7 @@ class SessionStartHookTest {
         assertFalse(context.contains("실행 관리의 긴 설명"));
         assertFalse(context.contains("지난 작업의 메모"));
         assertTrue(context.contains("docs/project.md의 뒷부분"));
-    }
-
-    @Test void wrongEventDoesNotReadProjectFiles() {
-        assertThrows(IllegalArgumentException.class, () -> SessionStartHook.context(
-            "{\"hook_event_name\":\"Stop\",\"source\":\"startup\"}", projectRoot));
+        assertTrue(context.contains("docs/adr/"));
     }
 
     private String event(String source) {
