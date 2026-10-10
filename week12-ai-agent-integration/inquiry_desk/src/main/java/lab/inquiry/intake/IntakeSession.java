@@ -3,11 +3,11 @@ package lab.inquiry.intake;
 import com.openai.errors.OpenAIException;
 import com.openai.errors.OpenAIInvalidDataException;
 import lab.inquiry.status.LookupResult;
-import lab.inquiry.status.StatusClient;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 final class IntakeSession {
     enum Failure {
@@ -28,10 +28,10 @@ final class IntakeSession {
 
     private final String model;
     private final IntakeModel.Call call;
-    private final StatusClient statuses;
+    private final Function<String, LookupResult> statuses;
     private final Map<String, Conversation> conversations = new HashMap<>();
 
-    IntakeSession(String model, IntakeModel.Call call, StatusClient statuses) {
+    IntakeSession(String model, IntakeModel.Call call, Function<String, LookupResult> statuses) {
         this.model = model;
         this.call = call;
         this.statuses = statuses;
@@ -53,7 +53,7 @@ final class IntakeSession {
         catch (OpenAIException e) { return Result.failed(id, Failure.MODEL_UNAVAILABLE); }
         if (intake == null) return Result.failed(id, Failure.INVALID_OUTPUT);
 
-        var results = intake.services().stream().map(statuses::get).toList();
+        var results = intake.services().stream().map(statuses).toList();
         var utterances = new ArrayList<>(previous == null ? List.<String>of() : previous.utterances());
         utterances.add(utterance);
         conversations.put(id, new Conversation(intake, utterances));

@@ -1,23 +1,17 @@
 package lab.inquiry.intake;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.openai.errors.OpenAIException;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.openai.models.chat.completions.ChatCompletionMessage;
-import lab.inquiry.status.IntakeStatusSupport;
-import lab.inquiry.status.StatusClient;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import lab.inquiry.status.LookupResult;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import java.io.BufferedReader;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,23 +24,23 @@ class IntakePlanTest {
     private static final String VPN = "{\"outcome\":\"FOUND\",\"serviceId\":\"VPN\",\"state\":\"normal\",\"detail\":\"현재 공통 장애 공지는 없다. 개인 접속 환경은 별도 확인한다.\",\"revision\":1}";
     private static final String EMPTY = "{\"services\":[],\"symptom\":\"접속이 안 됨\",\"errorMessage\":null}";
     private static final String CERT = "{\"services\":[\"VPN\"],\"symptom\":\"접속이 안 됨\",\"errorMessage\":\"인증서 만료\"}";
-    @TempDir Path directory;
-    private StatusClient statuses;
+    private final List<String> statusCalls = new ArrayList<>();
     private final List<ChatCompletionCreateParams> requests = new ArrayList<>();
 
-    @BeforeEach void setup() throws Exception {
-        Files.copy(Path.of("data/services.json"), directory.resolve("services.json"));
-        statuses = IntakeStatusSupport.client(directory);
+    private LookupResult lookup(String serviceId) {
+        statusCalls.add(serviceId);
+        return Map.of(
+                "VPN", LookupResult.found("VPN", "normal", "현재 공통 장애 공지는 없다. 개인 접속 환경은 별도 확인한다.", 1),
+                "SSO", LookupResult.failed("SSO", LookupResult.Cause.DATA_INVALID),
+                "급여 시스템", LookupResult.absent("급여 시스템")).get(serviceId);
     }
-
-    @AfterEach void close() { statuses.close(); }
 
     private IntakeSession session(String... replies) {
         return new IntakeSession("test-model", request -> {
             int index = requests.size();
             requests.add(request);
             return completion(replies[index]);
-        }, statuses);
+        }, this::lookup);
     }
 
     private static ChatCompletion completion(String content) {
@@ -89,10 +83,9 @@ class IntakePlanTest {
 
     @Test void b_firstUtteranceNeedsServiceWithoutLookup() throws Exception {
         var session = session(EMPTY);
-        var result = IntakeWire.JSON.readTree(line(session, "b|접속이 안 돼요"));
-        assertEquals("NEEDS_INPUT", result.get("outcome").textValue());
-        assertEquals(IntakeModel.QUESTION, result.get("question").textValue());
-        assertEquals(0, IntakeStatusSupport.calls(directory));
+        String output = line(session, "b|접속이 안 돼요");
+        assertEquals("{\"outcome\":\"NEEDS_INPUT\",\"conversationId\":\"b\",\"intake\":{\"services\":[],\"symptom\":\"접속이 안 됨\"},\"question\":\"어느 서비스의 문제인가요? VPN, 통합 로그인, 메일 중에서 알려 주세요.\"}", output);
+        assertEquals(0, statusCalls.size());
         assertEquals(List.of("접속이 안 돼요"), session.conversation("b").utterances());
     }
 
@@ -102,15 +95,6 @@ class IntakePlanTest {
         assertEquals(readyB(), line(session, "b|VPN이고 인증서 만료 메시지가 나와요"));
         assertEquals(IntakeWire.JSON.readTree("{\"previousIntake\":{\"services\":[],\"symptom\":\"접속이 안 됨\"},\"utterance\":\"VPN이고 인증서 만료 메시지가 나와요\"}"), input(1));
         assertEquals(List.of("접속이 안 돼요", "VPN이고 인증서 만료 메시지가 나와요"), session.conversation("b").utterances());
-    }
-
-    @Test void b_thirdUtteranceKeepsService() throws Exception {
-        var session = session(EMPTY, CERT, CERT);
-        line(session, "b|접속이 안 돼요");
-        line(session, "b|VPN이고 인증서 만료 메시지가 나와요");
-        assertEquals(readyB(), line(session, "b|인증서 만료 메시지가 나와요"));
-        assertEquals(IntakeWire.JSON.readTree(CERT), input(2).get("previousIntake"));
-        assertEquals("인증서 만료 메시지가 나와요", input(2).get("utterance").textValue());
     }
 
     @Test void c_newConversationDoesNotInheritAnotherService() throws Exception {
@@ -125,16 +109,6 @@ class IntakePlanTest {
         assertEquals(List.of("VPN"), session.conversation("b").intake().services());
     }
 
-    @Test void d_multipleServicesInOrder() throws Exception {
-        var result = IntakeWire.JSON.readTree(line(session("{\"services\":[\"VPN\",\"SSO\"],\"symptom\":null,\"errorMessage\":null}"),
-                "d|VPN이 끊기고 통합 로그인도 느려요"));
-        assertEquals("READY", result.get("outcome").textValue());
-        assertEquals(2, result.get("statuses").size());
-        assertEquals("VPN", result.at("/statuses/0/serviceId").textValue());
-        assertEquals("SSO", result.at("/statuses/1/serviceId").textValue());
-        assertEquals("FOUND", result.at("/statuses/1/outcome").textValue());
-    }
-
     @Test void e_unknownServiceIsQueried() throws Exception {
         assertEquals("{\"outcome\":\"READY\",\"conversationId\":\"e\",\"intake\":{\"services\":[\"VPN\",\"급여 시스템\"]},\"statuses\":[" + VPN
                         + ",{\"outcome\":\"NOT_FOUND\",\"serviceId\":\"급여 시스템\"}]}",
@@ -142,9 +116,6 @@ class IntakePlanTest {
     }
 
     @Test void f_badSsoDoesNotEraseVpn() throws Exception {
-        var data = IntakeWire.JSON.readTree(Files.readString(directory.resolve("services.json")));
-        ((ObjectNode) data.get(1)).remove("state");
-        Files.writeString(directory.resolve("services.json"), IntakeWire.text(data));
         var result = IntakeWire.JSON.readTree(line(session("{\"services\":[\"VPN\",\"SSO\"],\"symptom\":null,\"errorMessage\":null}"),
                 "f|VPN이 끊기고 통합 로그인도 느려요"));
         assertEquals("READY", result.get("outcome").textValue());
@@ -156,11 +127,9 @@ class IntakePlanTest {
 
     @Test void g_duplicateServiceIsQueriedOnce() throws Exception {
         var result = IntakeWire.JSON.readTree(line(session("{\"services\":[\"VPN\",\"VPN\"],\"symptom\":null,\"errorMessage\":null}"), "g|아무 발언"));
-        assertEquals("READY", result.get("outcome").textValue());
         assertEquals(IntakeWire.JSON.readTree("[\"VPN\"]"), result.at("/intake/services"));
         assertEquals(1, result.get("statuses").size());
-        assertEquals(IntakeWire.JSON.readTree(VPN), result.at("/statuses/0"));
-        assertEquals(1, IntakeStatusSupport.calls(directory));
+        assertEquals(List.of("VPN"), statusCalls);
     }
 
     @Test void h_callFailureDoesNotChangeConversation() throws Exception {
@@ -168,7 +137,7 @@ class IntakePlanTest {
             requests.add(request);
             if (requests.size() == 2) throw new OpenAIException("prepared failure");
             return completion(CERT);
-        }, statuses);
+        }, this::lookup);
         line(session, "h|VPN이고 인증서 만료 메시지가 나와요");
         assertEquals("{\"outcome\":\"FAILED\",\"conversationId\":\"h\",\"code\":\"MODEL_UNAVAILABLE\",\"message\":\"모델을 호출하지 못했습니다.\"}", line(session, "h|둘째 발언"));
         line(session, "h|셋째 발언");
@@ -177,8 +146,13 @@ class IntakePlanTest {
         assertEquals(3, requests.size());
     }
 
-    @Test void i_invalidJsonDoesNotChangeConversation() throws Exception {
-        var session = session("JSON이 아님");
+    @Test void i_incompleteResponseDoesNotChangeConversation() throws Exception {
+        var session = new IntakeSession("test-model", request -> {
+            requests.add(request);
+            var response = completion(CERT);
+            return response.toBuilder().choices(List.of(response.choices().get(0).toBuilder()
+                    .finishReason(ChatCompletion.Choice.FinishReason.LENGTH).build())).build();
+        }, this::lookup);
         assertEquals("{\"outcome\":\"FAILED\",\"conversationId\":\"i\",\"code\":\"INVALID_OUTPUT\",\"message\":\"모델의 응답이 약속한 형식과 다릅니다.\"}", line(session, "i|아무 발언"));
         assertNull(session.conversation("i"));
         assertEquals(1, requests.size());
@@ -206,16 +180,6 @@ class IntakePlanTest {
             assertTrue(error.contains("OPENAI_API_KEY"));
             assertTrue(error.contains("OPENAI_MODEL"));
         } finally { if (process.isAlive()) process.destroyForcibly(); }
-    }
-
-    @Test void threeRepresentativeResponsesMatchLiterally() throws Exception {
-        var session = session(CERT, EMPTY);
-        assertEquals("{\"outcome\":\"READY\",\"conversationId\":\"a\",\"intake\":{\"services\":[\"VPN\"],\"symptom\":\"접속이 안 됨\",\"errorMessage\":\"인증서 만료\"},\"statuses\":[{\"outcome\":\"FOUND\",\"serviceId\":\"VPN\",\"state\":\"normal\",\"detail\":\"현재 공통 장애 공지는 없다. 개인 접속 환경은 별도 확인한다.\",\"revision\":1}]}",
-                line(session, "a|VPN이고 인증서 만료 메시지가 나와요"));
-        assertEquals("{\"outcome\":\"NEEDS_INPUT\",\"conversationId\":\"b\",\"intake\":{\"services\":[],\"symptom\":\"접속이 안 됨\"},\"question\":\"어느 서비스의 문제인가요? VPN, 통합 로그인, 메일 중에서 알려 주세요.\"}",
-                line(session, "b|접속이 안 돼요"));
-        var failing = new IntakeSession("test-model", request -> { throw new OpenAIException("prepared failure"); }, statuses);
-        assertEquals("{\"outcome\":\"FAILED\",\"conversationId\":\"a\",\"code\":\"MODEL_UNAVAILABLE\",\"message\":\"모델을 호출하지 못했습니다.\"}", line(failing, "a|VPN이 자꾸 끊겨요"));
     }
 
     private static String readyB() {

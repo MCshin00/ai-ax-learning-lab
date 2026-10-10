@@ -51,6 +51,11 @@ class ClientPlanTest {
     @Test void C9_noStructuredObjectEvenWithValidText() {
         invalidResponse(StatusWire.decode("VPN", new CallToolResult(List.of(new TextContent(VPN)), false, null, null)));
     }
+    @Test void C11_unknownCauseIsPassedThrough() throws Exception {
+        var value = node(UNREADABLE).put("code", "RATE_LIMITED").put("message", "Please retry later.");
+        assertEquals("{\"outcome\":\"UNAVAILABLE\",\"serviceId\":\"VPN\",\"code\":\"RATE_LIMITED\",\"message\":\"Please retry later.\"}",
+                StatusWire.text(StatusWire.fields(read(value, true))));
+    }
     @Test void C12_failedVpnDoesNotEraseMailResult() throws Exception {
         var rows = data(); ((ObjectNode) rows.get(0)).remove("detail"); write(directory, rows);
         try (var client = new StatusClient(server(directory))) {
