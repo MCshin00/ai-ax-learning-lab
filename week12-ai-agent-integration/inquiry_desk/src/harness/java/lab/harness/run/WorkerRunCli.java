@@ -44,7 +44,7 @@ public final class WorkerRunCli {
         boolean release = args.length == 3 && args[0].equals("release") && args[2].matches("\\d{1,6}");
         if (!start && !release && !(args.length == 2 && List.of("stop", "status").contains(args[0]))) {
             System.out.println("사용법: [--config <설정 파일>] start <작업 이름> <요청문 파일> | stop <작업 이름>"
-                + " | status <작업 이름> | release <작업 이름> <확인한 시도 번호, 읽을 수 없는 잠금은 0>");
+                + " | status <작업 이름> | release <작업 이름> <확인한 시도 번호>");
             System.exit(2);
         }
         Config config = JSON.readValue(Files.readString(configFile, StandardCharsets.UTF_8), Config.class);
@@ -74,7 +74,7 @@ public final class WorkerRunCli {
                         Files.writeString(ledger.stopFile(taskId, lock.attempt()), Instant.now().toString());
                         main.join(30_000);
                     }
-                } catch (Exception ignored) { /* 종료 중에는 더 할 수 있는 일이 없다. 다음 접수가 남은 프로세스를 확인한다. */ }
+                } catch (Exception ignored) { /* 종료 중에는 더 할 수 있는 일이 없다. */ }
             }, "worker-cleanup"));
             outcome = manager.start(taskId, request);
         } else if (args[0].equals("stop")) {

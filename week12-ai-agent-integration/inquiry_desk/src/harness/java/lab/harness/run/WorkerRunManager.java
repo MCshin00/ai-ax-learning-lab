@@ -52,23 +52,13 @@ public final class WorkerRunManager {
         int number = admission.attempt();
         Path directory = ledger.attemptDir(taskId, number);
         String started = Instant.now().toString();
-        // 작업자와 검사가 띄운 프로세스를 한 목록에 모아 기록한다. 실행 관리가 사라져도 다음 접수가 이 목록을 본다.
+        // 작업자와 검사가 띄운 프로세스를 한 목록에 모아 기록한다. 실행 관리가 사라지면 stop이 이 목록으로 종료를 요청한다.
         // 번호와 시작 시각을 함께 식별자로 쓴다. 번호가 다시 쓰여도 새 프로세스의 기록을 버리지 않는다.
         Set<ProcessRunner.Seen> launched = new LinkedHashSet<>();
-        String[] phase = {"worker"};
         ProcessRunner.Watcher watcher = processes -> {
             synchronized (launched) {
                 launched.addAll(processes);
-                try {
-                    ledger.recordProcesses(taskId, number, List.copyOf(launched));
-                } catch (RuntimeException unrecorded) {
-                    // 기록에 없는 프로세스가 생겼다. 표시를 다시 세워, 종료가 확인되지 않으면 다음 접수가 옛 기록만 보고 잠금을 풀지 않게 한다.
-                    try { ledger.markLaunching(taskId, number, phase[0]); }
-                    catch (IOException alsoFailed) { unrecorded.addSuppressed(alsoFailed); }
-                    throw unrecorded;
-                }
-                // 지금까지 본 프로세스가 모두 기록됐으므로 표시를 지운다.
-                ledger.clearLaunching(taskId, number, phase[0]);
+                ledger.recordProcesses(taskId, number, List.copyOf(launched));
             }
         };
         Path stopFile = ledger.stopFile(taskId, number);
@@ -83,22 +73,7 @@ public final class WorkerRunManager {
         String hookNote = "";
         try {
             Files.writeString(directory.resolve("request.md"), request, StandardCharsets.UTF_8);
-            // 작업 폴더를 만드는 git도 이 시도가 시작하는 프로세스다. 시작하기 전에 표시를 남기고, 끝난 것이 확인된 뒤에만 지운다.
-            // 그 사이에 실행 관리가 사라지거나 git의 종료를 확인하지 못하면 표시가 남아 다음 접수가 잠금을 풀지 못한다.
-            confirmed = false;
-            ledger.markLaunching(taskId, number, "workspace");
-            Path workspace;
-            try {
-                workspace = workspaces.prepare(taskId);
-            } catch (Workspaces.StillRunning left) {
-                throw left;
-            } catch (Exception finished) {
-                ledger.clearLaunching(taskId, number, "workspace");
-                confirmed = true;
-                throw finished;
-            }
-            ledger.clearLaunching(taskId, number, "workspace");
-            confirmed = true;
+            Path workspace = workspaces.prepare(taskId);
             ledger.recordWorkspace(taskId, workspace);
             Path resultFile = directory.resolve("result.json");
             List<String> command = settings.workerCommand().stream().map(part -> part
@@ -108,7 +83,6 @@ public final class WorkerRunManager {
             Files.deleteIfExists(hookRecord);
             // 작업 폴더를 준비하는 동안 중단 요청이 들어왔으면 작업자를 시작하지 않는다.
             if (stop.requested()) throw new StopRequested("중단 요청이 있어 작업자를 시작하지 않았습니다.");
-            ledger.markLaunching(taskId, number, "worker");
             confirmed = false;
             run = runner.run(command, workspace, settings.workerEnvironment(), request, directory.resolve("worker.log"),
                 settings.workerTimeout(), stop, watcher);
@@ -118,12 +92,6 @@ public final class WorkerRunManager {
                 Files.copy(hookRecord, directory.resolve("hook-event.json"), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 hookNote = hookStopped(hookRecord);
             }
-            // 시작하지 못했거나 종료가 확인된 경우에만 시작 표시를 지운다. 번호가 기록됐다면 watcher가 이미 지웠다.
-            // 프로세스를 기록하지 못했고 종료도 확인되지 않았으면 표시가 남아, 기록에 없는 프로세스가 있을 수 있음을 알린다.
-            if (run.end() == ProcessRunner.End.START_FAILED || run.terminationConfirmed()) {
-                ledger.clearLaunching(taskId, number, "worker");
-            }
-
             // 실행이 정상으로 끝나지 않았으면 작업자가 남긴 결과와 관계없이 사람이 확인한다. 결과 파일은 시도 폴더에 그대로 남는다.
             if (!run.terminationConfirmed()) {
                 state = State.NEEDS_CHECK;
@@ -148,20 +116,17 @@ public final class WorkerRunManager {
                 state = State.NEEDS_CHECK;
                 reason = "작업자는 정상 종료했지만 요청을 끝까지 전달하지 못했습니다.";
             } else {
-                String problem = WorkerResult.problem(resultFile);
-                if (problem != null) {
+                WorkerResult result = WorkerResult.read(resultFile);
+                if (result.problem() != null) {
                     state = State.NEEDS_CHECK;
-                    reason = "작업자의 결과가 약속한 형식이 아닙니다: " + problem;
-                } else if (WorkerResult.stopped(resultFile)) {
+                    reason = result.problem();
+                } else if (result.stopped()) {
                     state = State.QUESTION;
                     reason = "작업자가 질문을 남기고 멈췄습니다.";
                 } else {
-                    phase[0] = "check";
-                    ledger.markLaunching(taskId, number, "check");
                     confirmed = false;
                     Check verdict = checker.run(workspace, directory.resolve("check"), stop, watcher);
                     confirmed = verdict.terminationConfirmed();
-                    if (verdict.terminationConfirmed()) ledger.clearLaunching(taskId, number, "check");
                     check = verdict.verdict().name();
                     reason = verdict.summary();
                     if (!verdict.terminationConfirmed()) {
@@ -197,11 +162,7 @@ public final class WorkerRunManager {
      * 기록된 프로세스와 그 하위 프로세스에 직접 종료를 요청하고 사라졌는지 확인한다.
      */
     public Outcome stop(String taskId, Duration wait) throws IOException {
-        TaskLedger.Lock lock;
-        try { lock = ledger.requestStop(taskId); }
-        catch (IOException | RuntimeException unreadable) {
-            return new Outcome(false, taskId, 0, State.NEEDS_CHECK, TaskLedger.UNREADABLE_LOCK, "");
-        }
+        TaskLedger.Lock lock = ledger.requestStop(taskId);
         if (lock == null) return current(taskId, "실행 중인 시도가 없습니다.");
         int number = lock.attempt();
         if (ledger.attempt(taskId, number) == null && lock.manager().liveness() != ProcessRunner.Liveness.GONE) {
@@ -209,41 +170,20 @@ public final class WorkerRunManager {
             while (ledger.attempt(taskId, number) == null && System.nanoTime() < deadline) pause();
             return current(taskId, "중단을 요청했지만 시도가 아직 끝나지 않았습니다.");
         }
-        // 실행 관리가 사라졌다. 시작과 기록 사이에 사라졌다면 기록에 없는 프로세스가 있을 수 있어 끝났다고 할 수 없다.
-        if (ledger.launchPending(taskId, number)) {
-            ledger.needsCheck(taskId, ledger.unrecordedLaunch(taskId, number));
-            return current(taskId, "");
-        }
-        // 찾고, 기록하고, 종료를 확인하는 동안 다른 접수가 옛 기록만 보고 잠금을 풀지 않도록 표시를 먼저 남긴다.
-        ledger.markLaunching(taskId, number, "stop");
-        List<ProcessRunner.Seen> recorded = ledger.processes(taskId, number);
-        ProcessRunner.Remaining remaining = ProcessRunner.remaining(recorded);
-        // 기록에 없던 하위 프로세스를 찾았으면 종료를 요청하기 전에 기록한다. 종료에 실패해도 다음 접수가 그것을 본다.
-        Set<ProcessRunner.Seen> all = new LinkedHashSet<>(recorded);
-        remaining.processes().forEach(handle -> all.add(ProcessRunner.Seen.of(handle)));
-        boolean allRecorded = true;
-        if (all.size() != recorded.size()) {
-            try { ledger.recordProcesses(taskId, number, List.copyOf(all)); }
-            catch (RuntimeException unrecorded) { allRecorded = false; }
-        }
-        boolean gone = remaining.processes().isEmpty() || ProcessRunner.FORCE.terminate(remaining.processes(), wait);
-        gone = gone && ProcessRunner.remaining(List.copyOf(all)).none();
-        // 모두 사라졌거나, 남았더라도 전부 기록돼 있으면 표시를 지운다. 기록하지 못한 것이 남았으면 표시를 둔다.
-        if (gone || allRecorded) ledger.clearLaunching(taskId, number, "stop");
+        ProcessRunner.Remaining remaining = ProcessRunner.remaining(ledger.processes(taskId, number));
+        boolean gone = ProcessRunner.FORCE.terminate(remaining.processes(), wait) && !remaining.unknown();
         Attempt before = ledger.attempt(taskId, number);
-        String note = gone ? "남아 있던 프로세스의 종료를 확인했습니다."
+        String note = gone ? "기록된 프로세스의 종료를 확인했습니다. 남은 프로세스가 없는지 확인한 뒤 release "
+            + taskId + " " + number + "로 잠금을 푸세요."
             : "종료를 요청했지만 프로세스가 남아 있거나 같은 프로세스인지 가릴 수 없습니다.";
-        ledger.finish(taskId, new Attempt(number, before == null ? "" : before.startedAt(), Instant.now().toString(),
+        ledger.recordStop(taskId, new Attempt(number, before == null ? "" : before.startedAt(), Instant.now().toString(),
             before == null ? "ABANDONED" : before.end(), before == null ? -1 : before.exitCode(),
             before != null && before.inputDelivered(), gone, before == null ? "" : before.check(), note),
-            State.NEEDS_CHECK, note);
+            note);
         return current(taskId, "");
     }
 
-    /**
-     * 프로그램이 종료를 확인할 수 없을 때, 사람이 남은 프로세스가 없음을 확인하고 잠금을 푼다.
-     * attempt는 확인한 시도의 번호이고 읽을 수 없는 잠금은 0이다.
-     */
+    /** 사람이 남은 프로세스가 없음을 확인한 시도의 잠금을 푼다. */
     public Outcome release(String taskId, int attempt) throws IOException {
         String refused = ledger.release(taskId, attempt);
         Outcome current = current(taskId, "");
@@ -273,62 +213,19 @@ public final class WorkerRunManager {
         }
     }
 
-    /**
-     * 작업자의 결과 파일. 항목의 이름과 타입은 src/harness/resources/worker-result.schema.json에 선언돼 있다.
-     * 작업자가 그 형식으로 답하게 하는 것은 설정의 작업자 명령과 요청문이 맡고, 실행 관리는 이 파일을 읽지 않는다.
-     * 여기서는 돌아온 결과가 그 형식인지와 스키마로 적지 못한 조건을 확인한다. 문자열 항목이 비어 있지 않은지, 멈춘 결과에 질문이 있는지,
-     * 끝난 결과에 검사 기록과 본문 초안이 있는지다. 스키마에 없는 항목이 더 있어도 거절하지 않는다.
-     */
-    static final class WorkerResult {
-        private WorkerResult() {}
-
-        /** 약속한 형식이면 null, 아니면 어긋난 곳. */
-        static String problem(Path file) {
+    /** 결과 형식은 작업자 명령과 요청문이 맡고, 여기서는 상태와 멈춘 결과의 질문 유무만 읽는다. */
+    static record WorkerResult(boolean stopped, String problem) {
+        static WorkerResult read(Path file) {
             JsonNode result;
             try { result = JSON.readTree(Files.readString(file, StandardCharsets.UTF_8)); }
-            catch (IOException | RuntimeException unreadable) { return "결과 파일을 읽을 수 없습니다."; }
-            if (result == null || !result.isObject()) return "결과가 JSON 객체가 아닙니다.";
-            String status = result.path("status").asText("");
-            if (!List.of("done", "stopped").contains(status)) return "status가 done 또는 stopped가 아닙니다.";
-            for (String name : List.of("summary", "pr_body")) {
-                if (!result.path(name).isTextual()) return name + "이(가) 문자열이 아닙니다.";
-            }
-            for (String name : List.of("questions", "changed_files", "checks", "unchecked")) {
-                if (!result.path(name).isArray()) return name + "이(가) 목록이 아닙니다.";
-            }
-            for (JsonNode question : result.path("questions")) {
-                if (blank(question, "input") || !question.path("options").isArray() || question.path("options").isEmpty()) {
-                    return "질문에 갈리는 입력이나 선택지가 없습니다.";
-                }
-                for (JsonNode option : question.path("options")) {
-                    if (blank(option, "choice") || blank(option, "result")) return "선택지에 선택이나 그 결과가 없습니다.";
-                }
-            }
-            for (JsonNode changed : result.path("changed_files")) {
-                if (blank(changed, "path") || blank(changed, "role")) return "변경 파일에 경로나 역할이 없습니다.";
-            }
-            for (JsonNode check : result.path("checks")) {
-                if (blank(check, "what") || blank(check, "command") || !check.path("evidence").isTextual()
-                        || !List.of("pass", "fail", "not_run").contains(check.path("result").asText(""))) {
-                    return "검사 기록에 대상·명령·결과·근거가 갖춰지지 않았습니다.";
-                }
-            }
-            for (JsonNode item : result.path("unchecked")) {
-                if (!item.isTextual()) return "unchecked의 항목이 문자열이 아닙니다.";
-            }
-            if (status.equals("stopped") && result.path("questions").isEmpty()) return "멈췄는데 질문이 없습니다.";
-            if (status.equals("done") && result.path("pr_body").asText().isBlank()) return "끝났는데 풀 리퀘스트 본문 초안이 없습니다.";
-            if (status.equals("done") && result.path("checks").isEmpty()) return "끝났는데 실행한 검사의 기록이 없습니다.";
-            return null;
-        }
-
-        private static boolean blank(JsonNode node, String name) {
-            return !node.path(name).isTextual() || node.path(name).asText().isBlank();
-        }
-
-        static boolean stopped(Path file) {
-            try { return "stopped".equals(JSON.readTree(Files.readString(file, StandardCharsets.UTF_8)).path("status").asText()); }
-            catch (IOException | RuntimeException unreadable) { return false; }
+            catch (IOException | RuntimeException unreadable) { return new WorkerResult(false, "결과 파일을 읽을 수 없습니다."); }
+            if (result == null || !result.isObject()) return new WorkerResult(false, "결과가 JSON 객체가 아닙니다.");
+            return switch (result.path("status").asText("")) {
+                case "done" -> new WorkerResult(false, null);
+                case "stopped" -> new WorkerResult(true,
+                    result.path("questions").isEmpty() ? "멈췄는데 질문이 없습니다." : null);
+                default -> new WorkerResult(false, "status가 done 또는 stopped가 아닙니다.");
+            };
         }
     }
 
