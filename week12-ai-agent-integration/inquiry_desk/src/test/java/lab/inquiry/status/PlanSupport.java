@@ -24,7 +24,6 @@ final class PlanSupport {
     static final String UNREADABLE = "{\"outcome\":\"UNAVAILABLE\",\"serviceId\":\"VPN\",\"code\":\"DATA_UNREADABLE\",\"message\":\"서비스 자료를 읽을 수 없습니다.\"}";
     static final String INVALID = "{\"outcome\":\"INVALID_INPUT\",\"code\":\"INVALID_ARGUMENTS\",\"message\":\"serviceId는 공백이 아닌 문자열 하나여야 하고 다른 인수는 받지 않습니다.\"}";
     static final String INVALID_SSO = "{\"outcome\":\"UNAVAILABLE\",\"serviceId\":\"SSO\",\"code\":\"DATA_INVALID\",\"message\":\"서비스 자료의 형식이 올바르지 않습니다.\"}";
-    static final String UNKNOWN = "{\"outcome\":\"UNAVAILABLE\",\"serviceId\":\"VPN\",\"code\":\"UNKNOWN\",\"receivedCode\":\"RATE_LIMITED\",\"message\":\"상태 조회 서버가 알 수 없는 원인 값을 보냈습니다.\"}";
 
     static ArrayNode data() throws Exception {
         return (ArrayNode) StatusWire.JSON.readTree(Files.readString(Path.of("data/services.json")));
