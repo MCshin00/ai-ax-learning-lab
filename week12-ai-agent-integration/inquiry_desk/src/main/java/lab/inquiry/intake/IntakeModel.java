@@ -72,7 +72,6 @@ final class IntakeModel {
                 .build();
     }
 
-    /** 약속과 다른 응답은 값을 만들지 않는다. 호출 실패와는 별개다. */
     static Intake decode(ChatCompletion response) {
         if (response.choices().isEmpty()) return null;
         var choice = response.choices().get(0);

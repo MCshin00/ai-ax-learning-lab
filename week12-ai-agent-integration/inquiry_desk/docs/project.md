@@ -64,13 +64,7 @@ IDE에서 `lab.inquiry.status.OperationsMain`을 실행하고 작업 폴더를 �
 | `IntakeSession.java` | 첫 `\|`로 대화 ID와 발언을 나누고 대화별 현재 결과·발언 원문을 메모리에 보관한다. 접수 결과의 서비스를 주입한 `Function<String, LookupResult>`로 순서대로 조회하고 성공한 접수만 상태에 반영한다 |
 | `IntakeWire.java` | 접수 결과의 공개 JSON 필드와 순서, 없는 값의 생략. 상태 항목은 기존 `StatusWire.fields`로 변환한다 |
 
-모델 요청에는 지침과 이전 접수 결과(있을 때), 새 발언만 들어간다. 이전 발언 원문은 보관만 한다. 모델은 이전 결과에 새 발언을 반영한 전체 결과를 돌려주며, 코드는 완료·거절·내용 유무를 확인한 뒤 JSON을 읽고 같은 서비스를 처음 나온 순서로 하나만 남긴다. 정상 완료되고 거절이 아닌 응답의 필드 수와 타입은 제공자의 엄격한 스키마가 보장한다. 이름을 ID로 바꾸는 일은 모델이 맡는다.
-
-이름 대응표는 `IntakeModel.NAMES` 한 곳에 ID별 이름 목록으로 두고 접수 지침과 질문이 함께 쓴다. 질문에는 ID마다 첫 이름을 쓴다. 대응표는 조회 대상을 걸러 내지 않는다. 예를 들어 `VPN`과 `급여 시스템`을 받으면 둘 다 조회하여 `FOUND`와 `NOT_FOUND`를 함께 전달한다. 접수 규칙과 예는 `IntakeModel.INSTRUCTIONS`에 있다.
-
-결과는 `READY`, `NEEDS_INPUT`, `FAILED`다. 서비스가 없으면 정해 둔 질문을 보내고 조회하지 않는다. 한 서비스의 조회 실패는 그 서비스의 `statuses` 항목에 남으며 전체 접수는 `READY`다. 모델 호출 실패는 `MODEL_UNAVAILABLE`, 완료되지 않은 응답·거절·내용 없음·JSON 읽기 실패는 `INVALID_OUTPUT`, 잘못된 입력 줄은 `INVALID_INPUT`으로 돌려준다. `FAILED` 발언은 현재 접수 결과와 원문 목록을 바꾸지 않는다. 재호출은 하지 않는다.
-
-공개 결과의 형태는 대표 응답을 글자 그대로 비교하는 검사로 고정한다. 모델 응답에는 `services`, `symptom`, `errorMessage`가 모두 필수이고 뒤의 두 값은 `null`일 수 있다. 공개 결과에서는 없는 필드를 생략한다. 모델 호출은 OpenAI Java SDK 4.60.0의 Chat Completions를 직접 사용하고, 제한 시간은 30초, SDK 자동 재시도는 0회다.
+이름 대응표는 `IntakeModel.NAMES`에, 접수 지침과 예는 `IntakeModel.INSTRUCTIONS`에 있다. 결과는 `READY`, `NEEDS_INPUT`, `FAILED`다. 한 서비스의 조회 실패는 그 서비스의 `statuses` 항목에 남고 접수 전체는 `READY`다. 모델 호출은 OpenAI Java SDK 4.60.0의 Chat Completions를 직접 사용하고, 제한 시간은 30초, SDK 자동 재시도는 0회다.
 
 IDE에서 `lab.inquiry.intake.IntakeMain`을 실행한다. 작업 폴더는 프로젝트 루트 `inquiry_desk`, 인수는 생략하거나 `--data-dir <자료 폴더>`다. IDE의 비공유 실행 설정에 `OPENAI_API_KEY`와 `OPENAI_MODEL`을 넣는다. 모델은 엄격한 JSON Schema 출력을 지원하는 것을 지정한다. 환경변수 파일을 읽는 로더는 없으며, 설정이 없으면 표준 오류에 없는 변수 이름을 출력하고 종료 코드 2로 끝난다. 입력 종료는 코드 0이다. Gradle의 기본 실행 진입점은 상태 조회 운영 도구다.
 
@@ -102,7 +96,7 @@ k|VPN이랑 급여 시스템이 안 돼요
 | g의 둘째 발언 | 서비스가 `SSO`로 바뀌고 증상은 남는다 |
 | k | `VPN`과 `급여 시스템`이 함께 적힌다 |
 
-`src/test/java/lab/inquiry/intake/IntakePlanTest.java`에서 접수를 검사한다. 모델 응답과 상태 조회는 대역을 쓰며, `a_namedService` 한 건은 실제 조회 서버와 연결한다. 실제 모델의 해석은 자동 검사에서 확인하지 않는다.
+`src/test/java/lab/inquiry/intake/IntakePlanTest.java`에서 접수를 검사한다. 모델 응답과 상태 조회는 대역을 쓴다. 실제 모델의 해석은 자동 검사에서 확인하지 않는다.
 
 ## 개발 환경
 
