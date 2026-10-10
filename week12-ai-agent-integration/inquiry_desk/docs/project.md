@@ -13,7 +13,7 @@
 
 ## 처리 순서
 
-접수(모델) → 상태 조회(코드가 MCP 호출) → 운영 문서 검색 → 초안(모델) → 출처 검사(코드) → 검토·저장(담당자 확인 뒤 코드가 MCP 호출). 이유는 [0001](adr/0001-processing-roles.md)에 있다.
+접수(모델) → 상태 조회(코드가 MCP 호출) → 운영 문서 검색 → 필요하면 검색어 다시 쓰기(모델, 한 번)와 재검색 → 초안(모델) → 출처 검사(코드) → 검토·저장(담당자 확인 뒤 코드가 MCP 호출). 이유는 [0001](adr/0001-processing-roles.md), [0012](adr/0012-runbook-search.md), [0013](adr/0013-source-check-and-missing-evidence.md)에 있다.
 
 ## 지금 구현된 것
 
@@ -21,7 +21,10 @@
 |---|---|
 | 상태 조회 | 별도 stdio MCP 서버가 `get_service_status`를 공개한다. 요청 ID와 같은 첫 행에서 읽은 값을 전달하며, 앱 클라이언트와 운영 도구가 같은 서버를 호출한다. 클라이언트는 서버의 원인 값과 문장을 그대로 전달한다 |
 | 접수 | OpenAI Java SDK의 엄격한 JSON Schema로 서비스·증상·오류를 받는다. 대화별 이전 결과를 이어 보내고, 서비스가 없으면 질문하며 있으면 주입한 조회 함수로 모두 조회한다 |
-| 검색, 초안, 출처 검사, 검토·저장, HTTP | 없음 |
+| 운영 문서 검색 | 서비스별 문서를 매번 읽고 Lucene BM25와 KoreanAnalyzer로 제목·본문을 검색한다. 서비스마다 최대 2개를 넘긴다 |
+| 검색어 다시 쓰기 | 문서는 있지만 근거가 없는 서비스의 검색어를 모델이 한 번 다시 쓰고 그 서비스만 다시 찾는다 |
+| 초안·출처 검사 | 찾은 문서와 상태로 초안을 만들고 출처가 이번 검색 결과에 속하는지 코드가 대조한다. 서비스별 근거와 실패 이유를 함께 돌려준다 |
+| 검토·저장, HTTP | 없음 |
 
 ## 제공 자료
 
@@ -58,7 +61,6 @@ IDE에서 `lab.inquiry.status.OperationsMain`을 실행하고 작업 폴더를 �
 
 | 파일 | 맡은 일 |
 |---|---|
-| `IntakeMain.java` | 실행 인수와 모델 환경변수를 읽고 SDK 클라이언트를 연결하며 상태 클라이언트의 `get`을 접수 세션에 넘긴다. 표준 입력 한 줄마다 결과 JSON 한 줄을 출력한다 |
 | `IntakeModel.java` | 이름 대응표와 질문·접수 지침, 엄격한 스키마를 지정한 모델 요청, 완료·거절·내용 유무 확인, JSON 읽기와 중복 서비스 제거. `Call` 한 곳에서 모델 호출을 검사 대역으로 바꾼다 |
 | `Intake.java` | 서비스 목록, 증상, 오류 메시지를 담는 내부 값 |
 | `IntakeSession.java` | 첫 `\|`로 대화 ID와 발언을 나누고 대화별 현재 결과·발언 원문을 메모리에 보관한다. 접수 결과의 서비스를 주입한 `Function<String, LookupResult>`로 순서대로 조회하고 성공한 접수만 상태에 반영한다 |
@@ -66,7 +68,7 @@ IDE에서 `lab.inquiry.status.OperationsMain`을 실행하고 작업 폴더를 �
 
 이름 대응표는 `IntakeModel.NAMES`에, 접수 지침과 예는 `IntakeModel.INSTRUCTIONS`에 있다. 결과는 `READY`, `NEEDS_INPUT`, `FAILED`다. 한 서비스의 조회 실패는 그 서비스의 `statuses` 항목에 남고 접수 전체는 `READY`다. 모델 호출은 OpenAI Java SDK 4.60.0의 Chat Completions를 직접 사용하고, 제한 시간은 30초, SDK 자동 재시도는 0회다.
 
-IDE에서 `lab.inquiry.intake.IntakeMain`을 실행한다. 작업 폴더는 프로젝트 루트 `inquiry_desk`, 인수는 생략하거나 `--data-dir <자료 폴더>`다. IDE의 비공유 실행 설정에 `OPENAI_API_KEY`와 `OPENAI_MODEL`을 넣는다. 모델은 엄격한 JSON Schema 출력을 지원하는 것을 지정한다. 환경변수 파일을 읽는 로더는 없으며, 설정이 없으면 표준 오류에 없는 변수 이름을 출력하고 종료 코드 2로 끝난다. 입력 종료는 코드 0이다. Gradle의 기본 실행 진입점은 상태 조회 운영 도구다.
+IDE에서 `lab.inquiry.InquiryMain`을 실행한다. 작업 폴더는 프로젝트 루트 `inquiry_desk`, 인수는 생략하거나 `--data-dir <자료 폴더>`다. IDE의 비공유 실행 설정에 `OPENAI_API_KEY`와 `OPENAI_MODEL`을 넣는다. 모델은 엄격한 JSON Schema 출력을 지원하는 것을 지정한다. 환경변수 파일을 읽는 로더는 없으며, 설정이 없으면 표준 오류에 없는 변수 이름을 출력하고 종료 코드 2로 끝난다. 입력 종료는 코드 0이다. 표준 입력의 `대화ID|발언` 한 줄마다 접수부터 초안까지 처리한 결과 JSON 한 줄을 출력한다. Gradle의 기본 실행 진입점은 상태 조회 운영 도구다.
 
 IDE 콘솔에서 다음을 한 줄씩 입력한다.
 
@@ -97,6 +99,52 @@ k|VPN이랑 급여 시스템이 안 돼요
 | k | `VPN`과 `급여 시스템`이 함께 적힌다 |
 
 `src/test/java/lab/inquiry/intake/IntakePlanTest.java`에서 접수를 검사한다. 모델 응답과 상태 조회는 대역을 쓴다. 실제 모델의 해석은 자동 검사에서 확인하지 않는다.
+
+## 운영 문서 검색과 대응 초안
+
+`src/main/java/lab/inquiry/`는 접수 결과를 검색과 초안으로 잇는다. 검색 방식과 근거가 부족할 때의 결정은 [0012](adr/0012-runbook-search.md), 초안과 출처 검사는 [0013](adr/0013-source-check-and-missing-evidence.md)에 있다.
+
+| 파일 | 맡은 일 |
+|---|---|
+| `InquiryMain.java` | 인수·모델 환경변수를 확인하고 SDK와 상태 클라이언트를 연결한다. 입력 한 줄마다 결과 한 줄을 출력한다 |
+| `InquirySession.java` | 접수·상태 조회 뒤 서비스별 검색, 한 번의 다시 쓰기, 초안, 출처 대조를 순서대로 수행한다. 발언별 모델 호출 수와 서비스별 근거·알림을 모은다 |
+| `RunbookSearch.java` | `runbooks.json`을 읽어 서비스로 거르고, 제목과 본문을 Lucene BM25·기본 KoreanAnalyzer로 검색한다. 검색 때 읽은 문서 원문을 결과에 보관한다 |
+| `InquiryModel.java` | 다시 쓰기·초안 지침과 엄격한 응답 스키마를 선언하고 응답을 읽는다. 접수와 같은 `IntakeModel.Call`을 통해 SDK 호출을 대역으로 바꿀 수 있다 |
+| `InquiryWire.java` | `IntakeWire`의 접수 결과에 근거·초안·알림·호출 수를 순서대로 더해 공개 JSON을 만든다 |
+
+`READY`는 접수가 성립했다는 뜻이다. 초안 유무는 `draft`로 본다. 접수 실패(`FAILED`)와 대상 확인 질문(`NEEDS_INPUT`)의 JSON은 접수 결과만 담는다. 성공한 접수는 대화에 반영되고, 이후 검색과 초안은 발언마다 새로 만들어진다. 모델 호출은 발언당 접수를 포함해 최대 3회이며, 다시 쓰기와 초안에도 제한 시간 30초·자동 재시도 0회를 적용한다.
+
+`READY`의 필드 순서는 `outcome`, `conversationId`, `intake`, `statuses`, `evidence`, `draft`, `notices`, `modelCalls`다.
+
+| 필드 | 공개 형태 |
+|---|---|
+| `evidence` | 항상 배열이다. 검색한 서비스 순서로 `serviceId`, `outcome`(`FOUND`·`NONE`·`FAILED`), 실제 사용한 `queries`, 점수 순의 `documents`를 담는다. 문서는 `id`·`title`만 공개하며 없으면 빈 배열이다 |
+| `draft` | 출처 대조를 통과한 `text`와 `sources`(문서 ID 배열). 초안이 없으면 필드를 생략한다 |
+| `notices` | `code`, 서비스에 대한 것이면 `serviceId`, `message` 순서다. 서비스 알림을 서비스 순서로 먼저 두고 나머지를 뒤에 둔다. 알림이 없으면 필드를 생략한다 |
+| `modelCalls` | 이번 발언에서 시도한 모델 호출 수. 실패한 호출도 포함한다 |
+
+| `code` | `serviceId` | `message` |
+|---|---|---|
+| `NO_EVIDENCE` | 있음 | 운영 문서에서 근거를 찾지 못했습니다. |
+| `SEARCH_FAILED` | 있음 | 운영 문서를 읽지 못했습니다. |
+| `NO_SYMPTOM` | 없음 | 증상이나 오류 메시지가 없어 운영 문서를 찾지 않았습니다. |
+| `SOURCE_MISMATCH` | 없음 | 초안의 출처가 찾은 문서와 맞지 않아 초안을 버렸습니다. |
+| `MODEL_UNAVAILABLE` | 없음 | 모델을 호출하지 못했습니다. |
+| `INVALID_OUTPUT` | 없음 | 모델의 응답이 약속한 형식과 다릅니다. |
+
+위 IDE 실행 설정으로 `InquiryMain`을 실행하고 아래 입력을 한 줄씩 넣는다. 초안은 `data/runbooks.json`의 원문과 대조해 읽는다. 출처 ID가 맞더라도 문장이 원문과 일치한다는 보장은 없다.
+
+| 입력 | 볼 것 |
+|---|---|
+| `s1\|VPN이 자꾸 끊겨요` | RB-VPN을 찾고 확인된 서비스 상태와 확인할 일을 구분한 초안이 나오는지 |
+| `s2\|VPN이고 인증서 만료 메시지가 나와요` | 인증서 만료 문서를 찾고 갱신 요청과 갱신 완료를 구분하는지 |
+| `s3\|VPN 접속이 안 돼요` | 첫 검색에 근거가 없을 때 다시 찾는지, `queries`의 다시 쓴 검색어가 무엇인지 |
+| `s4\|사내망 연결이 자꾸 끊겨요` → `s4\|VPN이요` | 서비스 확인 질문 뒤 이전 증상을 이어받아 문서를 찾는지 |
+| `s5\|VPN 터널이 올라오지 않아요` | 맞지 않는 문서가 걸렸을 때 초안이 맞지 않음을 밝히고 그 내용을 대응 사실처럼 쓰지 않는지 |
+| `s6\|VPN에서 CERT-REVOKED가 떠요` | 다른 오류 코드의 문서가 걸렸을 때 그 내용을 현재 오류의 원인이나 해결로 쓰지 않는지 |
+| `s7\|VPN이요` (새 대화) | 상태는 돌려주고 `evidence`는 비어 있으며 `NO_SYMPTOM`이 나오는지 |
+
+`RunbookSearchPlanTest`는 제공 자료로 실제 Lucene 검색을, `InquiryPlanTest`는 준비한 모델 응답과 상태 조회 대역으로 전체 흐름·공개 결과·환경변수 없는 진입점을 검사한다. 자동 검사는 접수 모델의 해석, 다시 쓴 검색어의 쓸모, 초안 문장과 원문의 일치를 확인하지 못한다. 이 세 가지는 위 입력을 실제 모델로 실행하고 접수 결과·검색어·문서·초안을 함께 읽어 확인한다.
 
 ## 개발 환경
 

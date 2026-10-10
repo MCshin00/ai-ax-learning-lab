@@ -11,9 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-final class IntakeModel {
+public final class IntakeModel {
     @FunctionalInterface
-    interface Call {
+    public interface Call {
         ChatCompletion complete(ChatCompletionCreateParams request);
     }
 
