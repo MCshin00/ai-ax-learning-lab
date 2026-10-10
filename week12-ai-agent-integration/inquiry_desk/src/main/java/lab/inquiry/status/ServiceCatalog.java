@@ -32,29 +32,14 @@ final class ServiceCatalog {
         catch (JsonProcessingException e) { return LookupResult.failed(id, DATA_INVALID); }
         if (rows == null || !rows.isArray()) return LookupResult.failed(id, DATA_INVALID);
 
-        boolean unreadableId = false;
-        JsonNode match = null;
-        int matches = 0;
         for (JsonNode row : rows) {
-            if (!row.isObject() || !nonblank(row.path("id"))) {
-                unreadableId = true;
-            } else if (id.equals(row.path("id").textValue())) {
-                matches++;
-                match = row;
+            if (id.equals(row.path("id").textValue())) {
+                if (!row.path("state").isTextual() || !row.path("detail").isTextual()
+                        || !row.path("revision").isIntegralNumber()) return LookupResult.failed(id, DATA_INVALID);
+                return LookupResult.found(id, row.path("state").textValue(), row.path("detail").textValue(),
+                        row.path("revision").longValue());
             }
         }
-        if (matches == 0) return unreadableId ? LookupResult.failed(id, DATA_INVALID) : LookupResult.absent(id);
-        if (matches != 1 || !validRow(match)) return LookupResult.failed(id, DATA_INVALID);
-        return LookupResult.found(id, match.path("state").textValue(), match.path("detail").textValue(),
-                match.path("revision").longValue());
-    }
-
-    private static boolean nonblank(JsonNode node) { return node.isTextual() && !node.textValue().isBlank(); }
-
-    private static boolean validRow(JsonNode row) {
-        var state = row.path("state");
-        var revision = row.path("revision");
-        return state.isTextual() && (state.textValue().equals("normal") || state.textValue().equals("incident"))
-                && nonblank(row.path("detail")) && revision.isIntegralNumber() && revision.longValue() >= 0;
+        return LookupResult.absent(id);
     }
 }

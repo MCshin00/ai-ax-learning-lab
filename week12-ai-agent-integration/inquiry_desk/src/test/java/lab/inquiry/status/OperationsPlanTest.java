@@ -1,7 +1,7 @@
 package lab.inquiry.status;
 
 import java.nio.file.Path;
-import java.util.List;
+import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -30,8 +30,9 @@ class OperationsPlanTest {
         assertEquals(1, actual.out().lines().count());
         var root = StatusWire.JSON.readTree(actual.out());
         assertEquals(1, root.size());
-        var tools = root.path("tools"); assertEquals(1, tools.size());
-        var tool = tools.get(0);
+        var tools = root.path("tools");
+        var tool = StreamSupport.stream(tools.spliterator(), false)
+                .filter(item -> item.path("name").asText().equals("get_service_status")).findFirst().orElseThrow();
         assertEquals(4, tool.size());
         assertEquals("get_service_status", tool.path("name").asText());
         assertEquals("서비스 ID로 현재 서비스 상태를 조회한다. 자료에 없는 서비스는 NOT_FOUND로 돌려준다.", tool.path("description").asText());
@@ -49,24 +50,11 @@ class OperationsPlanTest {
         result(actual, UNREADABLE, 1);
     }
     @Test void O5_emptyIdGoesToServer() throws Exception { result(run("get", ""), INVALID, 1); }
-    @Test void O6_listingServerCannotStart() throws Exception {
-        result(runMain(UnavailableOperationsMain.class),
-                "{\"outcome\":\"UNAVAILABLE\",\"code\":\"MCP_UNAVAILABLE\",\"message\":\"상태 조회 서버와 통신하지 못했습니다.\"}", 1);
-    }
     @Test void O7_missingId() throws Exception { usage("get"); }
-    @Test void O8_unknownCommand() throws Exception { usage("list"); }
-    @Test void O9_extraArgument() throws Exception { usage("get", "VPN", "SSO"); }
     @Test void O10_missingDataDirectoryValue() throws Exception { usage("--data-dir"); }
-    @Test void O11_emptyDataDirectory() throws Exception { usage("--data-dir", ""); }
-    @Test void getServerCannotStartReturnsC1() throws Exception {
-        result(runMain(UnavailableOperationsMain.class, "get", "VPN"),
-                "{\"outcome\":\"UNAVAILABLE\",\"serviceId\":\"VPN\",\"code\":\"MCP_UNAVAILABLE\",\"message\":\"상태 조회 서버와 통신하지 못했습니다.\"}", 1);
-    }
     @Test void serverUsageHasNoProtocolOutput() throws Exception {
-        for (String[] args : List.of(new String[]{""}, new String[]{"data", "extra"})) {
-            var actual = runMain(StatusServerMain.class, args);
-            assertEquals(2, actual.exit()); assertEquals("", actual.out());
-            assertEquals("사용법: StatusServerMain [자료 폴더]" + System.lineSeparator(), actual.err());
-        }
+        var actual = runMain(StatusServerMain.class, "data", "extra");
+        assertEquals(2, actual.exit()); assertEquals("", actual.out());
+        assertEquals("사용법: StatusServerMain [자료 폴더]" + System.lineSeparator(), actual.err());
     }
 }

@@ -45,8 +45,7 @@ public final class StatusWire {
             value.put("revision", result.revision());
         }
         if (result.isError()) {
-            value.put("code", result.code().name());
-            if (result.code() == UNKNOWN) value.put("receivedCode", result.receivedCode());
+            value.put("code", result.code());
             value.put("message", result.message());
         }
         return value;
@@ -82,30 +81,15 @@ public final class StatusWire {
         try { outcome = LookupResult.Outcome.valueOf(value.path("outcome").textValue()); }
         catch (IllegalArgumentException e) { return LookupResult.failed(requestedId, INVALID_RESPONSE); }
         boolean error = outcome == UNAVAILABLE || outcome == INVALID_INPUT;
-        if (error != Boolean.TRUE.equals(response.isError())) return LookupResult.failed(requestedId, INVALID_RESPONSE);
-
-        if (outcome != INVALID_INPUT && !string(value, "serviceId")) return LookupResult.failed(requestedId, INVALID_RESPONSE);
         if (outcome == FOUND && (!string(value, "state") || !string(value, "detail")
                 || !value.path("revision").isIntegralNumber())) return LookupResult.failed(requestedId, INVALID_RESPONSE);
         if (error && (!string(value, "code") || !string(value, "message"))) return LookupResult.failed(requestedId, INVALID_RESPONSE);
-        if (outcome != INVALID_INPUT && !Objects.equals(requestedId, value.path("serviceId").textValue()))
-            return LookupResult.failed(requestedId, INVALID_RESPONSE);
 
         if (outcome == FOUND) return LookupResult.found(requestedId, value.path("state").textValue(),
                 value.path("detail").textValue(), value.path("revision").longValue());
         if (outcome == NOT_FOUND) return LookupResult.absent(requestedId);
-        String received = value.path("code").textValue();
-        LookupResult.Cause cause;
-        // 서버가 보내는 원인 값만 해석한다. 클라이언트 전용 값은 서버 계약의 원인 값이 아니다.
-        switch (received) {
-            case "DATA_UNREADABLE" -> cause = DATA_UNREADABLE;
-            case "DATA_INVALID" -> cause = DATA_INVALID;
-            case "INVALID_ARGUMENTS" -> cause = INVALID_ARGUMENTS;
-            default -> { return LookupResult.error(outcome, requestedId, UNKNOWN, received, UNKNOWN.message()); }
-        }
-        if ((outcome == INVALID_INPUT) != (cause == INVALID_ARGUMENTS)) return LookupResult.failed(requestedId, INVALID_RESPONSE);
         return LookupResult.error(outcome, outcome == INVALID_INPUT ? null : requestedId,
-                cause, null, value.path("message").textValue());
+                value.path("code").textValue(), value.path("message").textValue());
     }
 
     private static boolean string(JsonNode value, String field) { return value.path(field).isTextual(); }
