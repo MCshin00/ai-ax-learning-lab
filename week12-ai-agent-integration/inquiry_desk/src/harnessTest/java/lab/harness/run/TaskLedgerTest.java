@@ -80,7 +80,6 @@ class TaskLedgerTest {
         assertEquals(ProcessRunner.Liveness.UNKNOWN, withoutStart.liveness());
         ProcessRunner.Remaining remaining = ProcessRunner.remaining(java.util.List.of(withoutStart));
         assertTrue(remaining.unknown());
-        assertFalse(remaining.none());
         // 가릴 수 없는 프로세스는 종료 대상으로 삼지 않는다.
         assertTrue(remaining.processes().isEmpty());
         // 시작 시각이 다르면 번호가 다시 쓰인 것이다.

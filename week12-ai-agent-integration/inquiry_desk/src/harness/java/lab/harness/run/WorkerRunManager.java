@@ -173,7 +173,8 @@ public final class WorkerRunManager {
         ProcessRunner.Remaining remaining = ProcessRunner.remaining(ledger.processes(taskId, number));
         boolean gone = ProcessRunner.FORCE.terminate(remaining.processes(), wait) && !remaining.unknown();
         Attempt before = ledger.attempt(taskId, number);
-        String note = gone ? "남아 있던 프로세스의 종료를 확인했습니다."
+        String note = gone ? "기록된 프로세스의 종료를 확인했습니다. 남은 프로세스가 없는지 확인한 뒤 release "
+            + taskId + " " + number + "로 잠금을 푸세요."
             : "종료를 요청했지만 프로세스가 남아 있거나 같은 프로세스인지 가릴 수 없습니다.";
         ledger.recordStop(taskId, new Attempt(number, before == null ? "" : before.startedAt(), Instant.now().toString(),
             before == null ? "ABANDONED" : before.end(), before == null ? -1 : before.exitCode(),

@@ -45,9 +45,7 @@ public final class ProcessRunner {
     }
 
     /** 기록된 프로세스 가운데 지금 남아 있는 것. unknown이 true이면 같은 프로세스인지 가릴 수 없는 것이 있다. */
-    public record Remaining(List<ProcessHandle> processes, boolean unknown) {
-        public boolean none() { return processes.isEmpty() && !unknown; }
-    }
+    public record Remaining(List<ProcessHandle> processes, boolean unknown) {}
 
     /** 기록된 프로세스와, 그것들이 지금 갖고 있는 하위 프로세스를 함께 찾는다. */
     public static Remaining remaining(List<Seen> recorded) {

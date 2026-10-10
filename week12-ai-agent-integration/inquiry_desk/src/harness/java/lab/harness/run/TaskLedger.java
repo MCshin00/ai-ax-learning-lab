@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -59,13 +58,7 @@ public final class TaskLedger {
             }
             int next = attempts(taskId) + 1;
             write(lockFile, new Lock(next, ProcessRunner.Seen.of(ProcessHandle.current())));
-            try {
-                // 이미 있는 시도 폴더는 쓰지 않는다. 앞선 시도의 요청·결과를 새 시도의 것으로 읽지 않기 위해서다.
-                Files.createDirectory(attemptDir(taskId, next));
-            } catch (FileAlreadyExistsException reused) {
-                Files.deleteIfExists(lockFile);
-                return new Admission(false, next, State.NEEDS_CHECK, next + "번째 시도의 폴더가 이미 있습니다.");
-            }
+            Files.createDirectory(attemptDir(taskId, next));
             write(taskDir(taskId).resolve("task.json"), new Task(taskId, State.RUNNING, "", next, workspace(taskId)));
             return new Admission(true, next, State.RUNNING, "");
         });
@@ -113,7 +106,7 @@ public final class TaskLedger {
         catch (IOException failure) { throw new IllegalStateException("프로세스 기록을 남기지 못했습니다.", failure); }
     }
 
-    /** 종료가 확인되지 않은 시도는 잠금을 남겨 같은 작업의 새 실행을 막는다. 자기 시도의 잠금만 푼다. */
+    /** 종료가 확인되지 않은 시도는 잠금을 남겨 같은 작업의 새 실행을 막는다. 종료가 확인되면 잠금을 푼다. */
     public void finish(String taskId, Attempt attempt, State state, String reason) throws IOException {
         exclusively(taskId, () -> {
             write(attemptDir(taskId, attempt.number()).resolve("attempt.json"), attempt);
@@ -121,7 +114,7 @@ public final class TaskLedger {
                 write(taskDir(taskId).resolve("task.json"), new Task(taskId, state, reason, attempts(taskId), workspace(taskId)));
             }
             Lock lock = lock(taskId);
-            if (attempt.terminationConfirmed() && lock != null && lock.attempt() == attempt.number()) {
+            if (attempt.terminationConfirmed() && lock != null) {
                 Files.deleteIfExists(taskDir(taskId).resolve("lock"));
             }
             return null;

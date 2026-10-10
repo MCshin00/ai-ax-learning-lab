@@ -74,7 +74,7 @@ public final class WorkerRunCli {
                         Files.writeString(ledger.stopFile(taskId, lock.attempt()), Instant.now().toString());
                         main.join(30_000);
                     }
-                } catch (Exception ignored) { /* 종료 중에는 더 할 수 있는 일이 없다. 다음 접수가 남은 프로세스를 확인한다. */ }
+                } catch (Exception ignored) { /* 종료 중에는 더 할 수 있는 일이 없다. */ }
             }, "worker-cleanup"));
             outcome = manager.start(taskId, request);
         } else if (args[0].equals("stop")) {
