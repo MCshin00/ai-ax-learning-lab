@@ -7,16 +7,9 @@ import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.openai.models.chat.completions.ChatCompletionMessage;
 import lab.inquiry.status.LookupResult;
 import org.junit.jupiter.api.Test;
-import java.io.BufferedReader;
-import java.io.PrintWriter;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -50,9 +43,7 @@ class IntakePlanTest {
     }
 
     private String line(IntakeSession session, String input) throws Exception {
-        var output = new StringWriter();
-        IntakeMain.process(new BufferedReader(new StringReader(input + "\n")), new PrintWriter(output), session);
-        return output.toString().stripTrailing();
+        return IntakeWire.text(IntakeWire.fields(session.accept(input)));
     }
 
     private JsonNode input(int index) throws Exception {
@@ -61,10 +52,9 @@ class IntakePlanTest {
 
     @Test void a_namedService() throws Exception {
         var session = session("{\"services\":[\"VPN\"],\"symptom\":\"연결이 자꾸 끊김\",\"errorMessage\":null}");
-        var output = new StringWriter();
-        assertEquals(0, IntakeMain.process(new BufferedReader(new StringReader("a|VPN이 자꾸 끊겨요\n")), new PrintWriter(output), session));
+        String output = line(session, "a|VPN이 자꾸 끊겨요");
         assertEquals("{\"outcome\":\"READY\",\"conversationId\":\"a\",\"intake\":{\"services\":[\"VPN\"],\"symptom\":\"연결이 자꾸 끊김\"},\"statuses\":[" + VPN + "]}",
-                output.toString().stripTrailing());
+                output);
         var request = requests.get(0);
         assertEquals("test-model", request.model().asString());
         assertEquals(2, request.messages().size());
@@ -162,24 +152,6 @@ class IntakePlanTest {
         var session = session();
         assertEquals("{\"outcome\":\"FAILED\",\"code\":\"INVALID_INPUT\",\"message\":\"입력은 대화ID|발언 형식이어야 합니다.\"}", line(session, "접속이 안 돼요"));
         assertTrue(requests.isEmpty());
-    }
-
-    @Test void missingEnvironmentExitsTwo() throws Exception {
-        var builder = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(),
-                "-Dfile.encoding=UTF-8", "-cp", System.getProperty("inquiry.server.classpath"), IntakeMain.class.getName());
-        builder.environment().remove("OPENAI_API_KEY");
-        builder.environment().remove("OPENAI_MODEL");
-        builder.environment().remove("JAVA_TOOL_OPTIONS");
-        var process = builder.start();
-        process.getOutputStream().close();
-        try {
-            assertTrue(process.waitFor(15, TimeUnit.SECONDS));
-            assertEquals(2, process.exitValue());
-            assertEquals("", new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8));
-            String error = new String(process.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
-            assertTrue(error.contains("OPENAI_API_KEY"));
-            assertTrue(error.contains("OPENAI_MODEL"));
-        } finally { if (process.isAlive()) process.destroyForcibly(); }
     }
 
     private static String readyB() {

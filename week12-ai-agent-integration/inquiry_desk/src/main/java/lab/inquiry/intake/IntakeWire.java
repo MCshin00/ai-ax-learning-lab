@@ -6,10 +6,10 @@ import lab.inquiry.status.StatusWire;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-final class IntakeWire {
+public final class IntakeWire {
     static final ObjectMapper JSON = new ObjectMapper();
 
-    static Map<String, Object> intake(Intake intake) {
+    public static Map<String, Object> intake(Intake intake) {
         Map<String, Object> fields = new LinkedHashMap<>();
         fields.put("services", intake.services());
         if (intake.symptom() != null) fields.put("symptom", intake.symptom());
@@ -17,7 +17,7 @@ final class IntakeWire {
         return fields;
     }
 
-    static Map<String, Object> fields(IntakeSession.Result result) {
+    public static Map<String, Object> fields(IntakeSession.Result result) {
         Map<String, Object> fields = new LinkedHashMap<>();
         fields.put("outcome", result.failure() != null ? "FAILED" : result.intake().services().isEmpty() ? "NEEDS_INPUT" : "READY");
         if (result.conversationId() != null) fields.put("conversationId", result.conversationId());
@@ -32,7 +32,7 @@ final class IntakeWire {
         return fields;
     }
 
-    static String text(Object value) {
+    public static String text(Object value) {
         try { return JSON.writeValueAsString(value); }
         catch (JsonProcessingException e) { throw new IllegalStateException("JSON 변환에 실패했습니다.", e); }
     }

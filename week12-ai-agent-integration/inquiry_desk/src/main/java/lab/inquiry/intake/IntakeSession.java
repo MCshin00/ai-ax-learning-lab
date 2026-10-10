@@ -9,8 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-final class IntakeSession {
-    enum Failure {
+public final class IntakeSession {
+    public enum Failure {
         MODEL_UNAVAILABLE("모델을 호출하지 못했습니다."),
         INVALID_OUTPUT("모델의 응답이 약속한 형식과 다릅니다."),
         INVALID_INPUT("입력은 대화ID|발언 형식이어야 합니다.");
@@ -19,7 +19,7 @@ final class IntakeSession {
         Failure(String message) { this.message = message; }
     }
 
-    record Result(String conversationId, Intake intake, List<LookupResult> statuses, Failure failure) {
+    public record Result(String conversationId, Intake intake, List<LookupResult> statuses, Failure failure) {
         static Result failed(String id, Failure cause) { return new Result(id, null, List.of(), cause); }
     }
     record Conversation(Intake intake, List<String> utterances) {
@@ -31,7 +31,7 @@ final class IntakeSession {
     private final Function<String, LookupResult> statuses;
     private final Map<String, Conversation> conversations = new HashMap<>();
 
-    IntakeSession(String model, IntakeModel.Call call, Function<String, LookupResult> statuses) {
+    public IntakeSession(String model, IntakeModel.Call call, Function<String, LookupResult> statuses) {
         this.model = model;
         this.call = call;
         this.statuses = statuses;
@@ -39,7 +39,7 @@ final class IntakeSession {
 
     Conversation conversation(String id) { return conversations.get(id); }
 
-    Result accept(String line) {
+    public Result accept(String line) {
         int separator = line.indexOf('|');
         if (separator < 0) return Result.failed(null, Failure.INVALID_INPUT);
         String id = line.substring(0, separator);
