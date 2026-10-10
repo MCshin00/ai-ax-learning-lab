@@ -36,7 +36,7 @@ public final class IntakeMain {
         if (missing) return 2;
         var client = OpenAIOkHttpClient.builder().apiKey(key).timeout(Duration.ofSeconds(30)).maxRetries(0).build();
         try (var statuses = new StatusClient(directory)) {
-            var session = new IntakeSession(model, request -> client.chat().completions().create(request), statuses);
+            var session = new IntakeSession(model, request -> client.chat().completions().create(request), statuses::get);
             return process(new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8)),
                     new PrintWriter(System.out, true, StandardCharsets.UTF_8), session);
         } finally { client.close(); }

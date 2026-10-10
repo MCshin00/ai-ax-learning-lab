@@ -1,7 +1,6 @@
 package lab.inquiry.intake;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.openai.core.JsonValue;
 import com.openai.models.ResponseFormatJsonSchema;
 import com.openai.models.chat.completions.ChatCompletion;
@@ -80,16 +79,9 @@ final class IntakeModel {
         if (!choice.finishReason().equals(ChatCompletion.Choice.FinishReason.STOP)
                 || choice.message().refusal().isPresent() || choice.message().content().isEmpty()) return null;
         try {
-            var value = IntakeWire.JSON.reader().with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
-                    .readTree(choice.message().content().get());
-            if (value == null || !value.isObject() || value.size() != 3 || !value.path("services").isArray()
-                    || !(value.path("symptom").isTextual() || value.path("symptom").isNull())
-                    || !(value.path("errorMessage").isTextual() || value.path("errorMessage").isNull())) return null;
+            var value = IntakeWire.JSON.readTree(choice.message().content().get());
             var services = new LinkedHashSet<String>();
-            for (var service : value.path("services")) {
-                if (!service.isTextual() || service.textValue().isBlank()) return null;
-                services.add(service.textValue());
-            }
+            for (var service : value.path("services")) services.add(service.asText());
             return new Intake(List.copyOf(services), value.path("symptom").textValue(), value.path("errorMessage").textValue());
         } catch (JsonProcessingException e) { return null; }
     }
