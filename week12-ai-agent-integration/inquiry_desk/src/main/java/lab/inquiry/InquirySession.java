@@ -7,16 +7,18 @@ import lab.inquiry.status.LookupResult;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 final class InquirySession {
     enum Code {
-        NO_EVIDENCE("운영 문서에서 근거를 찾지 못했습니다."),
+        NO_EVIDENCE("이 문의에 쓸 운영 문서를 찾지 못했습니다."),
         SEARCH_FAILED("운영 문서를 읽지 못했습니다."),
         NO_SYMPTOM("증상이나 오류 메시지가 없어 운영 문서를 찾지 않았습니다."),
-        SOURCE_MISMATCH("초안의 출처가 찾은 문서와 맞지 않아 초안을 버렸습니다."),
+        SOURCE_MISMATCH("판정이 돌려준 문서가 넘겨준 문서와 맞지 않아 초안을 버렸습니다."),
         MODEL_UNAVAILABLE("모델을 호출하지 못했습니다."),
         INVALID_OUTPUT("모델의 응답이 약속한 형식과 다릅니다.");
 
@@ -25,7 +27,7 @@ final class InquirySession {
     }
     record Notice(Code code, String serviceId) {}
     record Evidence(String serviceId, List<String> queries, RunbookSearch.Result search) {}
-    record Result(IntakeSession.Result intake, List<Evidence> evidence, InquiryModel.Draft draft,
+    record Result(IntakeSession.Result intake, List<Evidence> evidence, DraftAssembler.Draft draft,
                   List<Notice> notices, int modelCalls) {}
 
     private final IntakeSession intake;
@@ -70,45 +72,44 @@ final class InquirySession {
             String service = value.services().get(i);
             evidence.add(new Evidence(service, List.of(query), search.search(service, query)));
         }
-        var targets = evidence.stream().filter(item -> item.search().outcome() == RunbookSearch.Outcome.NONE
-                && item.search().hasServiceDocuments()).map(Evidence::serviceId).toList();
-        if (!targets.isEmpty()) {
-            stages.accept("REWRITE");
-            var rewritten = model.rewrite(value, targets);
-            if (rewritten.failure() != null) {
-                addSearchNotices(evidence, notices, targets);
-                notices.add(new Notice(rewritten.failure(), null));
-                return new Result(accepted, evidence, null, notices, modelCalls);
-            }
-            for (int i = 0; i < evidence.size(); i++) {
-                var item = evidence.get(i);
-                if (targets.contains(item.serviceId())) {
-                    String nextQuery = rewritten.value().query();
-                    evidence.set(i, new Evidence(item.serviceId(), List.of(query, nextQuery), search.search(item.serviceId(), nextQuery)));
+        var documents = evidence.stream().flatMap(item -> item.search().documents().stream()).toList();
+        var judgments = new HashMap<String, InquiryModel.DocumentJudgment>();
+        Code failure = null;
+        if (!documents.isEmpty()) {
+            stages.accept("DRAFT");
+            var judged = model.judge(value, documents);
+            failure = judged.failure();
+            if (failure == null) {
+                var ids = documents.stream().map(RunbookSearch.Runbook::id).toList();
+                for (var item : judged.value().documents()) judgments.put(item.id(), item);
+                if (judged.value().documents().size() != ids.size()
+                        || judgments.size() != ids.size() || !judgments.keySet().containsAll(ids)) {
+                    failure = Code.SOURCE_MISMATCH;
+                } else if (judgments.values().stream().anyMatch(item ->
+                        item.judgment() == InquiryModel.Judgment.APPLIES && item.actions().isEmpty()
+                        || item.judgment() == InquiryModel.Judgment.CONDITION_UNCONFIRMED && item.condition().isBlank())) {
+                    failure = Code.INVALID_OUTPUT;
                 }
             }
         }
-        addSearchNotices(evidence, notices, List.of());
-        var documents = evidence.stream().flatMap(item -> item.search().documents().stream()).toList();
-        InquiryModel.Draft draft = null;
-        if (!documents.isEmpty()) {
-            stages.accept("DRAFT");
-            var drafted = model.draft(value, accepted.statuses(), documents);
-            if (drafted.failure() != null) notices.add(new Notice(drafted.failure(), null));
-            else {
-                var ids = documents.stream().map(RunbookSearch.Runbook::id).toList();
-                if (drafted.value().sources().isEmpty() || !ids.containsAll(drafted.value().sources())) {
-                    notices.add(new Notice(Code.SOURCE_MISMATCH, null));
-                } else draft = drafted.value();
-            }
+        if (failure != null) judgments.clear();
+        addSearchNotices(evidence, notices, judgments);
+        DraftAssembler.Draft draft = null;
+        if (failure != null) notices.add(new Notice(failure, null));
+        else if (!documents.isEmpty()) {
+            var ordered = documents.stream().map(book -> judgments.get(book.id())).toList();
+            draft = DraftAssembler.assemble(accepted, ordered, notices);
         }
         return new Result(accepted, evidence, draft, notices, modelCalls);
     }
 
-    private static void addSearchNotices(List<Evidence> evidence, List<Notice> notices, List<String> pending) {
+    private static void addSearchNotices(List<Evidence> evidence, List<Notice> notices,
+                                         Map<String, InquiryModel.DocumentJudgment> judgments) {
         for (var item : evidence) {
             if (item.search().outcome() == RunbookSearch.Outcome.FAILED) notices.add(new Notice(Code.SEARCH_FAILED, item.serviceId()));
-            else if (item.search().outcome() == RunbookSearch.Outcome.NONE && !pending.contains(item.serviceId())) {
+            else if (item.search().outcome() == RunbookSearch.Outcome.NONE
+                    || !judgments.isEmpty() && item.search().documents().stream()
+                    .allMatch(book -> judgments.get(book.id()).judgment() == InquiryModel.Judgment.NOT_COVERED)) {
                 notices.add(new Notice(Code.NO_EVIDENCE, item.serviceId()));
             }
         }

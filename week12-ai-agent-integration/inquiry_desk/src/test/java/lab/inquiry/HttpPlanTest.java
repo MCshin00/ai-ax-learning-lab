@@ -39,23 +39,22 @@ class HttpPlanTest {
         return JSON.readTree(line.substring(6)).at("/review/reviewId").textValue();
     }
 
-    @Test void rewriteStagesAndResultArriveInOrder() throws Exception {
-        try (var app = new ReviewPlanSupport(directory, ACCESS, "{\"query\":\"끊김 오류\"}", DRAFT);
+    @Test void stagesAndAssembledResultArriveInOrder() throws Exception {
+        try (var app = new ReviewPlanSupport(directory, CONNECTION, DRAFT);
              var server = new InquiryHttpServer(0, app.session)) {
-            var response = send(server, "/inquiries", "POST", "{\"conversationId\":\"a|b\",\"utterance\":\"VPN 접속이 안 돼요\"}");
+            var response = send(server, "/inquiries", "POST", "{\"conversationId\":\"a|b\",\"utterance\":\"VPN이 자꾸 끊겨요\"}");
             assertEquals(200, response.statusCode());
             assertEquals("text/event-stream; charset=utf-8", response.headers().firstValue("Content-Type").orElseThrow());
             String stages = "event: stage\ndata: {\"stage\":\"INTAKE\"}\n\n"
                     + "event: stage\ndata: {\"stage\":\"STATUS\"}\n\n"
                     + "event: stage\ndata: {\"stage\":\"SEARCH\"}\n\n"
-                    + "event: stage\ndata: {\"stage\":\"REWRITE\"}\n\n"
                     + "event: stage\ndata: {\"stage\":\"DRAFT\"}\n\n";
             assertTrue(response.body().startsWith(stages + "event: result\ndata: "), response.body());
             String result = response.body().substring(stages.length() + "event: result\ndata: ".length()).stripTrailing();
-            assertEquals("{\"outcome\":\"READY\",\"conversationId\":\"a|b\",\"intake\":{\"services\":[\"VPN\"],\"symptom\":\"접속이 안 됨\"},"
+            assertEquals("{\"outcome\":\"READY\",\"conversationId\":\"a|b\",\"intake\":{\"services\":[\"VPN\"],\"symptom\":\"자꾸 끊김\"},"
                     + "\"statuses\":[{\"outcome\":\"FOUND\",\"serviceId\":\"VPN\",\"state\":\"normal\",\"detail\":\"현재 공통 장애 공지는 없다. 개인 접속 환경은 별도 확인한다.\",\"revision\":1}],"
-                    + "\"evidence\":[{\"serviceId\":\"VPN\",\"outcome\":\"FOUND\",\"queries\":[\"접속이 안 됨\",\"끊김 오류\"],\"documents\":[{\"id\":\"RB-VPN\",\"title\":\"VPN 연결 오류 접수\"}]}],"
-                    + "\"draft\":{\"text\":\"초안 본문\",\"sources\":[\"RB-VPN\"]},\"modelCalls\":3,"
+                    + "\"evidence\":[{\"serviceId\":\"VPN\",\"outcome\":\"FOUND\",\"queries\":[\"자꾸 끊김\"],\"documents\":[{\"id\":\"RB-VPN\",\"title\":\"VPN 연결 오류 접수\"}]}],"
+                    + "\"draft\":{\"text\":" + lab.inquiry.intake.IntakeWire.text(APPLIED_TEXT) + ",\"sources\":[\"RB-VPN\"]},\"modelCalls\":2,"
                     + "\"review\":{\"reviewId\":\"7b1c0c1e-0000-4000-8000-000000000001\",\"services\":[{\"serviceId\":\"VPN\",\"revision\":1}],\"unprocessed\":[]}}", result);
             assertEquals(0, app.saves.size());
         }

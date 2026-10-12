@@ -25,8 +25,8 @@ import java.util.List;
 
 final class RunbookSearch {
     record Runbook(String id, String serviceId, String title, String text) {}
-    enum Outcome { FOUND, NONE, FAILED }
-    record Result(Outcome outcome, List<Runbook> documents, boolean hasServiceDocuments) {}
+    enum Outcome { FOUND, ALL, NONE, FAILED }
+    record Result(Outcome outcome, List<Runbook> documents) {}
 
     private static final ObjectMapper JSON = new ObjectMapper()
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
@@ -38,7 +38,7 @@ final class RunbookSearch {
         try {
             var all = JSON.readValue(file.toFile(), new TypeReference<List<Runbook>>() {});
             var books = all.stream().filter(book -> book.serviceId().equals(serviceId)).toList();
-            if (books.isEmpty()) return new Result(Outcome.NONE, List.of(), false);
+            if (books.isEmpty()) return new Result(Outcome.NONE, List.of());
             try (var analyzer = new KoreanAnalyzer(); var directory = new ByteBuffersDirectory()) {
                 var config = new IndexWriterConfig(analyzer).setSimilarity(new BM25Similarity());
                 try (var writer = new IndexWriter(directory, config)) {
@@ -62,9 +62,10 @@ final class RunbookSearch {
                     searcher.setSimilarity(new BM25Similarity());
                     var found = new ArrayList<Runbook>();
                     for (var hit : searcher.search(terms.build(), 2).scoreDocs) found.add(books.get(hit.doc));
-                    return new Result(found.isEmpty() ? Outcome.NONE : Outcome.FOUND, List.copyOf(found), true);
+                    return found.isEmpty() ? new Result(Outcome.ALL, books)
+                            : new Result(Outcome.FOUND, List.copyOf(found));
                 }
             }
-        } catch (IOException e) { return new Result(Outcome.FAILED, List.of(), false); }
+        } catch (IOException e) { return new Result(Outcome.FAILED, List.of()); }
     }
 }
