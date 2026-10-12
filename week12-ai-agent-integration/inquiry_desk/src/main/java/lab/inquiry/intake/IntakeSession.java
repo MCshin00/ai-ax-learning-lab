@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Consumer;
 
 public final class IntakeSession {
     public enum Failure {
@@ -45,14 +46,20 @@ public final class IntakeSession {
         String id = line.substring(0, separator);
         String utterance = line.substring(separator + 1);
         if (id.isBlank() || utterance.isBlank()) return Result.failed(id.isBlank() ? null : id, Failure.INVALID_INPUT);
+        return accept(id, utterance, stage -> {});
+    }
+
+    public Result accept(String id, String utterance, Consumer<String> stages) {
         var previous = conversations.get(id);
         var request = IntakeModel.request(model, previous == null ? null : previous.intake(), utterance);
         Intake intake;
+        stages.accept("INTAKE");
         try { intake = IntakeModel.decode(call.complete(request)); }
         catch (OpenAIInvalidDataException e) { return Result.failed(id, Failure.INVALID_OUTPUT); }
         catch (OpenAIException e) { return Result.failed(id, Failure.MODEL_UNAVAILABLE); }
         if (intake == null) return Result.failed(id, Failure.INVALID_OUTPUT);
 
+        if (!intake.services().isEmpty()) stages.accept("STATUS");
         var results = intake.services().stream().map(statuses).toList();
         var utterances = new ArrayList<>(previous == null ? List.<String>of() : previous.utterances());
         utterances.add(utterance);

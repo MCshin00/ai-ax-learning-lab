@@ -18,10 +18,15 @@ public final class StatusServerMain {
             return;
         }
         var catalog = new ServiceCatalog(Path.of(args.length == 0 ? "data" : args[0]));
+        var requests = new RequestStore(Path.of(args.length == 0 ? "data" : args[0]), catalog);
         var tool = SyncToolSpecification.builder().tool(StatusWire.tool())
                 .callHandler((exchange, request) -> StatusWire.encode(catalog.lookup(request.arguments()))).build();
         McpServer.sync(new StdioServerTransportProvider(McpJsonDefaults.getMapper()))
                 .serverInfo("inquiry-status", "1.0.0")
-                .capabilities(ServerCapabilities.builder().tools(false).build()).tools(tool).build();
+                .capabilities(ServerCapabilities.builder().tools(false).build()).tools(tool,
+                        SyncToolSpecification.builder().tool(RequestWire.tool("save"))
+                                .callHandler((exchange, request) -> RequestWire.encode(requests.save(request.arguments()))).build(),
+                        SyncToolSpecification.builder().tool(RequestWire.tool("get"))
+                                .callHandler((exchange, request) -> RequestWire.encode(requests.get(request.arguments()))).build()).build();
     }
 }

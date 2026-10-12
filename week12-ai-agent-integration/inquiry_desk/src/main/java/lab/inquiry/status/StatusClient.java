@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static lab.inquiry.status.LookupResult.Cause.*;
 
@@ -53,6 +54,18 @@ public final class StatusClient implements AutoCloseable {
     }
 
     public record ToolList(List<Tool> tools, LookupResult failure) {}
+
+    public RequestResult save(RequestData data) { return request("save_request", RequestWire.arguments(data)); }
+
+    public RequestResult getRequest(String id) { return request("get_request", Collections.singletonMap("requestId", id)); }
+
+    private RequestResult request(String tool, Map<String, Object> arguments) {
+        try { return RequestWire.decode(connect().callTool(new CallToolRequest(tool, arguments))); }
+        catch (RuntimeException e) {
+            disconnect();
+            return RequestResult.unavailable(MCP_UNAVAILABLE.name(), MCP_UNAVAILABLE.message());
+        }
+    }
 
     public ToolList listTools() {
         try { return new ToolList(List.copyOf(connect().listTools().tools()), null); }

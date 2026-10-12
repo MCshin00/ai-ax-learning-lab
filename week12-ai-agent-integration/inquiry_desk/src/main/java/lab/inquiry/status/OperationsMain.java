@@ -19,13 +19,18 @@ public final class OperationsMain {
             position = 2;
         }
         int remaining = args.length - position;
-        if (remaining != 0 && (remaining != 2 || !args[position].equals("get"))) return usage();
+        if (remaining != 0 && (remaining != 2 || (!args[position].equals("get") && !args[position].equals("request")))) return usage();
         try (var client = new StatusClient(directory)) {
             if (remaining == 0) {
                 var listing = client.listTools();
                 System.out.println(StatusWire.text(listing.failure() == null
                         ? StatusWire.listing(listing.tools()) : StatusWire.fields(listing.failure())));
                 return listing.failure() == null ? 0 : 1;
+            }
+            if (args[position].equals("request")) {
+                var result = client.getRequest(args[position + 1]);
+                System.out.println(StatusWire.text(RequestWire.fields(result)));
+                return result.isError() ? 1 : 0;
             }
             var result = client.get(args[position + 1]);
             System.out.println(StatusWire.text(StatusWire.fields(result)));
@@ -34,7 +39,7 @@ public final class OperationsMain {
     }
 
     private static int usage() {
-        System.err.println("사용법: OperationsMain [--data-dir <자료 폴더>] [get <서비스ID>]. 인수가 없으면 도구 목록을 조회합니다.");
+        System.err.println("사용법: OperationsMain [--data-dir <자료 폴더>] [get <서비스ID> | request <요청ID>]. 인수가 없으면 도구 목록을 조회합니다.");
         return 2;
     }
 }

@@ -1,0 +1,37 @@
+{
+  "type": "object",
+  "properties": {
+    "reviewId": {"type": "string", "pattern": "\\S"},
+    "text": {"type": "string", "pattern": "\\S"},
+    "services": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "serviceId": {"type": "string"},
+          "revision": {"type": "integer"}
+        },
+        "required": ["serviceId", "revision"],
+        "additionalProperties": false
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "unprocessed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "serviceId": {"type": "string"},
+          "code": {"type": "string"}
+        },
+        "required": ["serviceId", "code"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["reviewId", "text", "services", "sources", "unprocessed"],
+  "additionalProperties": false
+}
