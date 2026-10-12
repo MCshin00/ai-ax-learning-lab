@@ -31,6 +31,7 @@ final class InquiryHttpServer implements AutoCloseable {
                 return;
             }
             if (!exchange.getRequestMethod().equals("POST")) {
+                exchange.getResponseHeaders().set("Allow", "POST");
                 exchange.sendResponseHeaders(405, -1);
                 return;
             }

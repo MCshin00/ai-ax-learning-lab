@@ -41,12 +41,14 @@ public final class IntakeModel {
 
             symptom, errorMessage
             - 화면에 나온 오류 메시지나 오류 코드는 errorMessage에, 그 밖에 겪는 현상은 symptom에 적으세요.
+            - symptom에는 서비스 이름을 넣지 마세요.
             - 해당하는 값이 없으면 null로 적으세요.
 
             이전 접수 결과(previousIntake)가 있을 때
             - 새 발언을 반영한 전체 결과를 돌려주세요.
             - 서비스를 더하는 발언이면 더하고, "A가 아니라 B"처럼 바로잡는 발언이면 바꾸세요. 이때도 위 표로 ID를 맞추세요.
             - 새 발언이 말하지 않은 필드는 이전 값을 그대로 두세요. "문제예요"처럼 대상만 알리는 말은 증상이 아닙니다.
+            - 대상만 바로잡고 증상을 새로 말하지 않은 발언에서는 이전 symptom의 글자를 그대로 두세요. 이전 서비스 이름을 덧붙이거나 증상을 다시 쓰지 마세요.
 
             예
             {"utterance":"그룹웨어가 안 열려요"} → {"services":["그룹웨어"],"symptom":"안 열림","errorMessage":null}

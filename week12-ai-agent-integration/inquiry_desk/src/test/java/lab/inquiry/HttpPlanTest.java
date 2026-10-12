@@ -83,8 +83,10 @@ class HttpPlanTest {
             var bad = send(server, "/inquiries", "POST", "not json");
             assertEquals(400, bad.statusCode());
             assertEquals("application/json", bad.headers().firstValue("Content-Type").orElseThrow());
-            assertEquals("{\"outcome\":\"FAILED\",\"code\":\"INVALID_INPUT\",\"message\":\"conversationId와 utterance는 공백이 아닌 문자열이어야 합니다.\"}", bad.body());
-            assertEquals(405, send(server, "/inquiries", "GET", "").statusCode());
+            assertEquals("{\"outcome\":\"FAILED\",\"code\":\"INVALID_INPUT\",\"message\":\"본문은 JSON 객체여야 하고 conversationId와 utterance는 공백이 아닌 문자열이어야 합니다.\"}", bad.body());
+            var wrongMethod = send(server, "/inquiries", "GET", "");
+            assertEquals(405, wrongMethod.statusCode());
+            assertEquals("POST", wrongMethod.headers().firstValue("Allow").orElseThrow());
             assertEquals(404, send(server, "/missing", "POST", "").statusCode());
         }
     }

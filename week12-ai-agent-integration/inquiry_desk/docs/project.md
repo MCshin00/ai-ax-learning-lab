@@ -98,7 +98,7 @@ k|VPN이랑 급여 시스템이 안 돼요
 | c | `급여 시스템`을 그대로 적고 조회해 `NOT_FOUND`와 질문이 나온다 |
 | d | `SSO`로 적힌다 |
 | e, f | 질문이 나온다(모델이 서비스로 적으면 `NOT_FOUND`와 함께, 아니면 서비스 없이) |
-| g의 둘째 발언 | 서비스가 `SSO`로 바뀌고 증상은 남는다 |
+| g의 둘째 발언 | 서비스가 `SSO`로 바뀌고 이전 증상의 글자가 그대로 남는다. 증상에 `VPN` 등 서비스 이름이 들어가지 않는다. 끊김은 로그인 지연 문서의 조건과 달라 정정 뒤에는 근거 없음으로 끝나는 것이 기대 결과다 |
 | k | `VPN`과 `급여 시스템`이 함께 적힌다 |
 
 `src/test/java/lab/inquiry/intake/IntakePlanTest.java`에서 접수를 검사한다. 모델 응답과 상태 조회는 대역을 쓴다. 실제 모델의 해석은 자동 검사에서 확인하지 않는다.
@@ -117,7 +117,7 @@ k|VPN이랑 급여 시스템이 안 돼요
 
 `READY`는 접수가 성립했다는 뜻이다. 초안 유무는 `draft`로 본다. 접수 실패(`FAILED`)와 대상 확인 질문(`NEEDS_INPUT`)의 JSON은 접수 결과만 담고 검색·다시 쓰기·초안으로 이어지지 않는다. `NEEDS_INPUT`은 서비스가 없을 때와 모두 조회 자료에 없을 때이며, 후자는 `statuses`와 자료에 없음을 설명하는 다른 질문을 함께 담는다. 성공한 접수는 대화에 반영되고, `READY`의 검색과 초안은 발언마다 새로 만들어진다. 모델 호출은 발언당 접수를 포함해 최대 3회이며, 다시 쓰기와 초안에도 제한 시간 30초·자동 재시도 0회를 적용한다.
 
-초안은 담당자가 검토·편집해 운영팀에 보낼 작업 요청이다. 본문은 접수 내용, 상태 조회로 확인된 것, 운영 문서 기준으로 확인하거나 요청할 일, 확인되지 않은 것의 네 구획으로 나누도록 모델에 지시한다.
+초안은 담당자가 검토·편집해 운영팀에 보낼 작업 요청이다. 본문은 접수 내용, 상태 조회로 확인된 것, 운영 문서 기준으로 확인하거나 요청할 일, 확인되지 않은 것의 네 구획으로 나누도록 모델에 지시한다. 제목은 별도 한 줄에 한 번만 쓰고, 각 구획의 항목은 제목 아래에 줄마다 `- `로 시작하게 한다.
 
 `READY`의 필드 순서는 `outcome`, `conversationId`, `intake`, `statuses`, `evidence`, `draft`, `notices`, `modelCalls`다.
 
@@ -141,7 +141,7 @@ k|VPN이랑 급여 시스템이 안 돼요
 
 | 입력 | 볼 것 |
 |---|---|
-| `s1\|VPN이 자꾸 끊겨요` | RB-VPN을 찾고 네 구획으로 운영팀에게 쓰는 초안이 나오는지, 직원이 말한 것·조회로 확인한 것·확인할 일을 구분하는지 |
+| `s1\|VPN이 자꾸 끊겨요` | RB-VPN을 찾고 네 구획으로 운영팀에게 쓰는 초안이 나오는지, 네 제목을 순서대로 별도 한 줄에 한 번씩 쓰고 아래 항목은 줄마다 `- `로 시작하는지, 직원이 말한 것·조회로 확인한 것·확인할 일을 구분하는지 |
 | `s2\|VPN이고 인증서 만료 메시지가 나와요` | 인증서 만료 문서를 찾고 갱신 요청과 갱신 완료를 구분하는지, 문서의 적용 조건과 의무·금지의 세기를 바꾸지 않는지 |
 | `s3\|VPN 접속이 안 돼요` | 첫 검색에 근거가 없을 때 다시 찾는지, `queries`의 다시 쓴 검색어에 서비스 이름·ID가 없고 증상의 뜻이 남는지 |
 | `s4\|사내망 연결이 자꾸 끊겨요` → `s4\|VPN이요` | 서비스 확인 질문 뒤 서비스가 VPN만 남고 이전 증상을 이어받아 문서를 찾는지 |
@@ -166,7 +166,7 @@ k|VPN이랑 급여 시스템이 안 돼요
 | `src/main/java/lab/inquiry/status/RequestWire.java` | 저장·조회 MCP 도구의 선언, 인수 확인, 구조화된 응답의 읽기와 공개 필드 변환을 맡는다 |
 | `src/main/resources/lab/inquiry/status/{save,get}-request-{input,output}-schema.json` | 저장·조회 도구의 입력과 오류를 포함한 응답 형태를 선언한다 |
 
-접수에 성공하면 이전 검토 ID는 사용할 수 없게 된다. `READY`이고 상태가 `FOUND`인 서비스가 하나 이상이면 무작위 UUID로 검토 ID를 만들고, 확인된 서비스의 ID·`revision`, 초안의 출처, 서비스별 미처리 목록을 보관한다. 초안이 없으면 출처는 빈 목록이다. 접수 실패는 이전 검토본을 남긴다.
+접수에 성공하면 이전 검토 ID는 사용할 수 없게 된다. `READY`이고 상태가 `FOUND`인 서비스가 하나 이상이면 무작위 UUID로 검토 ID를 만들고, 확인된 서비스의 ID·`revision`, 초안의 출처, 미처리 목록을 보관한다. 미처리 목록은 서비스별 항목을 먼저 두고, 서비스가 없는 알림(`NO_SYMPTOM`, `SOURCE_MISMATCH`, `MODEL_UNAVAILABLE`, `INVALID_OUTPUT`)을 알림 순서대로 뒤에 붙인다. 서비스가 없는 항목은 `{"code":"NO_SYMPTOM"}`처럼 `serviceId`를 생략하며, 저장된 요청과 `get_request`의 응답에도 남는다. 초안이 없으면 출처는 빈 목록이다. 접수 실패는 이전 검토본을 남긴다.
 
 화면은 검토 ID와 편집한 본문만 보낸다. 앱은 최신 검토 ID인지 확인하고 보관한 서비스·출처·미처리 목록을 붙여 `save_request`로 보낸다. 서버는 같은 검토 ID의 기존 요청을 먼저 찾는다. 내용이 같으면 기존 요청 ID를, 다르면 충돌을 돌려준다. 새 요청이면 현재 서비스의 변경 번호를 대조한 뒤 본문을 그대로 `<자료 폴더>/requests.json`에 저장한다. 요청 ID는 저장 순서에 따라 `REQ-0001`부터 붙는다. 운영 도구의 `request <요청ID>`는 `get_request`를 통해 이 파일에서 읽는다. 파일이 없으면 저장된 요청이 없는 것이며, 앱을 다시 실행해도 저장된 요청은 남는다.
 
@@ -177,7 +177,7 @@ k|VPN이랑 급여 시스템이 안 돼요
 
 분석은 단계 시작마다 `event: stage`와 `data: {"stage":"INTAKE"}` 형태로 보낸다. 순서는 `INTAKE` → `STATUS` → `SEARCH` → `REWRITE` → `DRAFT`이며 실제 수행하는 단계만 나온다. 마지막 `event: result`의 `data`는 콘솔 결과와 같고 저장할 수 있으면 끝에 `review`가 붙는다. `review`에는 `reviewId`, `services`, `unprocessed`가 이 순서로 담긴다. 추가 질문과 접수 실패도 이 마지막 결과로 받는다. 분석 도중 화면이 연결을 끊어도 분석은 끝까지 진행한다. 요청은 한 번에 하나씩 처리한다.
 
-두 요청의 본문이 JSON 객체가 아니거나 필수 두 값이 공백이 아닌 문자열이 아니면 스트림을 시작하지 않고 400 JSON으로 입력 오류를 돌려준다. 두 경로의 다른 메서드는 405, 그 밖의 경로는 404다.
+두 요청의 본문이 JSON 객체가 아니거나 필수 두 값이 공백이 아닌 문자열이 아니면 스트림을 시작하지 않고 400 JSON으로 입력 오류를 돌려준다. 저장 요청의 안내는 `본문은 JSON 객체여야 하고 reviewId와 text는 공백이 아닌 문자열이어야 합니다.`다. 두 경로의 다른 메서드는 `Allow: POST` 헤더와 405, 그 밖의 경로는 404다.
 
 ### 분석 요청의 응답 (실제 응답으로 확인함)
 
@@ -188,9 +188,9 @@ k|VPN이랑 급여 시스템이 안 돼요
 | `{"conversationId":"spec1","utterance":"VPN이 자꾸 끊겨요"}` | 200, `text/event-stream; charset=utf-8` | `stage` 이벤트 뒤 `result`. `outcome`은 `READY`. 초안은 `draft`, 처리하지 못한 것은 `notices`와 `review.unprocessed`, 저장에 쓸 값은 `review.reviewId` |
 | `{"conversationId":"spec2","utterance":"접속이 안 돼요"}` | 200, `text/event-stream; charset=utf-8` | `stage`(`INTAKE`) 뒤 `result`. `outcome`은 `NEEDS_INPUT`, 물을 말은 `question`. `review`는 없다 |
 | 접수 모델 호출이 실패한 문의 | 200, `text/event-stream; charset=utf-8` | `result`의 `outcome`은 `FAILED`, 원인은 `code`(`MODEL_UNAVAILABLE`, `INVALID_OUTPUT`). 실제 응답으로는 확인하지 않았다 |
-| `{"conversationId":"spec3"}`(항목이 빠짐), `{}` | 400, `application/json` | `{"outcome":"FAILED","code":"INVALID_INPUT","message":"conversationId와 utterance는 공백이 아닌 문자열이어야 합니다."}` |
+| `{"conversationId":"spec3"}`(항목이 빠짐), `{}` | 400, `application/json` | `{"outcome":"FAILED","code":"INVALID_INPUT","message":"본문은 JSON 객체여야 하고 conversationId와 utterance는 공백이 아닌 문자열이어야 합니다."}` |
 | `not json`(JSON이 아님) | 400, `application/json` | 위와 같은 본문 |
-| `GET /inquiries` | 405 | 본문 없음 |
+| `GET /inquiries` | 405, `Allow: POST` | 본문 없음 |
 
 항목이 빠진 본문과 JSON이 아닌 본문은 응답이 같아서 요청한 쪽이 두 원인을 구별할 수 없다.
 
