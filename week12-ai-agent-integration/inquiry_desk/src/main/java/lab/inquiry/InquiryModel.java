@@ -12,53 +12,56 @@ import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import lab.inquiry.intake.Intake;
 import lab.inquiry.intake.IntakeModel;
 import lab.inquiry.intake.IntakeWire;
-import lab.inquiry.status.LookupResult;
-import lab.inquiry.status.StatusWire;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 final class InquiryModel {
-    record Rewrite(String query) {}
-    record Draft(String text, List<String> sources) {}
+    enum Judgment { APPLIES, CONDITION_UNCONFIRMED, NOT_COVERED }
+    record DocumentJudgment(String id, String condition, Judgment judgment, List<String> actions) {}
+    record Judgments(List<DocumentJudgment> documents) {}
     record Result<T>(T value, InquirySession.Code failure) {}
 
-    static final String REWRITE_INSTRUCTIONS = """
-            운영 문서를 검색할 검색어 하나를 query에 적으세요.
-            접수 결과 중 targetServices에 해당하는 증상과 오류 코드를 빠뜨리지 말고,
-            직원이 말한 증상의 뜻을 지키면서 운영 문서에 쓰일 법한 다른 표현으로 바꾸세요.
-            없던 증상이나 오류를 더하지 마세요. 화면이 넘어가지 않는 것을 지연으로 바꿀 수는 있어도
-            지연을 연결 끊김으로 바꾸지 마세요. 오류 코드는 그대로 두세요.
-            서비스 이름과 서비스 ID는 검색어에 넣지 마세요.
+    static final String JUDGMENT_INSTRUCTIONS = """
+            직원의 문의(intake)와 운영 문서(documents)를 받습니다.
+            문서마다 이 문의에 적용되는지 판단해 documents에 문서 하나에 항목 하나씩, 받은 순서대로 적으세요.
 
-            예
-            {"intake":{"services":["SSO"],"symptom":"인증 후 화면이 넘어가지 않음"},"targetServices":["SSO"]}
-            → {"query":"인증 후 화면 전환 지연"}
-            {"intake":{"services":["MAIL"],"symptom":"첨부 파일 업로드가 안 됨","errorMessage":"UPLOAD-403"},"targetServices":["MAIL"]}
-            → {"query":"첨부 파일 업로드 실패 UPLOAD-403"}
-            """;
-    static final String DRAFT_INSTRUCTIONS = """
-            운영팀이 읽는 작업 요청 초안을 text에 작성하세요. 담당자가 검토하고 고쳐서 보냅니다.
-            직원에게 말하는 문장을 쓰지 마세요.
-            아래 네 제목을 이 순서로 쓰고, 각 구획은 "~합니다"로 끝나는 짧은 항목으로 작성하세요.
-            각 제목은 별도 한 줄에 한 번만 쓰세요. 그 구획의 항목은 제목 아래에 줄마다 "- "로 시작해 적고 제목을 되풀이하지 마세요.
-            해당하는 내용이 없으면 제목 아래에 "- 없습니다" 한 줄만 쓰고 구획을 채우려고 새 확인 과제를 만들지 마세요.
-            1. 접수 내용 — 직원이 말한 서비스, 증상, 오류를 직원이 말한 것임이 드러나게 쓰세요.
-            2. 상태 조회로 확인된 것 — 조회가 실제로 돌려준 상태를 쓰세요. 조회하지 못한 것을 정상으로 쓰지 마세요.
-            3. 운영 문서 기준으로 확인하거나 요청할 일 — 적용 조건을 채운 문서의 확인·요청 사항을 쓰세요.
-            4. 확인되지 않은 것 — 접수되지 않은 사실, 문서의 적용 조건이 확인되지 않은 것, 대응의 근거가 부족한 것을 쓰세요.
-            상태 조회로 확인된 사실과 운영 문서가 확인하거나 요청하라고 한 일을 구분하세요.
-            문서에 없는 처리 완료나 원인을 쓰지 마세요.
-            공통 장애가 없다는 상태를 개인 환경이 정상이라는 뜻으로 쓰지 마세요.
-            상태 조회가 실패했거나 자료에 없는 서비스에 대해 문서의 조건문을 현재 사실로 쓰지 마세요.
-            예를 들어 "공통 장애가 진행 중이면"은 조건이며, 조회로 확인하지 못했다면 진행 중이라고 쓰면 안 됩니다.
-            넘겨받은 문서가 증상과 맞지 않으면 맞지 않는다고 쓰고 그 내용을 대응으로 옮기지 마세요.
-            문서의 적용 조건과 의무·금지의 세기를 바꾸지 마세요. 문서에 없는 "필요 시" 같은 조건을 붙이지 말고,
-            금지 규칙을 보내는 사람의 약속으로 바꾸지 마세요.
-            적용 조건이 확인되지 않았으면 그 대응을 적용하지 말고 확인되지 않았다고 적으세요.
-            sources에는 초안의 안내나 문서가 다루는 범위에 대한 설명을 실제로 뒷받침한 문서의 ID를 적으세요.
-            어떤 문서의 대응이 이 문의에 적용되지 않는다고 설명할 때 그 문서를 근거로 썼다면 넣으세요.
-            쓰지 않은 문서는 넣지 마세요.
+            condition
+            - 그 문서가 다루는 증상이나 오류만 문서의 표현 그대로 옮기세요. "~하면"으로 끝나는 조건이면 거기까지,
+              "~은/는"으로 시작하는 문장이면 그 앞의 말만 옮기세요. 확인하거나 요청할 일은 넣지 마세요.
+            - 문서가 대상을 여러 표현으로 열거하면 그 대안들을 빼지 마세요.
+            - intake의 말로 바꿔 쓰지 마세요. 문서 안에서 일마다 따로 붙은 조건은 여기에 적지 말고 actions의 문장에 남기세요.
+            예: "인쇄가 중간에 멈추면 멈춘 쪽수를 확인한다." → "인쇄가 중간에 멈추면"
+                "스캔 파일 전송 지연은 전송 기록과 공지를 함께 확인한다." → "스캔 파일 전송 지연"
+
+            judgment
+            - APPLIES: 직원이 말한 증상이나 오류 메시지가 condition에 해당한다는 것이 intake에 드러나 있습니다.
+            - CONDITION_UNCONFIRMED: 직원이 말한 것이 condition에 해당할 수도 있지만, 해당하는지는 직원에게 더 물어야 압니다.
+            - NOT_COVERED: 직원이 말한 증상이나 오류는 condition과 다른 종류입니다. 오류 코드가 다른 것도 여기에 해당합니다.
+            - APPLIES인지는 intake의 증상과 오류 메시지를 함께 보고 판단하세요.
+              기능을 사용할 수 없다는 말만으로 문서가 다루는 특정 증상이 확인된 것은 아닙니다.
+              다만 함께 접수된 오류 메시지 등으로 문서의 조건이 확인되면 APPLIES입니다.
+            - 해당할 가능성은 있지만 구분할 정보가 부족하면 CONDITION_UNCONFIRMED입니다.
+              명시된 증상이나 오류가 문서의 대상과 다르면 NOT_COVERED입니다.
+              서비스가 같다는 이유만으로 CONDITION_UNCONFIRMED나 APPLIES로 판단하지 마세요.
+
+            actions
+            - judgment가 APPLIES일 때만 적고, 그 밖에는 빈 배열로 두세요.
+            - 문서가 확인하거나 요청하라고 한 일과 금지한 일을 문서의 문장마다 한 항목씩 "~합니다"로 끝나게 적으세요.
+              운영팀이 읽는 작업 요청에 들어갈 문장입니다. 직원에게 말하는 문장을 쓰지 마세요.
+            - 문장 안의 조건("~하면")과 의무·금지의 세기를 바꾸지 마세요. 조건이 붙은 일은 조건을 붙인 채로 적고,
+              그 조건이 지금 사실이라고 쓰지 마세요.
+            - 문서에 없는 일, 처리 완료, 원인을 더하지 마세요.
+
+            예 (문서: "인쇄가 중간에 멈추면 멈춘 쪽수와 프린터 표시등을 확인한다. 다시 인쇄해도 멈추면 운영팀에 점검을 요청한다. 프린터 덮개를 직접 열지 않는다.")
+            - 증상 "인쇄하다가 자꾸 멈춤" → condition "인쇄가 중간에 멈추면", APPLIES,
+              actions ["멈춘 쪽수와 프린터 표시등을 확인합니다.", "다시 인쇄해도 멈추면 운영팀에 점검을 요청합니다.", "프린터 덮개를 직접 열지 않습니다."]
+            - 증상 "인쇄가 안 됨" → CONDITION_UNCONFIRMED (중간에 멈추는 것인지 알 수 없음), actions []
+            - 증상 "인쇄물이 흐림" → NOT_COVERED, actions []
+
+            예 (문서: "스캔 파일 전송 지연은 전송 기록과 공지를 함께 확인한다. 지연이 계속되면 운영팀에 전달한다.")
+            - 증상 "스캔 전송이 오래 걸림" → condition "스캔 파일 전송 지연", APPLIES
+            - 증상 "스캔이 안 됨" → CONDITION_UNCONFIRMED (지연인지 알 수 없음), actions []
             """;
 
     private static final ObjectMapper JSON = new ObjectMapper()
@@ -68,27 +71,20 @@ final class InquiryModel {
 
     InquiryModel(String model, IntakeModel.Call call) { this.model = model; this.call = call; }
 
-    Result<Rewrite> rewrite(Intake intake, List<String> services) {
+    Result<Judgments> judge(Intake intake, List<RunbookSearch.Runbook> documents) {
         var input = new LinkedHashMap<String, Object>();
         input.put("intake", IntakeWire.intake(intake));
-        input.put("targetServices", services);
-        var result = invoke("rewrite", REWRITE_INSTRUCTIONS, input,
-                Map.of("query", Map.of("type", "string")), List.of("query"), Rewrite.class);
-        if (result.failure() == null && result.value().query().isEmpty()) {
-            return new Result<>(null, InquirySession.Code.INVALID_OUTPUT);
-        }
-        return result;
-    }
-
-    Result<Draft> draft(Intake intake, List<LookupResult> statuses, List<RunbookSearch.Runbook> documents) {
-        var input = new LinkedHashMap<String, Object>();
-        input.put("intake", IntakeWire.intake(intake));
-        input.put("statuses", statuses.stream().map(StatusWire::fields).toList());
         input.put("documents", documents);
-        return invoke("draft", DRAFT_INSTRUCTIONS, input, Map.of(
-                "text", Map.of("type", "string"),
-                "sources", Map.of("type", "array", "items", Map.of("type", "string"))),
-                List.of("text", "sources"), Draft.class);
+        var fields = new LinkedHashMap<String, Object>();
+        fields.put("id", Map.of("type", "string"));
+        fields.put("condition", Map.of("type", "string"));
+        fields.put("judgment", Map.of("type", "string", "enum",
+                List.of("APPLIES", "CONDITION_UNCONFIRMED", "NOT_COVERED")));
+        fields.put("actions", Map.of("type", "array", "items", Map.of("type", "string")));
+        var item = Map.of("type", "object", "properties", fields,
+                "required", List.copyOf(fields.keySet()), "additionalProperties", false);
+        return invoke("judgment", JUDGMENT_INSTRUCTIONS, input,
+                Map.of("documents", Map.of("type", "array", "items", item)), List.of("documents"), Judgments.class);
     }
 
     private <T> Result<T> invoke(String name, String instructions, Object input,

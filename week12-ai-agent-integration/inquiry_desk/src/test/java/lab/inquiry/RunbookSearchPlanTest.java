@@ -24,14 +24,14 @@ class RunbookSearchPlanTest {
 
     @Test void s3_noMatchingWords() {
         var result = search.search("VPN", "접속이 안 됨");
-        assertEquals(RunbookSearch.Outcome.NONE, result.outcome());
-        assertTrue(result.documents().isEmpty());
+        assertEquals(RunbookSearch.Outcome.ALL, result.outcome());
+        assertEquals(List.of("RB-VPN", "RB-VPN-CERT"), result.documents().stream().map(RunbookSearch.Runbook::id).toList());
     }
 
     @Test void s4_filterService() {
         var result = search.search("SSO", "인증서 만료");
-        assertEquals(RunbookSearch.Outcome.NONE, result.outcome());
-        assertTrue(result.documents().isEmpty());
+        assertEquals(RunbookSearch.Outcome.ALL, result.outcome());
+        assertEquals(List.of("RB-SSO"), result.documents().stream().map(RunbookSearch.Runbook::id).toList());
     }
 
     @Test void s5_missingFile() {

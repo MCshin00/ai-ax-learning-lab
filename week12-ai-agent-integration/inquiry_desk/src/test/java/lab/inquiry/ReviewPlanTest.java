@@ -67,13 +67,48 @@ class ReviewPlanTest {
     }
 
     @Test void noDraftStillAllowsReviewWithEmptySources() throws Exception {
-        try (var app = new ReviewPlanSupport(directory, ACCESS, "{\"query\":\"속도 저하\"}")) {
+        try (var app = new ReviewPlanSupport(directory, ACCESS, NOT_COVERED)) {
             var result = app.accept("VPN 접속이 안 돼요");
             assertNull(result.inquiry().draft());
             assertEquals("[{\"serviceId\":\"VPN\",\"code\":\"NO_EVIDENCE\"}]",
                     IntakeWire.text(RequestWire.unprocessed(result.review().unprocessed())));
             assertEquals(RequestResult.Outcome.SAVED, app.session.save(result.review().reviewId(), "직접 쓴 본문").outcome());
             assertEquals(List.of(), app.saves.get(0).sources());
+            var found = app.client.getRequest("REQ-0001");
+            assertEquals("직접 쓴 본문", found.request().text());
+            assertEquals(List.of(new RequestData.Unprocessed("VPN", "NO_EVIDENCE")), found.request().unprocessed());
+        }
+    }
+
+    @Test void unconfirmedSourceSurvivesReviewSaveAndRead() throws Exception {
+        try (var app = new ReviewPlanSupport(directory,
+                ACCESS.replace("[\"VPN\"]", "[\"VPN\",\"급여 시스템\"]"), UNCONFIRMED)) {
+            var result = app.accept("VPN과 급여 시스템 접속이 안 돼요");
+            assertEquals(List.of("RB-VPN"), result.review().sources());
+            assertEquals(List.of(new RequestData.Unprocessed("급여 시스템", "NOT_FOUND")), result.review().unprocessed());
+            var saved = app.session.save(result.review().reviewId(), result.inquiry().draft().text());
+            assertEquals(RequestResult.Outcome.SAVED, saved.outcome());
+            var found = app.client.getRequest(saved.requestId());
+            assertEquals(List.of("RB-VPN"), found.request().sources());
+            assertEquals(UNCONFIRMED_TEXT, found.request().text());
+        }
+    }
+
+    @Test void partiallyApplicableServiceRemainsUnprocessedThroughSaveAndRead() throws Exception {
+        try (var app = new ReviewPlanSupport(directory,
+                CONNECTION.replace("[\"VPN\"]", "[\"VPN\",\"MAIL\"]"), judgments(
+                        judgment("RB-VPN", "VPN 연결이 끊기면", "APPLIES", VPN_ACTIONS),
+                        judgment("RB-MAIL", "", "NOT_COVERED", List.of())))) {
+            var result = app.accept("VPN과 메일이 자꾸 끊겨요");
+            var missing = List.of(new RequestData.Unprocessed("MAIL", "NO_EVIDENCE"));
+            assertEquals(missing, result.review().unprocessed());
+            assertEquals(List.of("RB-VPN"), result.review().sources());
+            var saved = app.session.save(result.review().reviewId(), result.inquiry().draft().text());
+            assertEquals(RequestResult.Outcome.SAVED, saved.outcome());
+            var found = app.client.getRequest(saved.requestId());
+            assertEquals(missing, found.request().unprocessed());
+            assertEquals(result.inquiry().draft().text(), found.request().text());
+            assertEquals(List.of("RB-VPN"), found.request().sources());
         }
     }
 
@@ -93,6 +128,7 @@ class ReviewPlanTest {
             var result = app.accept("VPN이 자꾸 끊겨요");
             assertEquals("READY", HttpWire.fields(result).get("outcome"));
             assertFalse(HttpWire.fields(result).containsKey("review"));
+            assertNotNull(result.inquiry().draft());
         }
     }
 

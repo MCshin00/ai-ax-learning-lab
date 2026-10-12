@@ -24,12 +24,13 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import static org.junit.jupiter.api.Assertions.*;
+import static lab.inquiry.ReviewPlanSupport.*;
 
 class InquiryPlanTest {
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final String DETAIL = "현재 공통 장애 공지는 없다. 개인 접속 환경은 별도 확인한다.";
     private static final String VPN = "{\"outcome\":\"FOUND\",\"serviceId\":\"VPN\",\"state\":\"normal\",\"detail\":\"" + DETAIL + "\",\"revision\":1}";
-    private static final String CONNECTION = intake(List.of("VPN"), "연결이 자꾸 끊김", null);
+    private static final String CONNECTION = intake(List.of("VPN"), "자꾸 끊김", null);
     private static final String ACCESS = intake(List.of("VPN"), "접속이 안 됨", null);
     private static final String EMPTY = intake(List.of(), "접속이 안 됨", null);
     private static final String VPN_DOCUMENT = "{\"id\":\"RB-VPN\",\"title\":\"VPN 연결 오류 접수\"}";
@@ -45,7 +46,8 @@ class InquiryPlanTest {
     }
 
     private static String draft(String... sources) {
-        return IntakeWire.text(Map.of("text", "<초안 본문>", "sources", List.of(sources)));
+        return IntakeWire.text(Map.of("documents", java.util.Arrays.stream(sources)
+                .map(id -> judgment(id, "VPN 연결이 끊기면", "APPLIES", VPN_ACTIONS)).toList()));
     }
 
     private static ChatCompletion completion(String content) {
@@ -115,56 +117,77 @@ class InquiryPlanTest {
 
     @Test void f1_found() throws Exception {
         String output = line(session(CONNECTION, draft("RB-VPN")), "a|VPN이 자꾸 끊겨요");
-        assertEquals("{\"outcome\":\"READY\",\"conversationId\":\"a\",\"intake\":{\"services\":[\"VPN\"],\"symptom\":\"연결이 자꾸 끊김\"},\"statuses\":[" + VPN
-                + "],\"evidence\":[{\"serviceId\":\"VPN\",\"outcome\":\"FOUND\",\"queries\":[\"연결이 자꾸 끊김\"],\"documents\":[" + VPN_DOCUMENT
-                + "]}],\"draft\":{\"text\":\"<초안 본문>\",\"sources\":[\"RB-VPN\"]},\"modelCalls\":2}", output);
+        assertEquals("{\"outcome\":\"READY\",\"conversationId\":\"a\",\"intake\":{\"services\":[\"VPN\"],\"symptom\":\"자꾸 끊김\"},\"statuses\":[" + VPN
+                + "],\"evidence\":[{\"serviceId\":\"VPN\",\"outcome\":\"FOUND\",\"queries\":[\"자꾸 끊김\"],\"documents\":[" + VPN_DOCUMENT
+                + "]}],\"draft\":{\"text\":" + IntakeWire.text(APPLIED_TEXT) + ",\"sources\":[\"RB-VPN\"]},\"modelCalls\":2}", output);
         assertEquals(2, requests.size());
-        assertTrue(user(1).contains(DETAIL));
-        assertTrue(user(1).contains(body("RB-VPN")));
+        assertEquals(List.of("intake", "documents"), fieldNames(input(1)));
         assertEquals(JSON.readTree("{\"id\":\"RB-VPN\",\"serviceId\":\"VPN\",\"title\":\"VPN 연결 오류 접수\",\"text\":"
                 + IntakeWire.text(body("RB-VPN")) + "}"), input(1).at("/documents/0"));
-        strict(1, Map.of("text", Map.of("type", "string"), "sources", Map.of("type", "array", "items", Map.of("type", "string"))), List.of("text", "sources"));
+        var fields = new java.util.LinkedHashMap<String, Object>();
+        fields.put("id", Map.of("type", "string"));
+        fields.put("condition", Map.of("type", "string"));
+        fields.put("judgment", Map.of("type", "string", "enum", List.of("APPLIES", "CONDITION_UNCONFIRMED", "NOT_COVERED")));
+        fields.put("actions", Map.of("type", "array", "items", Map.of("type", "string")));
+        strict(1, Map.of("documents", Map.of("type", "array", "items", Map.of("type", "object", "properties", fields,
+                "required", List.copyOf(fields.keySet()), "additionalProperties", false))), List.of("documents"));
+        var properties = requests.get(1).responseFormat().orElseThrow().asJsonSchema().jsonSchema()
+                .schema().orElseThrow()._additionalProperties().get("properties");
+        var schema = properties.convert(JsonNode.class);
+        assertEquals(List.of("id", "condition", "judgment", "actions"), fieldNames(schema.at("/documents/items/properties")));
     }
 
-    @Test void f2_rewriteFindsDocument() throws Exception {
-        var result = JSON.readTree(line(session(ACCESS, "{\"query\":\"끊김 오류\"}", draft("RB-VPN")), "a|VPN 접속이 안 돼요"));
-        assertEquals(JSON.readTree("[{\"serviceId\":\"VPN\",\"outcome\":\"FOUND\",\"queries\":[\"접속이 안 됨\",\"끊김 오류\"],\"documents\":[" + VPN_DOCUMENT + "]}]"), result.get("evidence"));
-        assertTrue(result.has("draft"));
-        assertEquals(3, result.get("modelCalls").asInt());
-        assertEquals(3, requests.size());
-        assertTrue(user(2).contains("접속이 안 됨"));
-        assertFalse(user(2).contains("끊김 오류"));
-        strict(1, Map.of("query", Map.of("type", "string")), List.of("query"));
+    private static List<String> fieldNames(JsonNode value) {
+        var names = new ArrayList<String>();
+        value.fieldNames().forEachRemaining(names::add);
+        return names;
     }
 
-    @Test void f3_stillNone() throws Exception {
-        var result = JSON.readTree(line(session(ACCESS, "{\"query\":\"속도 저하\"}"), "a|VPN 접속이 안 돼요"));
-        assertEquals(JSON.readTree("[{\"serviceId\":\"VPN\",\"outcome\":\"NONE\",\"queries\":[\"접속이 안 됨\",\"속도 저하\"],\"documents\":[]}]"), result.get("evidence"));
-        notices(result, "[{\"code\":\"NO_EVIDENCE\",\"serviceId\":\"VPN\",\"message\":\"운영 문서에서 근거를 찾지 못했습니다.\"}]");
+    @Test void f2_allDocumentsWithUnconfirmedCondition() throws Exception {
+        var result = JSON.readTree(line(session(intake(List.of("VPN", "급여 시스템"), "접속이 안 됨", null), UNCONFIRMED),
+                "a|VPN과 급여 시스템 접속이 안 돼요"));
+        assertEquals("ALL", result.at("/evidence/0/outcome").asText());
+        assertEquals(List.of("RB-VPN", "RB-VPN-CERT"), ids(result.at("/evidence/0")));
+        assertEquals(JSON.readTree("[\"접속이 안 됨\"]"), result.at("/evidence/0/queries"));
+        assertEquals(UNCONFIRMED_TEXT, result.at("/draft/text").asText());
+        assertEquals(JSON.readTree("[\"RB-VPN\"]"), result.at("/draft/sources"));
+        assertFalse(result.has("notices"));
+        assertEquals(2, result.get("modelCalls").asInt());
+        assertEquals(2, requests.size());
+    }
+
+    @Test void f3_allNotCovered() throws Exception {
+        var result = JSON.readTree(line(session(ACCESS, NOT_COVERED), "a|VPN 접속이 안 돼요"));
+        assertEquals("ALL", result.at("/evidence/0/outcome").asText());
+        notices(result, "[{\"code\":\"NO_EVIDENCE\",\"serviceId\":\"VPN\",\"message\":\"이 문의에 쓸 운영 문서를 찾지 못했습니다.\"}]");
         assertEquals(2, result.get("modelCalls").asInt());
         assertEquals(2, requests.size());
     }
 
     @Test void f4_searchFailed() throws Exception {
         var result = JSON.readTree(line(session(temp, CONNECTION), "a|VPN이 자꾸 끊겨요"));
-        assertEquals(JSON.readTree("[{\"serviceId\":\"VPN\",\"outcome\":\"FAILED\",\"queries\":[\"연결이 자꾸 끊김\"],\"documents\":[]}]"), result.get("evidence"));
+        assertEquals(JSON.readTree("[{\"serviceId\":\"VPN\",\"outcome\":\"FAILED\",\"queries\":[\"자꾸 끊김\"],\"documents\":[]}]"), result.get("evidence"));
         notices(result, "[{\"code\":\"SEARCH_FAILED\",\"serviceId\":\"VPN\",\"message\":\"운영 문서를 읽지 못했습니다.\"}]");
         assertEquals(1, result.get("modelCalls").asInt());
         assertEquals(1, requests.size());
     }
 
-    @Test void f5_sourceMismatchOrEmpty() throws Exception {
-        for (String reply : List.of(draft("RB-SSO"), draft())) {
-            var result = JSON.readTree(line(session(CONNECTION, reply), "a|VPN이 자꾸 끊겨요"));
-            notices(result, "[{\"code\":\"SOURCE_MISMATCH\",\"message\":\"초안의 출처가 찾은 문서와 맞지 않아 초안을 버렸습니다.\"}]");
-            assertEquals(List.of("RB-VPN"), ids(result.at("/evidence/0")));
+    @Test void f5_missingExtraOrDuplicateDocument() throws Exception {
+        var replies = List.of(draft(), draft("RB-VPN", "RB-SSO"), judgments(
+                judgment("RB-VPN", "", "APPLIES", List.of()), judgment("RB-VPN", "", "APPLIES", List.of())));
+        for (int i = 0; i < replies.size(); i++) {
+            String accepted = i == 2 ? intake(List.of("VPN"), "접속이 안 됨", "인증서 만료") : CONNECTION;
+            String utterance = i == 2 ? "a|VPN이고 인증서 만료 메시지가 나와요" : "a|VPN이 자꾸 끊겨요";
+            var result = JSON.readTree(line(session(accepted, replies.get(i)), utterance));
+            notices(result, "[{\"code\":\"SOURCE_MISMATCH\",\"message\":\"판정이 돌려준 문서가 넘겨준 문서와 맞지 않아 초안을 버렸습니다.\"}]");
+            assertEquals(i == 2 ? List.of("RB-VPN-CERT", "RB-VPN") : List.of("RB-VPN"), ids(result.at("/evidence/0")));
             assertEquals(2, result.get("modelCalls").asInt());
         }
-        assertEquals(4, requests.size());
+        assertEquals(6, requests.size());
     }
 
     @Test void f6_unknownService() throws Exception {
-        var result = JSON.readTree(line(session(intake(List.of("VPN", "급여 시스템"), "연결이 자꾸 끊김", null), draft("RB-VPN")), "a|VPN이랑 급여 시스템이 안 돼요"));
+        var result = JSON.readTree(line(session(intake(List.of("VPN", "급여 시스템"), "자꾸 끊김", null), draft("RB-VPN")), "a|VPN이랑 급여 시스템이 안 돼요"));
         assertEquals(JSON.readTree("{\"outcome\":\"NOT_FOUND\",\"serviceId\":\"급여 시스템\"}"), result.at("/statuses/1"));
         assertEquals(1, result.get("evidence").size());
         assertEquals("VPN", result.at("/evidence/0/serviceId").asText());
@@ -192,23 +215,27 @@ class InquiryPlanTest {
         assertEquals(2, requests.size());
     }
 
-    @Test void f9_rewriteOnlyMissingService() throws Exception {
-        var result = JSON.readTree(line(session(intake(List.of("VPN", "MAIL"), "연결이 자꾸 끊김", null), "{\"query\":\"수신 지연\"}", draft("RB-VPN", "RB-MAIL")), "a|VPN과 메일 연결이 자꾸 끊겨요"));
-        assertEquals(JSON.readTree("[\"연결이 자꾸 끊김\"]"), result.at("/evidence/0/queries"));
+    @Test void f9_onlyOneServiceApplies() throws Exception {
+        var result = JSON.readTree(line(session(intake(List.of("VPN", "MAIL"), "자꾸 끊김", null), judgments(
+                judgment("RB-VPN", "VPN 연결이 끊기면", "APPLIES", VPN_ACTIONS),
+                judgment("RB-MAIL", "", "NOT_COVERED", List.of("본문에 넣으면 안 되는 항목")))), "a|VPN과 메일이 자꾸 끊겨요"));
+        assertEquals(JSON.readTree("[\"자꾸 끊김\"]"), result.at("/evidence/0/queries"));
         assertEquals(List.of("RB-VPN"), ids(result.at("/evidence/0")));
-        assertEquals(JSON.readTree("[\"연결이 자꾸 끊김\",\"수신 지연\"]"), result.at("/evidence/1/queries"));
+        assertEquals(JSON.readTree("[\"자꾸 끊김\"]"), result.at("/evidence/1/queries"));
         assertEquals(List.of("RB-MAIL"), ids(result.at("/evidence/1")));
-        assertEquals(JSON.readTree("[\"MAIL\"]"), input(1).get("targetServices"));
-        assertTrue(result.has("draft"));
-        assertEquals(3, result.get("modelCalls").asInt());
-        assertEquals(3, requests.size());
+        assertEquals(JSON.readTree("[{\"code\":\"NO_EVIDENCE\",\"serviceId\":\"MAIL\",\"message\":\"이 문의에 쓸 운영 문서를 찾지 못했습니다.\"}]"), result.get("notices"));
+        assertTrue(result.at("/draft/text").asText().endsWith("4. 상태나 문서를 확인하지 못한 서비스\n- MAIL: 이 문의에 쓸 운영 문서를 찾지 못했습니다."));
+        assertFalse(result.at("/draft/text").asText().contains("본문에 넣으면 안 되는 항목"));
+        assertEquals(2, result.get("modelCalls").asInt());
+        assertEquals(2, requests.size());
     }
 
-    @Test void f10_rewriteFailureRetainsIntake() throws Exception {
-        String accepted = intake(List.of("VPN", "MAIL"), "연결이 자꾸 끊김", null);
+    @Test void f10_judgmentFailureRetainsIntakeAndSearchNotices() throws Exception {
+        String accepted = intake(List.of("VPN", "WIKI"), "자꾸 끊김", null);
         var session = session(accepted, new OpenAIException("prepared failure"), EMPTY);
-        var result = JSON.readTree(line(session, "a|VPN과 메일 연결이 자꾸 끊겨요"));
-        notices(result, "[{\"code\":\"MODEL_UNAVAILABLE\",\"message\":\"모델을 호출하지 못했습니다.\"}]");
+        var result = JSON.readTree(line(session, "a|VPN과 WIKI가 자꾸 끊겨요"));
+        notices(result, "[{\"code\":\"NO_EVIDENCE\",\"serviceId\":\"WIKI\",\"message\":\"이 문의에 쓸 운영 문서를 찾지 못했습니다.\"},"
+                + "{\"code\":\"MODEL_UNAVAILABLE\",\"message\":\"모델을 호출하지 못했습니다.\"}]");
         assertEquals(List.of("RB-VPN"), ids(result.at("/evidence/0")));
         assertEquals(2, result.get("modelCalls").asInt());
         assertEquals(2, requests.size());
@@ -233,9 +260,13 @@ class InquiryPlanTest {
     }
 
     @Test void f13_noDocumentsForService() throws Exception {
-        var result = JSON.readTree(line(session(intake(List.of("WIKI"), "편집이 안 됨", null)), "a|WIKI 편집이 안 돼요"));
+        var stages = new ArrayList<String>();
+        var analyzed = session(intake(List.of("WIKI"), "편집이 안 됨", null))
+                .accept("a", "WIKI 편집이 안 돼요", stages::add);
+        var result = JSON.readTree(IntakeWire.text(InquiryWire.fields(analyzed)));
+        assertEquals(List.of("INTAKE", "STATUS", "SEARCH"), stages);
         assertEquals(JSON.readTree("[{\"serviceId\":\"WIKI\",\"outcome\":\"NONE\",\"queries\":[\"편집이 안 됨\"],\"documents\":[]}]"), result.get("evidence"));
-        notices(result, "[{\"code\":\"NO_EVIDENCE\",\"serviceId\":\"WIKI\",\"message\":\"운영 문서에서 근거를 찾지 못했습니다.\"}]");
+        notices(result, "[{\"code\":\"NO_EVIDENCE\",\"serviceId\":\"WIKI\",\"message\":\"이 문의에 쓸 운영 문서를 찾지 못했습니다.\"}]");
         assertEquals(1, result.get("modelCalls").asInt());
         assertEquals(1, requests.size());
     }
@@ -246,17 +277,23 @@ class InquiryPlanTest {
     }
 
     @Test void f15_secondUtteranceSearchesAfresh() throws Exception {
-        var session = session(EMPTY, intake(List.of("VPN"), "접속이 안 됨", "인증서 만료"), draft("RB-VPN-CERT"));
+        var session = session(EMPTY, intake(List.of("VPN"), "접속이 안 됨", "인증서 만료"), judgments(
+                judgment("RB-VPN", "VPN 연결이 끊기면", "CONDITION_UNCONFIRMED", List.of("쓰지 않을 항목")),
+                judgment("RB-VPN-CERT", "", "APPLIES", List.of("  갱신을 요청합니다.  "))));
         line(session, "a|접속이 안 돼요");
         var result = JSON.readTree(line(session, "a|VPN이고 인증서 만료 메시지가 나와요"));
         assertEquals(List.of("RB-VPN-CERT", "RB-VPN"), ids(result.at("/evidence/0")));
         assertTrue(user(2).contains(body("RB-VPN-CERT")));
+        assertEquals(JSON.readTree("[\"RB-VPN-CERT\",\"RB-VPN\"]"), result.at("/draft/sources"));
+        assertTrue(result.at("/draft/text").asText().contains("- [RB-VPN-CERT]   갱신을 요청합니다.  \n"
+                + "- [RB-VPN] 문서가 다루는 경우(\"VPN 연결이 끊기면\")인지 확인합니다."));
+        assertFalse(result.at("/draft/text").asText().contains("쓰지 않을 항목"));
         assertTrue(result.has("draft"));
         assertEquals(2, result.get("modelCalls").asInt());
     }
     @Test void f16_allServicesNotFound() throws Exception {
-        String output = line(session(intake(List.of("사내망"), "연결이 자꾸 끊김", null)), "s9|사내망 연결이 자꾸 끊겨요");
-        assertEquals("{\"outcome\":\"NEEDS_INPUT\",\"conversationId\":\"s9\",\"intake\":{\"services\":[\"사내망\"],\"symptom\":\"연결이 자꾸 끊김\"},\"statuses\":[{\"outcome\":\"NOT_FOUND\",\"serviceId\":\"사내망\"}],\"question\":\"말씀하신 서비스는 조회 자료에서 찾지 못했습니다. VPN, 통합 로그인, 메일 가운데 해당하는 서비스가 있으면 알려 주세요. 다른 시스템이라면 이 도구로는 상태를 확인할 수 없으니 담당자에게 문의해 주세요.\"}", output);
+        String output = line(session(intake(List.of("사내망"), "자꾸 끊김", null)), "s9|사내망 연결이 자꾸 끊겨요");
+        assertEquals("{\"outcome\":\"NEEDS_INPUT\",\"conversationId\":\"s9\",\"intake\":{\"services\":[\"사내망\"],\"symptom\":\"자꾸 끊김\"},\"statuses\":[{\"outcome\":\"NOT_FOUND\",\"serviceId\":\"사내망\"}],\"question\":\"말씀하신 서비스는 조회 자료에서 찾지 못했습니다. VPN, 통합 로그인, 메일 가운데 해당하는 서비스가 있으면 알려 주세요. 다른 시스템이라면 이 도구로는 상태를 확인할 수 없으니 담당자에게 문의해 주세요.\"}", output);
         assertEquals(1, requests.size());
     }
 
@@ -267,6 +304,16 @@ class InquiryPlanTest {
         assertEquals(List.of("RB-VPN"), ids(result.at("/evidence/0")));
         assertTrue(result.has("draft"));
         assertFalse(result.has("question"));
+        assertTrue(result.at("/draft/text").asText().contains("2. 상태 조회로 확인된 것\n- 없습니다\n\n"));
+        assertTrue(result.at("/draft/text").asText().endsWith("4. 상태나 문서를 확인하지 못한 서비스\n- VPN: 상태를 조회하지 못했습니다."));
+    }
+
+    @Test void f18_unusableJudgmentValues() throws Exception {
+        for (var item : List.of(judgment("RB-VPN", "", "APPLIES", List.of()),
+                judgment("RB-VPN", "  ", "CONDITION_UNCONFIRMED", List.of()))) {
+            var result = JSON.readTree(line(session(CONNECTION, judgments(item)), "a|VPN이 자꾸 끊겨요"));
+            notices(result, "[{\"code\":\"INVALID_OUTPUT\",\"message\":\"모델의 응답이 약속한 형식과 다릅니다.\"}]");
+        }
     }
 
     @Test void missingEnvironmentExitsTwo() throws Exception {
