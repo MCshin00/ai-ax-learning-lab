@@ -23,7 +23,7 @@ public final class TaskLedger {
     public record Task(String taskId, State state, String reason, int attempts, String workspace) {}
 
     public record Attempt(int number, String startedAt, String endedAt, String end, int exitCode,
-                          boolean inputDelivered, boolean terminationConfirmed, String check, String note) {}
+                          boolean inputDelivered, boolean terminationConfirmed, String check, String checkSummary, String note) {}
 
     public record Lock(int attempt, ProcessRunner.Seen manager) {}
 
@@ -139,9 +139,9 @@ public final class TaskLedger {
             String note = "사람이 남은 프로세스가 없음을 확인하고 잠금을 풀었습니다.";
             Attempt before = attempt(taskId, lock.attempt());
             write(attemptDir(taskId, lock.attempt()).resolve("attempt.json"), before == null
-                ? new Attempt(lock.attempt(), "", "", "ABANDONED", -1, false, true, "", note)
+                ? new Attempt(lock.attempt(), "", "", "ABANDONED", -1, false, true, "", "", note)
                 : new Attempt(before.number(), before.startedAt(), before.endedAt(), before.end(), before.exitCode(),
-                    before.inputDelivered(), true, before.check(), (before.note() + " " + note).strip()));
+                    before.inputDelivered(), true, before.check(), before.checkSummary(), (before.note() + " " + note).strip()));
             write(taskDir(taskId).resolve("task.json"), new Task(taskId, State.NEEDS_CHECK, note, attempts(taskId), workspace(taskId)));
             Files.deleteIfExists(taskDir(taskId).resolve("lock"));
             return null;

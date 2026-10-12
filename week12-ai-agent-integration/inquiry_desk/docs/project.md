@@ -265,7 +265,9 @@ curl -X POST http://127.0.0.1:8080/requests -H "Content-Type: application/json" 
 | `ProcessRunner` | 요청을 표준 입력에 쓰고 닫는다. 제한 시간과 중단 요청을 지켜보고, 하위 프로세스를 추적하며, 종료를 요청한 뒤 실제로 사라졌는지 확인한다. 작업자와 최종 검사가 같은 것을 쓴다 |
 | `GradleChecker` | 작업 폴더에서 검사를 실행하고, 이번 실행이 새로 만든 결과 파일로 통과·실패·실행 불가를 가른다. 실패한 검사가 하나라도 있으면 실패다. 실패가 없을 때는 설정에 적은 검사 작업마다 실행된 검사가 있어야 통과이고, 하나라도 없으면 실행 불가다 |
 | `WorkerRunManager` | 위 넷을 순서대로 잇고 시도의 끝과 작업의 상태를 기록한다. 정상 종료한 작업자의 결과에서 상태와 질문 유무를 읽는다 |
-| `WorkerRunCli` | 실행 진입점. `start <작업 이름> <요청문 파일>`, `stop <작업 이름>`, `status <작업 이름>`, `release <작업 이름> <시도 번호>` |
+| `WorkerRunCli` | 실행 진입점. `start <작업 이름> <요청문 파일>`, `stop <작업 이름>`, `status <작업 이름>`, `release <작업 이름> <시도 번호>`, `watch <소유자/저장소> [--label <라벨>] [--interval <초>]` |
+| `IssueWatch` | 이슈 조회부터 접수 기록 확인, 재조회, 요청문 구성, 작업자 실행, 결과 댓글까지 잇는다 |
+| `GitHubIssues` | GitHub CLI로 이슈 목록·상세를 읽고 결과 댓글을 표준 입력으로 전달한다. 명령 실행을 검사 대역으로 바꿀 수 있다 |
 
 작업자가 돌려주는 결과의 형식은 `src/harness/resources/worker-result.schema.json`에 있다. 끝남 또는 멈춤, 요약, 질문, 변경 파일, 실행한 검사, 확인하지 못한 것, 풀 리퀘스트 본문 초안이다. 작업자가 맡아서 정한 구현 선택과 이유는 본문 초안에 적는다.
 
@@ -299,9 +301,26 @@ curl -X POST http://127.0.0.1:8080/requests -H "Content-Type: application/json" 
 3. `release <작업 이름> <확인한 시도 번호>`로 잠금을 푼다. 잠금이 없거나 시도 번호가 다르거나, 끝이 기록되지 않은 시도의 실행 관리가 살아 있으면 거절한다.
 4. `start <작업 이름> <요청문 파일>`로 다음 시도를 시작한다.
 
-작업의 상태는 `.local/harness/tasks/<작업 이름>/task.json`, 시도별 요청·결과·로그·검사와 프로세스 기록은 그 아래 `attempts/<시도 번호>/`에 남는다. `status <작업 이름>`으로 상태와 이유, 시도 폴더를 확인한다.
+작업의 상태는 `.local/harness/tasks/<작업 이름>/task.json`, 시도별 요청·결과·로그·검사와 프로세스 기록은 그 아래 `attempts/<시도 번호>/`에 남는다. 시도 기록의 `checkSummary`에는 최종 검사의 요약 문장이 남으며 실행하지 않았으면 빈 문자열이다. `status <작업 이름>`으로 상태와 이유, 시도 폴더를 확인한다.
 
 설정의 프로젝트 경로(`projectPath`)가 작업 폴더 밖을 가리키면 작업 폴더를 만들기 전에 거절한다. 서로 다른 작업이 같은 폴더를 고치게 되기 때문이다.
+
+#### 라벨이 붙은 이슈 조회
+
+`[--config <설정 파일>] watch <소유자/저장소> [--label <라벨>] [--interval <초>]`는 실행 관리가 끝날 때까지 이슈를 주기적으로 읽는다. 기본 라벨은 `agent-ready`, 기본 간격은 60초이며 간격은 1 이상의 정수다. 설정 파일은 다른 명령과 같고 조회 옵션은 실행 인수로 받는다. 결정과 이유는 [0016](adr/0016-issues-start-worker-runs.md)에 있다.
+
+한 번의 조회에서는 열려 있고 라벨이 붙은 이슈를 최대 20개 읽어 번호순으로 본다. 작업 이름은 `issue-<번호>`다. 접수 기록에 그 작업의 `task.json`이 있으면 상태와 관계없이 건너뛴다. 실행 관리를 다시 시작해도 같은 접수 기록 폴더를 쓰면 다시 실행하지 않는다.
+
+접수 기록이 없는 첫 이슈를 시작 직전에 다시 읽는다. 닫혔거나 라벨이 없어졌거나 다시 읽지 못하면 접수하지 않는다. 대상이면 `src/harness/resources/issue-request-preamble.md`의 머리말 뒤에 다시 읽은 제목과 본문을 붙여 요청문을 만든다. 기존 `start`로 작업이 끝날 때까지 기다린 뒤 이슈에 상태의 한글 이름과 상태 값, `task/issue-<번호>` 브랜치, 시도 번호를 댓글로 남긴다. `REVIEW_READY`에만 시도 기록의 `checkSummary`에 남은 최종 검사의 요약 문장(예: `검사 127, 실패 0, 건너뜀 0.`)을 `검사` 줄에 넣는다. 상태의 자세한 이유는 로컬 기록에서 본다. 댓글 실패는 출력만 하고 작업 상태를 바꾸지 않는다.
+
+한 번의 조회에서 작업 하나만 시작하고, 조회가 끝난 뒤 지정한 간격만큼 기다린다. 조회 실패는 빈 목록과 구별해 출력하고 다음 간격에 다시 조회한다. 진행과 결과는 표준 출력에 한 줄씩 나온다. Ctrl+C 등으로 종료하면 실행 중인 작업에 중단을 요청하고 정리를 기다린다. 수동으로 다시 실행하려면 기존 `start issue-<번호> <요청문 파일>`을 쓴다. 같은 작업 폴더의 파일을 유지하며 새 시도를 기록한다.
+
+실행할 계정에 GitHub CLI와 Codex 인증을 준비한 뒤 IDE의 `WorkerRunCli` 실행 인수를 `watch <소유자/저장소>`로 둔다. 터미널에서 계속 조회하려면 아래 실행 절의 `installWorkerRun` 배포물로 실행한다.
+
+- Windows PowerShell: `java -cp "build/worker-run/classes;build/worker-run/lib/*" lab.harness.run.WorkerRunCli watch <소유자/저장소> --label agent-ready --interval 60`
+- macOS·Linux·WSL: `java -cp "build/worker-run/classes:build/worker-run/lib/*" lab.harness.run.WorkerRunCli watch <소유자/저장소> --label agent-ready --interval 60`
+
+실습 뒤에는 실행 관리를 종료하고 이슈에서 실행 대상 라벨을 뗀다.
 
 ### Hook
 
@@ -378,7 +397,7 @@ IDE에서는 `lab.harness.run.WorkerRunCli`를 `harness` 소스 묶음의 클래
 
 검사를 캐시 없이 처음부터 다시 실행하게 하는 옵션(`--rerun-tasks` 등)은 검사 명령에 직접 적는다. 실행 관리가 붙여 주지 않는다. 실행 관리나 Hook을 고치는 작업이면 검사 명령과 `checkResults`에 `harnessTest`를 함께 넣는다.
 
-작업 이름은 영문 소문자·숫자·하이픈으로 61자까지이고 영문 소문자나 숫자로 시작한다. 실행 결과는 표준 출력에 JSON으로 나오고, 종료 코드는 상태에 따라 다르다.
+작업 이름은 영문 소문자·숫자·하이픈으로 61자까지이고 영문 소문자나 숫자로 시작한다. `start`, `stop`, `status`, `release` 네 명령의 실행 결과는 표준 출력에 JSON으로 나오고, 종료 코드는 상태에 따라 다르다. `watch`는 표준 출력에 한 줄씩 글을 쓰며 스스로 끝나지 않는다.
 
 | 종료 코드 | 상태 |
 |---|---|

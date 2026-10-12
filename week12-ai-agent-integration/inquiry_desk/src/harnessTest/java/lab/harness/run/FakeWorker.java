@@ -21,6 +21,10 @@ public final class FakeWorker {
                 Files.writeString(Path.of(args[3]), "", StandardCharsets.UTF_8);
             }
             case "hang" -> Thread.sleep(600_000);
+            case "write-then-hang" -> {
+                Files.writeString(Path.of("kept.txt"), "앞선 시도의 변경", StandardCharsets.UTF_8);
+                Thread.sleep(600_000);
+            }
             // 하위 프로세스를 하나 띄우고 그 번호를 파일에 남긴 뒤 둘 다 끝나지 않는다.
             case "family" -> { spawn(args[1]); Thread.sleep(600_000); }
             // 질문을 남기고 멈춘 결과를 쓴 뒤 0이 아닌 코드로 끝난다.
