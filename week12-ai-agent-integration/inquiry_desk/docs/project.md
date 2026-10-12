@@ -179,6 +179,21 @@ k|VPN이랑 급여 시스템이 안 돼요
 
 두 요청의 본문이 JSON 객체가 아니거나 필수 두 값이 공백이 아닌 문자열이 아니면 스트림을 시작하지 않고 400 JSON으로 입력 오류를 돌려준다. 두 경로의 다른 메서드는 405, 그 밖의 경로는 404다.
 
+### 분석 요청의 응답 (실제 응답으로 확인함)
+
+`POST /inquiries`를 쓰는 쪽은 HTTP 상태와 마지막 `result`의 `outcome`을 함께 읽는다. 요청 형식 오류는 HTTP 상태로, 업무 상태는 200 응답의 `result` 안에서 온다. `outcome`의 `FAILED`는 두 곳에 모두 나오므로 HTTP 상태와 `code`로 가른다.
+
+| 요청 | HTTP | 응답에서 읽을 것 |
+|---|---|---|
+| `{"conversationId":"spec1","utterance":"VPN이 자꾸 끊겨요"}` | 200, `text/event-stream; charset=utf-8` | `stage` 이벤트 뒤 `result`. `outcome`은 `READY`. 초안은 `draft`, 처리하지 못한 것은 `notices`와 `review.unprocessed`, 저장에 쓸 값은 `review.reviewId` |
+| `{"conversationId":"spec2","utterance":"접속이 안 돼요"}` | 200, `text/event-stream; charset=utf-8` | `stage`(`INTAKE`) 뒤 `result`. `outcome`은 `NEEDS_INPUT`, 물을 말은 `question`. `review`는 없다 |
+| 접수 모델 호출이 실패한 문의 | 200, `text/event-stream; charset=utf-8` | `result`의 `outcome`은 `FAILED`, 원인은 `code`(`MODEL_UNAVAILABLE`, `INVALID_OUTPUT`). 실제 응답으로는 확인하지 않았다 |
+| `{"conversationId":"spec3"}`(항목이 빠짐), `{}` | 400, `application/json` | `{"outcome":"FAILED","code":"INVALID_INPUT","message":"conversationId와 utterance는 공백이 아닌 문자열이어야 합니다."}` |
+| `not json`(JSON이 아님) | 400, `application/json` | 위와 같은 본문 |
+| `GET /inquiries` | 405 | 본문 없음 |
+
+항목이 빠진 본문과 JSON이 아닌 본문은 응답이 같아서 요청한 쪽이 두 원인을 구별할 수 없다.
+
 ### 실행과 확인
 
 IDE에서 `lab.inquiry.InquiryServerMain`을 실행한다. 작업 폴더는 프로젝트 루트이며, 비공유 실행 설정의 `OPENAI_API_KEY`, `OPENAI_MODEL`은 `InquiryMain`과 같다. 인수는 `[--data-dir <자료 폴더>] [--port <번호>]`이고 기본 포트는 8080이다. `127.0.0.1`에만 열린다. 서버가 뜨면 표준 출력에 `http://127.0.0.1:<실제 포트> 에서 요청을 받습니다.` 한 줄이 나오며, `--port 0`이면 배정된 포트를 표시한다. 설정이 없거나 인수가 잘못되면 종료 코드 2다. IDE의 중지 기능으로 서버를 종료한다.
