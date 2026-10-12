@@ -26,7 +26,7 @@ final class HttpWire {
         var fields = new LinkedHashMap<String, Object>();
         fields.put("outcome", "FAILED");
         fields.put("code", "INVALID_INPUT");
-        fields.put("message", first + "와 " + second + "는 공백이 아닌 문자열이어야 합니다.");
+        fields.put("message", "본문은 JSON 객체여야 하고 " + first + "와 " + second + "는 공백이 아닌 문자열이어야 합니다.");
         return fields;
     }
 

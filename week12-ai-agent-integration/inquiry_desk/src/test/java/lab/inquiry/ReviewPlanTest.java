@@ -1,6 +1,7 @@
 package lab.inquiry;
 
 import com.openai.errors.OpenAIException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lab.inquiry.intake.IntakeWire;
 import lab.inquiry.status.RequestData;
 import lab.inquiry.status.RequestResult;
@@ -32,6 +33,35 @@ class ReviewPlanTest {
         try (var app = new ReviewPlanSupport(directory, CONNECTION.replace("[\"VPN\"]", "[\"VPN\",\"급여 시스템\"]"), DRAFT)) {
             var result = app.accept("VPN과 급여 시스템이 안 돼요");
             assertEquals("[{\"serviceId\":\"급여 시스템\",\"code\":\"NOT_FOUND\"}]",
+                    IntakeWire.text(RequestWire.unprocessed(result.review().unprocessed())));
+        }
+    }
+
+    @Test void noSymptomReasonSurvivesReviewSaveAndRead() throws Exception {
+        try (var app = new ReviewPlanSupport(directory,
+                "{\"services\":[\"VPN\"],\"symptom\":null,\"errorMessage\":null}")) {
+            var result = app.accept("VPN이요");
+            assertEquals("{\"reviewId\":\"7b1c0c1e-0000-4000-8000-000000000001\","
+                    + "\"services\":[{\"serviceId\":\"VPN\",\"revision\":1}],\"unprocessed\":[{\"code\":\"NO_SYMPTOM\"}]}",
+                    IntakeWire.text(HttpWire.fields(result).get("review")));
+            var saved = app.session.save(result.review().reviewId(), "담당자가 고친 본문");
+            assertEquals(SAVED, IntakeWire.text(RequestWire.fields(saved)));
+            var found = RequestWire.fields(app.client.getRequest(saved.requestId()));
+            assertEquals("{\"outcome\":\"FOUND\",\"requestId\":\"REQ-0001\","
+                    + "\"reviewId\":\"7b1c0c1e-0000-4000-8000-000000000001\",\"text\":\"담당자가 고친 본문\","
+                    + "\"services\":[{\"serviceId\":\"VPN\",\"revision\":1}],\"sources\":[],"
+                    + "\"unprocessed\":[{\"code\":\"NO_SYMPTOM\"}]}", IntakeWire.text(found));
+            var stored = new ObjectMapper().readTree(Files.readString(directory.resolve("requests.json")));
+            assertEquals("[{\"code\":\"NO_SYMPTOM\"}]", stored.at("/0/request/unprocessed").toString());
+        }
+    }
+
+    @Test void sourceMismatchFollowsUnprocessedServices() throws Exception {
+        try (var app = new ReviewPlanSupport(directory,
+                CONNECTION.replace("[\"VPN\"]", "[\"VPN\",\"급여 시스템\"]"),
+                DRAFT.replace("RB-VPN", "RB-UNKNOWN"))) {
+            var result = app.accept("VPN과 급여 시스템이 자꾸 끊겨요");
+            assertEquals("[{\"serviceId\":\"급여 시스템\",\"code\":\"NOT_FOUND\"},{\"code\":\"SOURCE_MISMATCH\"}]",
                     IntakeWire.text(RequestWire.unprocessed(result.review().unprocessed())));
         }
     }

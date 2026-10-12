@@ -56,6 +56,11 @@ final class ReviewSession {
             }
         }
         if (services.isEmpty()) return new Result(result, null);
+        for (var notice : result.notices()) {
+            if (notice.serviceId() == null) {
+                unprocessed.add(new RequestData.Unprocessed(null, notice.code().name()));
+            }
+        }
         var review = new Review(ids.get(), List.copyOf(services),
                 result.draft() == null ? List.of() : result.draft().sources(), List.copyOf(unprocessed));
         reviews.put(conversationId, review);

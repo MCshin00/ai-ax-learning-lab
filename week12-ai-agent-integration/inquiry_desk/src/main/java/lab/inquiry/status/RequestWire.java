@@ -51,7 +51,7 @@ public final class RequestWire {
     public static List<Map<String, Object>> unprocessed(List<RequestData.Unprocessed> unprocessed) {
         return unprocessed.stream().map(item -> {
             Map<String, Object> fields = new LinkedHashMap<>();
-            fields.put("serviceId", item.serviceId());
+            if (item.serviceId() != null) fields.put("serviceId", item.serviceId());
             fields.put("code", item.code());
             return fields;
         }).toList();
@@ -99,7 +99,8 @@ public final class RequestWire {
         }
         var unprocessed = new ArrayList<RequestData.Unprocessed>();
         for (var item : array(value, "unprocessed")) {
-            unprocessed.add(new RequestData.Unprocessed(string(item, "serviceId"), string(item, "code")));
+            unprocessed.add(new RequestData.Unprocessed(item.has("serviceId") ? string(item, "serviceId") : null,
+                    string(item, "code")));
         }
         return new RequestData(string(value, "reviewId"), string(value, "text"), services, sources, unprocessed);
     }

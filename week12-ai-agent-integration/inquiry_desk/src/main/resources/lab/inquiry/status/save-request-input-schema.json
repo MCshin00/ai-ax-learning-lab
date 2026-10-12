@@ -27,7 +27,7 @@
           "serviceId": {"type": "string"},
           "code": {"type": "string"}
         },
-        "required": ["serviceId", "code"],
+        "required": ["code"],
         "additionalProperties": false
       }
     }
