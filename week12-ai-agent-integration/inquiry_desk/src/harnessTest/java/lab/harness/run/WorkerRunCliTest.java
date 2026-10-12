@@ -90,6 +90,19 @@ class WorkerRunCliTest {
         return process.exitValue();
     }
 
+    @Test void invalidWatchArgumentsPrintUsageBeforeReadingConfig() throws Exception {
+        for (List<String> arguments : List.of(List.of("watch"), List.of("watch", "owner/repo", "--interval", "0"))) {
+            List<String> command = new ArrayList<>(List.of(WorkerRunManagerTest.java(), "-cp", classpath(),
+                WorkerRunCli.class.getName(), "--config", temp.resolve("absent.json").toString()));
+            command.addAll(arguments);
+            Process process = new ProcessBuilder(command).directory(temp.toFile()).start();
+            assertEquals(2, finished(process));
+            String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            assertTrue(output.startsWith("사용법: "));
+            assertTrue(output.contains("watch <소유자/저장소> [--label <라벨>] [--interval <초>]"));
+        }
+    }
+
     @Test void aRunGoesFromRequestFileToReviewReadyThroughARealWorktree() throws Exception {
         Path request = temp.resolve("request.md");
         Files.writeString(request, "요청문", StandardCharsets.UTF_8);

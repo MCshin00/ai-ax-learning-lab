@@ -70,6 +70,7 @@ public final class WorkerRunManager {
         State state;
         String reason;
         String check = "";
+        String checkSummary = "";
         String hookNote = "";
         try {
             Files.writeString(directory.resolve("request.md"), request, StandardCharsets.UTF_8);
@@ -128,6 +129,7 @@ public final class WorkerRunManager {
                     Check verdict = checker.run(workspace, directory.resolve("check"), stop, watcher);
                     confirmed = verdict.terminationConfirmed();
                     check = verdict.verdict().name();
+                    checkSummary = verdict.summary();
                     reason = verdict.summary();
                     if (!verdict.terminationConfirmed()) {
                         state = State.NEEDS_CHECK;
@@ -153,7 +155,7 @@ public final class WorkerRunManager {
         reason = (reason + hookNote).strip();
         ledger.finish(taskId, new Attempt(number, started, Instant.now().toString(),
             run == null ? "NOT_STARTED" : run.end().name(), run == null ? -1 : run.exitCode(),
-            run != null && run.inputDelivered(), confirmed, check, run == null ? "" : run.note()), state, reason);
+            run != null && run.inputDelivered(), confirmed, check, checkSummary, run == null ? "" : run.note()), state, reason);
         return new Outcome(true, taskId, number, state, reason, directory.toString());
     }
 
@@ -178,7 +180,8 @@ public final class WorkerRunManager {
             : "종료를 요청했지만 프로세스가 남아 있거나 같은 프로세스인지 가릴 수 없습니다.";
         ledger.recordStop(taskId, new Attempt(number, before == null ? "" : before.startedAt(), Instant.now().toString(),
             before == null ? "ABANDONED" : before.end(), before == null ? -1 : before.exitCode(),
-            before != null && before.inputDelivered(), gone, before == null ? "" : before.check(), note),
+            before != null && before.inputDelivered(), gone, before == null ? "" : before.check(),
+            before == null ? "" : before.checkSummary(), note),
             note);
         return current(taskId, "");
     }

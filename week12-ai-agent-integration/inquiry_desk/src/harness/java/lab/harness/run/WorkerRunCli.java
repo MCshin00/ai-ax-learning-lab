@@ -16,7 +16,7 @@ import lab.harness.run.WorkerRunManager.Outcome;
 
 /**
  * 실행 진입점. 작업 폴더는 프로젝트 루트이고 설정은 Git에서 제외된 .local/harness/manager.json에서 읽는다.
- * 사용법: start <작업 이름> <요청문 파일> | stop <작업 이름> | status <작업 이름> | release <작업 이름> <시도 번호>
+ * 사용법: start <작업 이름> <요청문 파일> | stop <작업 이름> | status <작업 이름> | release <작업 이름> <시도 번호> | watch <소유자/저장소>
  */
 public final class WorkerRunCli {
     /**
@@ -42,9 +42,11 @@ public final class WorkerRunCli {
         }
         boolean start = args.length == 3 && args[0].equals("start");
         boolean release = args.length == 3 && args[0].equals("release") && args[2].matches("\\d{1,6}");
-        if (!start && !release && !(args.length == 2 && List.of("stop", "status").contains(args[0]))) {
+        WatchOptions watch = WatchOptions.parse(args);
+        if (!start && !release && watch == null && !(args.length == 2 && List.of("stop", "status").contains(args[0]))) {
             System.out.println("사용법: [--config <설정 파일>] start <작업 이름> <요청문 파일> | stop <작업 이름>"
-                + " | status <작업 이름> | release <작업 이름> <확인한 시도 번호>");
+                + " | status <작업 이름> | release <작업 이름> <확인한 시도 번호>"
+                + " | watch <소유자/저장소> [--label <라벨>] [--interval <초>]");
             System.exit(2);
         }
         Config config = JSON.readValue(Files.readString(configFile, StandardCharsets.UTF_8), Config.class);
@@ -58,6 +60,14 @@ public final class WorkerRunCli {
                 Duration.ofSeconds(config.checkTimeoutSeconds()), results),
             new WorkerRunManager.Settings(config.workerCommand(), orEmpty(config.workerEnvironment()),
                 Duration.ofSeconds(config.workerTimeoutSeconds())));
+
+        if (watch != null) {
+            IssueWatch watcher = new IssueWatch(ledger, manager, new GitHubIssues(watch.repository()), watch.label(), System.out);
+            Thread main = Thread.currentThread();
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> watcher.shutdown(main), "worker-cleanup"));
+            watcher.run(watch.interval(), seconds -> Thread.sleep(seconds * 1000L));
+            return;
+        }
 
         String taskId = args[1];
         Outcome outcome;
@@ -95,5 +105,28 @@ public final class WorkerRunCli {
 
     private static Map<String, String> orEmpty(Map<String, String> values) {
         return values == null ? Map.of() : values;
+    }
+
+    record WatchOptions(String repository, String label, int interval) {
+        static WatchOptions parse(String[] args) {
+            if (args.length < 2 || !args[0].equals("watch") || args.length % 2 != 0
+                    || !args[1].matches("[^/\\s]+/[^/\\s]+")) return null;
+            String label = "agent-ready";
+            int interval = 60;
+            var seen = new java.util.HashSet<String>();
+            for (int i = 2; i < args.length; i += 2) {
+                if (!seen.add(args[i])) return null;
+                switch (args[i]) {
+                    case "--label" -> label = args[i + 1];
+                    case "--interval" -> {
+                        try { interval = Integer.parseInt(args[i + 1]); }
+                        catch (NumberFormatException invalid) { return null; }
+                        if (interval < 1) return null;
+                    }
+                    default -> { return null; }
+                }
+            }
+            return new WatchOptions(args[1], label, interval);
+        }
     }
 }
