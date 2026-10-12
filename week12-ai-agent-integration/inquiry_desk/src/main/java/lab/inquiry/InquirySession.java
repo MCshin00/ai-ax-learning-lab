@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 final class InquirySession {
@@ -42,6 +43,15 @@ final class InquirySession {
     Result accept(String line) {
         modelCalls = 0;
         var accepted = intake.accept(line);
+        return analyze(accepted, stage -> {});
+    }
+
+    Result accept(String conversationId, String utterance, Consumer<String> stages) {
+        modelCalls = 0;
+        return analyze(intake.accept(conversationId, utterance, stages), stages);
+    }
+
+    private Result analyze(IntakeSession.Result accepted, Consumer<String> stages) {
         var evidence = new ArrayList<Evidence>();
         var notices = new ArrayList<Notice>();
         if (accepted.failure() != null || IntakeWire.needsInput(accepted)) {
@@ -54,6 +64,7 @@ final class InquirySession {
             notices.add(new Notice(Code.NO_SYMPTOM, null));
             return new Result(accepted, evidence, null, notices, modelCalls);
         }
+        stages.accept("SEARCH");
         for (int i = 0; i < value.services().size(); i++) {
             if (accepted.statuses().get(i).outcome() == LookupResult.Outcome.NOT_FOUND) continue;
             String service = value.services().get(i);
@@ -62,6 +73,7 @@ final class InquirySession {
         var targets = evidence.stream().filter(item -> item.search().outcome() == RunbookSearch.Outcome.NONE
                 && item.search().hasServiceDocuments()).map(Evidence::serviceId).toList();
         if (!targets.isEmpty()) {
+            stages.accept("REWRITE");
             var rewritten = model.rewrite(value, targets);
             if (rewritten.failure() != null) {
                 addSearchNotices(evidence, notices, targets);
@@ -80,6 +92,7 @@ final class InquirySession {
         var documents = evidence.stream().flatMap(item -> item.search().documents().stream()).toList();
         InquiryModel.Draft draft = null;
         if (!documents.isEmpty()) {
+            stages.accept("DRAFT");
             var drafted = model.draft(value, accepted.statuses(), documents);
             if (drafted.failure() != null) notices.add(new Notice(drafted.failure(), null));
             else {

@@ -1,0 +1,65 @@
+{
+  "type": "object",
+  "oneOf": [
+    {
+      "properties": {
+        "outcome": {"const": "FOUND"},
+        "requestId": {"type": "string"},
+        "reviewId": {"type": "string"},
+        "text": {"type": "string"},
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "serviceId": {"type": "string"},
+              "revision": {"type": "integer"}
+            },
+            "required": ["serviceId", "revision"],
+            "additionalProperties": false
+          }
+        },
+        "sources": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "unprocessed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "serviceId": {"type": "string"},
+              "code": {"type": "string"}
+            },
+            "required": ["serviceId", "code"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["outcome", "requestId", "reviewId", "text", "services", "sources", "unprocessed"]
+    },
+    {
+      "properties": {
+        "outcome": {"const": "NOT_FOUND"},
+        "requestId": {"type": "string"}
+      },
+      "required": ["outcome", "requestId"]
+    },
+    {
+      "properties": {
+        "outcome": {"const": "INVALID_INPUT"},
+        "code": {"type": "string", "enum": ["INVALID_ARGUMENTS"]},
+        "message": {"type": "string"}
+      },
+      "required": ["outcome", "code", "message"]
+    },
+    {
+      "properties": {
+        "outcome": {"const": "UNAVAILABLE"},
+        "code": {"type": "string", "enum": ["REQUESTS_UNREADABLE"]},
+        "message": {"type": "string"}
+      },
+      "required": ["outcome", "code", "message"]
+    }
+  ]
+}

@@ -13,18 +13,19 @@
 
 ## 처리 순서
 
-접수(모델) → 상태 조회(코드가 MCP 호출) → 운영 문서 검색 → 필요하면 검색어 다시 쓰기(모델, 한 번)와 재검색 → 초안(모델) → 출처 검사(코드) → 검토·저장(담당자 확인 뒤 코드가 MCP 호출). 이유는 [0001](adr/0001-processing-roles.md), [0012](adr/0012-runbook-search.md), [0013](adr/0013-source-check-and-missing-evidence.md)에 있다.
+접수(모델) → 상태 조회(코드가 MCP 호출) → 운영 문서 검색 → 필요하면 검색어 다시 쓰기(모델, 한 번)와 재검색 → 초안(모델) → 출처 검사(코드) → 검토본 보관 → 담당자의 본문 편집·저장 요청 → 현재 검토 ID 확인(앱) → 재전송·변경 번호 대조와 저장(MCP 서버). HTTP는 같은 분석의 단계와 결과를 보내고 저장 요청을 따로 받는다. 이유는 [0001](adr/0001-processing-roles.md), [0012](adr/0012-runbook-search.md), [0013](adr/0013-source-check-and-missing-evidence.md), [0014](adr/0014-review-and-save.md), [0015](adr/0015-http-for-the-review-screen.md)에 있다.
 
 ## 지금 구현된 것
 
 | 구간 | 상태 |
 |---|---|
-| 상태 조회 | 별도 stdio MCP 서버가 `get_service_status`를 공개한다. 요청 ID와 같은 첫 행에서 읽은 값을 전달하며, 앱 클라이언트와 운영 도구가 같은 서버를 호출한다. 클라이언트는 서버의 원인 값과 문장을 그대로 전달한다 |
+| 상태 조회 | 별도 stdio MCP 서버가 `get_service_status`를 공개한다. 요청한 서비스 ID와 같은 첫 행에서 읽은 값을 전달하며, 앱 클라이언트와 운영 도구가 같은 서버를 호출한다. 클라이언트는 서버의 원인 값과 문장을 그대로 전달한다 |
 | 접수 | OpenAI Java SDK의 엄격한 JSON Schema로 서비스·증상·오류를 받는다. 대화별 이전 결과를 이어 보내고, 서비스가 있으면 주입한 조회 함수로 모두 조회한다. 서비스가 없거나 모두 조회 자료에 없으면 질문한다 |
 | 운영 문서 검색 | 서비스별 문서를 매번 읽고 Lucene BM25와 KoreanAnalyzer로 제목·본문을 검색한다. 서비스마다 최대 2개를 넘긴다 |
 | 검색어 다시 쓰기 | 문서는 있지만 근거가 없는 서비스의 검색어를 모델이 한 번 다시 쓰고 그 서비스만 다시 찾는다 |
 | 초안·출처 검사 | 찾은 문서와 상태로 초안을 만들고 출처가 이번 검색 결과에 속하는지 코드가 대조한다. 서비스별 근거와 실패 이유를 함께 돌려준다 |
-| 검토·저장, HTTP | 없음 |
+| 검토·저장 | 앱이 대화별 최신 검토본을 보관한다. 담당자가 보낸 본문과 검토본으로 `save_request`를 호출하고, 운영 도구가 `get_request`로 읽는다 |
+| HTTP | `127.0.0.1`의 JDK HTTP 서버가 분석과 저장을 POST로 공개한다. 분석은 SSE로 처리 단계와 최종 결과를 보낸다 |
 
 ## 제공 자료
 
@@ -40,16 +41,16 @@
 
 | 파일 | 맡은 일 |
 |---|---|
-| `ServiceCatalog.java` | 인수를 먼저 확인하고 매번 `services.json`에서 요청 ID와 같은 첫 행을 읽는다. 조회 결과나 읽지 못한 원인을 돌려준다 |
+| `ServiceCatalog.java` | 인수를 먼저 확인하고 매번 `services.json`에서 요청한 서비스 ID와 같은 첫 행을 읽는다. 조회 결과나 읽지 못한 원인을 돌려준다 |
 | `LookupResult.java` | 서비스별 결과와 문자열 원인 값. 앱이 실패를 만들 때 쓰는 원인 상수도 둔다 |
 | `StatusWire.java` | 도구 선언, 공개 JSON의 필드·순서와 MCP 내용 변환, 구조화된 응답 해석. 텍스트 내용은 해석하지 않는다 |
-| `StatusServerMain.java` | `get_service_status` 도구 하나를 별도 프로세스의 표준 입출력으로 공개한다 |
-| `StatusClient.java` | 서버 시작·목록·순차 조회·종료. 응답 제한 시간은 10초다. 응답 읽기는 `StatusWire.decode`에 맡기며 통신 실패는 `MCP_UNAVAILABLE`로 돌려준다 |
-| `OperationsMain.java` | 담당자가 도구 목록이나 서비스별 결과를 JSON 한 줄로 확인하는 진입점 |
+| `StatusServerMain.java` | 상태 조회·요청 저장·요청 조회 도구 셋을 별도 프로세스의 표준 입출력으로 공개한다 |
+| `StatusClient.java` | 서버 시작·목록·상태 조회·저장·요청 조회·종료. 같은 서버 프로세스와 연결을 쓰며 응답 제한 시간은 10초다. 응답 읽기는 `StatusWire`와 `RequestWire`에 맡기고 통신 실패는 `MCP_UNAVAILABLE`로 돌려준다 |
+| `OperationsMain.java` | 담당자가 도구 목록, 서비스 상태, 저장된 요청을 JSON 한 줄로 확인하는 진입점 |
 
 응답 형식은 `src/main/resources/lab/inquiry/status/status-output-schema.json`에 있다. 자료와 응답을 읽는 규칙, 읽지 못했을 때의 결과는 [0006](adr/0006-status-lookup-inputs.md)과 [0011](adr/0011-each-app-owns-its-own-responsibility.md)에 정리한다.
 
-IDE에서 `lab.inquiry.status.OperationsMain`을 실행하고 작업 폴더를 프로젝트 루트로 둔다. 인수가 없으면 도구 목록, `get VPN`이면 VPN 조회 결과를 출력한다. 다른 자료 폴더는 `--data-dir <자료 폴더> get VPN`으로 지정한다. `FOUND`·`NOT_FOUND`의 종료 코드는 0, 조회·입력 오류는 1이다. 실행 인수의 형태가 틀리면 표준 오류에 사용법을 쓰고 2로 끝난다. 빈 서비스 ID는 서버에 넘겨 `INVALID_INPUT`을 받는다.
+IDE에서 `lab.inquiry.status.OperationsMain`을 실행하고 작업 폴더를 프로젝트 루트로 둔다. 인수가 없으면 도구 목록, `get VPN`이면 VPN 조회 결과, `request REQ-0001`이면 저장된 요청을 출력한다. 다른 자료 폴더는 앞에 `--data-dir <자료 폴더>`를 붙여 지정한다. `FOUND`·`NOT_FOUND`의 종료 코드는 0, 조회·입력 오류는 1이다. 실행 인수의 형태가 틀리면 표준 오류에 사용법을 쓰고 2로 끝난다. 빈 서비스 ID는 서버에 넘겨 `INVALID_INPUT`을 받는다.
 
 서버를 직접 연결할 때의 진입점은 `lab.inquiry.status.StatusServerMain`, 인수는 `[자료 폴더]`이며 생략하면 `data`다. 운영 도구는 선택한 자료 폴더로 이 서버를 시작한다. 서버의 표준 출력은 MCP 메시지 전용이다.
 
@@ -63,7 +64,7 @@ IDE에서 `lab.inquiry.status.OperationsMain`을 실행하고 작업 폴더를 �
 |---|---|
 | `IntakeModel.java` | 이름 대응표와 질문·접수 지침, 엄격한 스키마를 지정한 모델 요청, 완료·거절·내용 유무 확인, JSON 읽기와 중복 서비스 제거. `Call` 한 곳에서 모델 호출을 검사 대역으로 바꾼다 |
 | `Intake.java` | 서비스 목록, 증상, 오류 메시지를 담는 내부 값 |
-| `IntakeSession.java` | 첫 `\|`로 대화 ID와 발언을 나누고 대화별 현재 결과·발언 원문을 메모리에 보관한다. 접수 결과의 서비스를 주입한 `Function<String, LookupResult>`로 순서대로 조회하고 성공한 접수만 상태에 반영한다 |
+| `IntakeSession.java` | 콘솔 입력은 첫 `\|`로 나누고 HTTP는 대화 ID와 발언을 각각 받는다. 대화별 현재 결과·발언 원문을 메모리에 보관하고 접수 결과의 서비스를 주입한 조회 함수로 순서대로 조회한다. 성공한 접수만 상태에 반영하며 접수와 조회 시작을 알린다 |
 | `IntakeWire.java` | 접수 결과의 질문 필요 여부, 공개 JSON 필드와 순서, 없는 값의 생략. 상태 항목은 기존 `StatusWire.fields`로 변환한다 |
 
 이름 대응표는 `IntakeModel.NAMES`에, 접수 지침과 예는 `IntakeModel.INSTRUCTIONS`에 있다. 결과는 `READY`, `NEEDS_INPUT`, `FAILED`다. 한 서비스의 조회 실패는 그 서비스의 `statuses` 항목에 남고 접수 전체는 `READY`다. 모델 호출은 OpenAI Java SDK 4.60.0의 Chat Completions를 직접 사용하고, 제한 시간은 30초, SDK 자동 재시도는 0회다.
@@ -149,6 +150,69 @@ k|VPN이랑 급여 시스템이 안 돼요
 | `s7\|VPN이요` (새 대화) | 상태는 돌려주고 `evidence`는 비어 있으며 `NO_SYMPTOM`이 나오는지 |
 
 `RunbookSearchPlanTest`는 제공 자료로 실제 Lucene 검색을, `InquiryPlanTest`는 준비한 모델 응답과 상태 조회 대역으로 전체 흐름·공개 결과·환경변수 없는 진입점을 검사한다. 자동 검사는 접수 모델의 해석, 다시 쓴 검색어의 쓸모, 초안 문장과 원문의 일치를 확인하지 못한다. 이 세 가지는 위 입력을 실제 모델로 실행하고 접수 결과·검색어·문서·초안을 함께 읽어 확인한다.
+
+## 검토 후 저장과 HTTP
+
+검토·저장의 결정과 이유는 [0014](adr/0014-review-and-save.md), HTTP와 진행 단계는 [0015](adr/0015-http-for-the-review-screen.md)에 있다.
+
+| 파일 | 맡은 일 |
+|---|---|
+| `src/main/java/lab/inquiry/ReviewSession.java` | 같은 분석을 호출하고 대화별 최신 검토본을 메모리에 보관한다. 저장 시 검토 ID를 확인하고 보관한 값과 담당자의 본문을 연결한다 |
+| `src/main/java/lab/inquiry/HttpWire.java` | HTTP 본문을 읽고 형식 오류, 검토본이 붙은 분석 결과, 저장의 HTTP 상태를 정한다 |
+| `src/main/java/lab/inquiry/InquiryHttpServer.java` | 두 POST 경로와 SSE 전송을 맡는다. 각 단계를 즉시 내보내고 연결이 끊기면 이후 쓰기를 멈춘다 |
+| `src/main/java/lab/inquiry/InquiryServerMain.java` | 실행 인수와 모델 설정을 확인하고 SDK, MCP 클라이언트, HTTP 서버를 연결한다 |
+| `src/main/java/lab/inquiry/status/RequestData.java`, `RequestResult.java` | 저장할 본문·서비스·출처·미처리 목록과 저장·조회 결과를 담는다 |
+| `src/main/java/lab/inquiry/status/RequestStore.java` | 기존 검토 ID와 서비스 변경 번호를 대조하고 `requests.json`에 저장하거나 요청 ID로 읽는다 |
+| `src/main/java/lab/inquiry/status/RequestWire.java` | 저장·조회 MCP 도구의 선언, 인수 확인, 구조화된 응답의 읽기와 공개 필드 변환을 맡는다 |
+| `src/main/resources/lab/inquiry/status/{save,get}-request-{input,output}-schema.json` | 저장·조회 도구의 입력과 오류를 포함한 응답 형태를 선언한다 |
+
+접수에 성공하면 이전 검토 ID는 사용할 수 없게 된다. `READY`이고 상태가 `FOUND`인 서비스가 하나 이상이면 무작위 UUID로 검토 ID를 만들고, 확인된 서비스의 ID·`revision`, 초안의 출처, 서비스별 미처리 목록을 보관한다. 초안이 없으면 출처는 빈 목록이다. 접수 실패는 이전 검토본을 남긴다.
+
+화면은 검토 ID와 편집한 본문만 보낸다. 앱은 최신 검토 ID인지 확인하고 보관한 서비스·출처·미처리 목록을 붙여 `save_request`로 보낸다. 서버는 같은 검토 ID의 기존 요청을 먼저 찾는다. 내용이 같으면 기존 요청 ID를, 다르면 충돌을 돌려준다. 새 요청이면 현재 서비스의 변경 번호를 대조한 뒤 본문을 그대로 `<자료 폴더>/requests.json`에 저장한다. 요청 ID는 저장 순서에 따라 `REQ-0001`부터 붙는다. 운영 도구의 `request <요청ID>`는 `get_request`를 통해 이 파일에서 읽는다. 파일이 없으면 저장된 요청이 없는 것이며, 앱을 다시 실행해도 저장된 요청은 남는다.
+
+| 요청 | 입력과 응답 |
+|---|---|
+| `POST /inquiries` | `{"conversationId":"a","utterance":"VPN이 자꾸 끊겨요"}`를 받는다. 두 문자열은 그대로 쓰므로 대화 ID의 `\|`도 나누지 않는다. 200 `text/event-stream; charset=utf-8`로 단계와 결과를 보낸다 |
+| `POST /requests` | `{"reviewId":"<분석 결과의 검토 ID>","text":"담당자가 고친 본문"}`을 받는다. JSON 응답은 저장·같은 내용의 재전송 200, 오래된 검토본·내용 충돌·상태 변경 409, 서버·통신 오류 503이다 |
+
+분석은 단계 시작마다 `event: stage`와 `data: {"stage":"INTAKE"}` 형태로 보낸다. 순서는 `INTAKE` → `STATUS` → `SEARCH` → `REWRITE` → `DRAFT`이며 실제 수행하는 단계만 나온다. 마지막 `event: result`의 `data`는 콘솔 결과와 같고 저장할 수 있으면 끝에 `review`가 붙는다. `review`에는 `reviewId`, `services`, `unprocessed`가 이 순서로 담긴다. 추가 질문과 접수 실패도 이 마지막 결과로 받는다. 분석 도중 화면이 연결을 끊어도 분석은 끝까지 진행한다. 요청은 한 번에 하나씩 처리한다.
+
+두 요청의 본문이 JSON 객체가 아니거나 필수 두 값이 공백이 아닌 문자열이 아니면 스트림을 시작하지 않고 400 JSON으로 입력 오류를 돌려준다. 두 경로의 다른 메서드는 405, 그 밖의 경로는 404다.
+
+### 실행과 확인
+
+IDE에서 `lab.inquiry.InquiryServerMain`을 실행한다. 작업 폴더는 프로젝트 루트이며, 비공유 실행 설정의 `OPENAI_API_KEY`, `OPENAI_MODEL`은 `InquiryMain`과 같다. 인수는 `[--data-dir <자료 폴더>] [--port <번호>]`이고 기본 포트는 8080이다. `127.0.0.1`에만 열린다. 서버가 뜨면 표준 출력에 `http://127.0.0.1:<실제 포트> 에서 요청을 받습니다.` 한 줄이 나오며, `--port 0`이면 배정된 포트를 표시한다. 설정이 없거나 인수가 잘못되면 종료 코드 2다. IDE의 중지 기능으로 서버를 종료한다.
+
+요청 본문은 IDE에서 UTF-8 파일로 작성한다. 분석 본문을 `http/inquiry.json`, 저장 본문을 `http/request.json`에 두고, 저장 본문의 검토 ID는 분석의 `result`에서 복사한다. 아래 파일명은 실행할 때 준비하는 요청 파일이다. SSE 단계가 도착하는 순서와 재전송을 확인하기 위해 `curl`로 같은 본문을 보낸다.
+
+Windows PowerShell:
+
+```powershell
+curl.exe -N -X POST http://127.0.0.1:8080/inquiries -H "Content-Type: application/json" --data-binary "@http/inquiry.json"
+curl.exe -X POST http://127.0.0.1:8080/requests -H "Content-Type: application/json" --data-binary "@http/request.json"
+```
+
+macOS·Linux·WSL:
+
+```sh
+curl -N -X POST http://127.0.0.1:8080/inquiries -H "Content-Type: application/json" --data-binary @http/inquiry.json
+curl -X POST http://127.0.0.1:8080/requests -H "Content-Type: application/json" --data-binary @http/request.json
+```
+
+저장한 뒤 IDE에서 `OperationsMain`의 인수를 `request <요청ID>`로 두어 읽는다. HTTP 서버에 다른 자료 폴더를 지정했다면 운영 도구에도 같은 `--data-dir`을 지정한다.
+
+실제 모델에서 볼 것은 다음과 같다.
+
+| 입력·동작 | 볼 것 |
+|---|---|
+| "VPN이 자꾸 끊겨요" 분석 → 본문 편집 → 저장 → 운영 도구 조회 | 편집한 본문이 그대로 읽히는지 |
+| 같은 저장 요청 재전송 → 본문만 바꿔 재전송 | 같은 요청 ID와 `SAVED`가 나온 뒤 `CONFLICT`가 나오는지 |
+| 앱을 다시 실행한 뒤 운영 도구 조회 | 저장된 요청이 그대로 읽히는지 |
+| "VPN과 급여 시스템이 안 돼요" | 검토본의 미처리에 급여 시스템의 `NOT_FOUND`가 남는지 |
+| 같은 대화에서 대상을 정정한 뒤 이전 검토 ID로 저장 | `STALE_REVIEW`로 거절하는지 |
+| 분석 응답을 받는 동안 단계 관찰 | 시작한 단계가 먼저 도착하고 마지막에 `result` 하나가 도착하는지 |
+
+`RequestPlanTest`는 실제 MCP 프로세스로 저장·조회·재시작·재전송과 운영 도구를 확인한다. `ReviewPlanTest`는 준비한 모델 응답과 실제 MCP 연결로 검토본의 수명과 저장할 값을 확인한다. `HttpPlanTest`는 같은 대역 모델을 빈 포트의 실제 HTTP 서버에 연결해 SSE, 저장, 입력 오류, 연결 종료 뒤 분석 진행을 확인한다. Gradle 검사는 Windows PowerShell에서 `.\gradlew.bat test`, macOS·Linux·WSL에서 `./gradlew test`로 실행하며 결과는 `build/test-results/test`에 있다.
 
 ## 개발 환경
 

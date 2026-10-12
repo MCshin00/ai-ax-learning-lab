@@ -1,0 +1,45 @@
+{
+  "type": "object",
+  "oneOf": [
+    {
+      "properties": {
+        "outcome": {"const": "SAVED"},
+        "requestId": {"type": "string"}
+      },
+      "required": ["outcome", "requestId"]
+    },
+    {
+      "properties": {
+        "outcome": {"const": "CONFLICT"},
+        "code": {"type": "string", "enum": ["CONTENT_MISMATCH"]},
+        "message": {"type": "string"}
+      },
+      "required": ["outcome", "code", "message"]
+    },
+    {
+      "properties": {
+        "outcome": {"const": "STATUS_CHANGED"},
+        "serviceId": {"type": "string"},
+        "code": {"type": "string", "enum": ["REVISION_MISMATCH"]},
+        "message": {"type": "string"}
+      },
+      "required": ["outcome", "serviceId", "code", "message"]
+    },
+    {
+      "properties": {
+        "outcome": {"const": "INVALID_INPUT"},
+        "code": {"type": "string", "enum": ["INVALID_ARGUMENTS"]},
+        "message": {"type": "string"}
+      },
+      "required": ["outcome", "code", "message"]
+    },
+    {
+      "properties": {
+        "outcome": {"const": "UNAVAILABLE"},
+        "code": {"type": "string", "enum": ["DATA_UNREADABLE", "DATA_INVALID", "REQUESTS_UNREADABLE", "REQUESTS_UNWRITABLE"]},
+        "message": {"type": "string"}
+      },
+      "required": ["outcome", "code", "message"]
+    }
+  ]
+}

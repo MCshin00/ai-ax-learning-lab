@@ -20,7 +20,7 @@ class OperationsPlanTest {
     private void usage(String... args) throws Exception {
         var actual = run(args);
         assertEquals(2, actual.exit()); assertEquals("", actual.out());
-        assertEquals("사용법: OperationsMain [--data-dir <자료 폴더>] [get <서비스ID>]. 인수가 없으면 도구 목록을 조회합니다."
+        assertEquals("사용법: OperationsMain [--data-dir <자료 폴더>] [get <서비스ID> | request <요청ID>]. 인수가 없으면 도구 목록을 조회합니다."
                 + System.lineSeparator(), actual.err());
     }
 
